@@ -1,9 +1,14 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Root paths
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 UPLOAD_DIR = BACKEND_DIR / "uploads"
+
+# Load .env file if present
+load_dotenv(BACKEND_DIR / ".env")
+load_dotenv(BACKEND_DIR.parent / ".env")
 
 class Settings:
     PROJECT_NAME: str = "E-Pupuk Kabupaten Mojokerto"

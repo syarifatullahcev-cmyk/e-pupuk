@@ -8,6 +8,7 @@ import StatusBadge from '../components/StatusBadge';
 import FileUploadZone from '../components/FileUploadZone';
 import PhotoViewerModal from '../components/PhotoViewerModal';
 import KPICard from '../components/KPICard';
+import { formatCoord } from '../utils/format';
 
 export default function PPLDashboard() {
   const [tasks, setTasks] = useState([]);
@@ -201,7 +202,7 @@ export default function PPLDashboard() {
                     <span className="text-slate-400 block text-[10px] uppercase font-bold">Lokasi & Alamat Lahan</span>
                     <p className="font-semibold text-slate-800 mt-0.5">{task.alamat_lahan}</p>
                     <span className="text-[11px] text-slate-500 font-mono mt-0.5 block">
-                      GPS: {task.latitude?.toFixed(4)}, {task.longitude?.toFixed(4)}
+                      GPS: {formatCoord(task.latitude)}, {formatCoord(task.longitude)}
                     </span>
                   </div>
 

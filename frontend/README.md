@@ -1,16 +1,44 @@
-# React + Vite
+# 🌾 E-Pupuk Mojokerto - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Antarmuka web klien untuk **Sistem Verifikasi & Distribusi Pupuk Bersubsidi Kabupaten Mojokerto**, dibangun menggunakan React 19, Vite, dan Tailwind CSS v4.
 
-Currently, two official plugins are available:
+Untuk panduan lengkap arsitektur dan cara menjalankan sistem secara keseluruhan dari awal (backend, database, dan frontend), silakan merujuk ke [README Utama di Root Project](../README.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🚀 Menjalankan Frontend Secara Mandiri
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. Instalasi Dependensi
+Pastikan Node.js (v18+) dan npm telah terpasang:
+```bash
+npm install
+```
 
-## Expanding the Oxlint configuration
+### 2. Menjalankan Server Development
+```bash
+npm run dev
+```
+Aplikasi dapat diakses pada browser di: `http://localhost:5173`
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+> **Catatan Konfigurasi Proxy:**
+> Frontend Vite telah dikonfigurasi dengan reverse proxy otomatis (`vite.config.js`) yang meneruskan request `/api` dan `/files` ke backend FastAPI di `http://127.0.0.1:8000`. Pastikan server backend sudah berjalan.
+
+### 3. Build untuk Produksi
+```bash
+npm run build
+```
+
+### 4. Linting
+```bash
+npm run lint
+```
+
+---
+
+## 📦 Daftar Halaman Utama
+
+- **Login (`/login`)**: Halaman autentikasi terpusat untuk semua peran (Admin, PPL, Petani, Pimpinan).
+- **Dashboard Petani (`/petani`)**: Pengelolaan data lahan, form pengajuan kuota subsidi, kalkulator pupuk, upload berkas, dan kartu QR Code.
+- **Dashboard Admin (`/admin`)**: Verifikasi dokumen administratif, penugasan PPL, persetujuan akhir, rekapitulasi KPI, dan log audit.
+- **Dashboard PPL (`/ppl`)**: Daftar tugas survei lapangan, form laporan hasil cek fisik sawah, dan upload foto bukti lapangan.
+- **Kiosk Scanner (`/kiosk-scanner`)**: Modul pemindai kamera QR Code realtime untuk verifikasi penebusan di kios resmi.

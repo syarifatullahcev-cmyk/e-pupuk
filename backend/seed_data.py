@@ -1,5 +1,13 @@
+import sys
 import datetime
+from pathlib import Path
 from decimal import Decimal
+
+# Ensure backend root is in sys.path
+BASE_DIR = Path(__file__).resolve().parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 from app.core.database import SessionLocal, engine
 from app.core.security import get_password_hash
 from app.models.models import (

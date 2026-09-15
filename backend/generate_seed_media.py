@@ -1,9 +1,13 @@
 import os
+from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
-os.makedirs("backend/uploads/ktp", exist_ok=True)
-os.makedirs("backend/uploads/lahan", exist_ok=True)
-os.makedirs("backend/uploads/survei", exist_ok=True)
+BASE_DIR = Path(__file__).resolve().parent
+UPLOAD_DIR = BASE_DIR / "uploads"
+
+(UPLOAD_DIR / "ktp").mkdir(parents=True, exist_ok=True)
+(UPLOAD_DIR / "lahan").mkdir(parents=True, exist_ok=True)
+(UPLOAD_DIR / "survei").mkdir(parents=True, exist_ok=True)
 
 def create_ktp_image(filename, name, nik, address):
     img = Image.new('RGB', (800, 500), color='#0f766e')
@@ -57,22 +61,22 @@ def create_landscape_image(filename, title, subtitle, bg_color='#15803d'):
     print(f"Created {filename}")
 
 if __name__ == "__main__":
-    create_ktp_image("backend/uploads/ktp/sample_ktp_budi.jpg", "BUDI SANTOSO", "3516011208800001", "Dsn. Sumberarum RT 02 RW 01, Mojosari")
-    create_ktp_image("backend/uploads/ktp/sample_ktp_siti.jpg", "SITI AMINAH", "3516025505850002", "Dsn. Kemasan RT 03 RW 02, Trowulan")
+    create_ktp_image(str(UPLOAD_DIR / "ktp" / "sample_ktp_budi.jpg"), "BUDI SANTOSO", "3516011208800001", "Dsn. Sumberarum RT 02 RW 01, Mojosari")
+    create_ktp_image(str(UPLOAD_DIR / "ktp" / "sample_ktp_siti.jpg"), "SITI AMINAH", "3516025505850002", "Dsn. Kemasan RT 03 RW 02, Trowulan")
     create_landscape_image(
-        "backend/uploads/lahan/sample_sawah_mojosari.jpg",
+        str(UPLOAD_DIR / "lahan" / "sample_sawah_mojosari.jpg"),
         "DOKUMENTASI FOTO LAHAN PERTANIAN - SAWAH PADI",
         "Lokasi: Mojosari, Kab. Mojokerto | Luas: 12.000 m² | Komoditas: Padi Ciherang",
         bg_color='#14532d'
     )
     create_landscape_image(
-        "backend/uploads/lahan/sample_jagung_trowulan.jpg",
+        str(UPLOAD_DIR / "lahan" / "sample_jagung_trowulan.jpg"),
         "DOKUMENTASI FOTO LAHAN PERTANIAN - LADANG JAGUNG",
         "Lokasi: Trowulan, Kab. Mojokerto | Luas: 8.500 m² | Komoditas: Jagung Hibrida",
         bg_color='#166534'
     )
     create_landscape_image(
-        "backend/uploads/survei/sample_survei_lahan1.jpg",
+        str(UPLOAD_DIR / "survei" / "sample_survei_lahan1.jpg"),
         "HASIL SURVEI FISIK LAPANGAN PPL PERTANIAN",
         "Status: Fisik Lahan Baik, Tanaman Sesuai Musim Tanam 1 | Verifikasi Petugas PPL",
         bg_color='#1e3a5f'

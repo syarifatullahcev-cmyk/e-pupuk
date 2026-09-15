@@ -1,7 +1,7 @@
 -- =======================================================
 -- Database Schema for E-Pupuk Kabupaten Mojokerto
 -- =======================================================
-
+CREATE DATABASE IF NOT EXISTS epupuk CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE epupuk;
 
 -- Drop in reverse foreign key order if needed

@@ -14,6 +14,7 @@ import ProgressStepper from '../components/ProgressStepper';
 import PhotoViewerModal from '../components/PhotoViewerModal';
 import FileUploadZone from '../components/FileUploadZone';
 import MapPicker from '../components/MapPicker';
+import { formatCoord } from '../utils/format';
 
 export default function PetaniDashboard() {
   const { user } = useAuthStore();
@@ -314,7 +315,7 @@ export default function PetaniDashboard() {
                     isOpen: true,
                     title: `Foto Lahan: ${land.lokasi_deskripsi || 'Lahan Pertanian'}`,
                     url: land.foto_lahan_url,
-                    description: `Luas: ${(land.luas_m2 / 10000).toFixed(2)} Ha (${land.luas_m2} m²) | Alamat: ${land.alamat_lahan} | Koordinat: ${land.latitude}, ${land.longitude}`
+                    description: `Luas: ${(Number(land.luas_m2 || 0) / 10000).toFixed(2)} Ha (${land.luas_m2} m²) | Alamat: ${land.alamat_lahan} | Koordinat: ${formatCoord(land.latitude)}, ${formatCoord(land.longitude)}`
                   })}
                   className="relative aspect-16/9 bg-slate-200 overflow-hidden group cursor-pointer"
                 >
@@ -355,7 +356,7 @@ export default function PetaniDashboard() {
                       Luas: <strong className="text-slate-800 font-semibold">{land.luas_m2} m²</strong>
                     </span>
                     <span className="font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                      {land.latitude?.toFixed(4)}, {land.longitude?.toFixed(4)}
+                      {formatCoord(land.latitude)}, {formatCoord(land.longitude)}
                     </span>
                   </div>
                 </div>
@@ -514,7 +515,7 @@ export default function PetaniDashboard() {
                     <div>
                       <span className="text-slate-400 block text-[10px] uppercase font-bold">Koordinat Lahan</span>
                       <span className="font-mono text-emerald-800 font-semibold truncate block">
-                        {app.latitude?.toFixed(4)}, {app.longitude?.toFixed(4)}
+                        {formatCoord(app.latitude)}, {formatCoord(app.longitude)}
                       </span>
                     </div>
                   </div>

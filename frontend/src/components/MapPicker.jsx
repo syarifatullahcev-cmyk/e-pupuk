@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin, Navigation } from 'lucide-react';
+import { formatCoord } from '../utils/format';
 
 // Custom SVG marker pin to prevent missing asset issues
 const customMarkerIcon = new L.DivIcon({
@@ -125,8 +126,8 @@ export default function MapPicker({
 
       <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
         <span>
-          Lat: <strong className="text-slate-700">{position[0]?.toFixed(6)}</strong> | Lng:{' '}
-          <strong className="text-slate-700">{position[1]?.toFixed(6)}</strong>
+          Lat: <strong className="text-slate-700">{formatCoord(position[0], 6)}</strong> | Lng:{' '}
+          <strong className="text-slate-700">{formatCoord(position[1], 6)}</strong>
         </span>
         {!readOnly && <span>Klik atau geser penanda untuk memilih titik lahan</span>}
       </div>

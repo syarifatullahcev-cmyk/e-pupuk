@@ -9,6 +9,7 @@ import KPICard from '../components/KPICard';
 import StatusBadge from '../components/StatusBadge';
 import ProgressStepper from '../components/ProgressStepper';
 import PhotoViewerModal from '../components/PhotoViewerModal';
+import { formatCoord } from '../utils/format';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -402,7 +403,7 @@ export default function AdminDashboard() {
                       <div className="text-[11px] text-slate-600 space-y-0.5">
                         <p><strong>Lokasi:</strong> {app.alamat_lahan}</p>
                         <p><strong>Luas Tercatat:</strong> {app.land?.luas_m2} m²</p>
-                        <p><strong>GPS:</strong> {app.latitude?.toFixed(4)}, {app.longitude?.toFixed(4)}</p>
+                        <p><strong>GPS:</strong> {formatCoord(app.latitude)}, {formatCoord(app.longitude)}</p>
                       </div>
                     </div>
                   </div>
