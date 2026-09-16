@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Briefcase, MapPin, Calendar, CheckCircle2, 
-  Camera, FileText, Send, Eye, Tractor, RefreshCw, X, ShieldCheck
+  Camera, FileText, Send, Eye, Tractor, RefreshCw, X, ShieldCheck,
+  ClipboardCheck, ChevronDown
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { pplApi } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import FileUploadZone from '../components/FileUploadZone';
@@ -67,6 +69,7 @@ export default function PPLDashboard() {
     e.preventDefault();
     if (!selectedTask) return;
 
+    const toastId = toast.loading('Mengirim laporan survei...');
     try {
       await pplApi.submitSurvey(selectedTask.id, {
         kondisi_fisik_lahan: kondisiLahan,
@@ -81,14 +84,28 @@ export default function PPLDashboard() {
 
       setShowSurveyModal(false);
       fetchTasks();
-      alert(`Hasil survei lapangan untuk pengajuan #${selectedTask.id} berhasil diserahkan ke Admin Dinas Pertanian!`);
+      toast.success(`✅ Hasil survei lapangan untuk pengajuan #${selectedTask.id} berhasil diserahkan ke Admin Dinas Pertanian!`, { id: toastId, duration: 5000 });
     } catch (err) {
-      alert(err.response?.data?.detail || 'Gagal menyimpan hasil survei lapangan.');
+      toast.error(err.response?.data?.detail || 'Gagal menyimpan hasil survei lapangan.', { id: toastId });
     }
   };
 
   const pendingTasks = tasks.filter((t) => t.status === 'DITUGASKAN_KE_PPL' || t.status === 'SURVEI_LAPANGAN');
   const completedTasks = tasks.filter((t) => t.status === 'MENUNGGU_PERSETUJUAN_AKHIR');
+
+  if (loading) {
+    return (
+      <div className="space-y-8 pb-16 animate-pulse">
+        <div className="rounded-3xl bg-blue-100 h-36" />
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-28 bg-slate-200 rounded-2xl" />)}
+        </div>
+        <div className="space-y-4">
+          {[...Array(2)].map((_, i) => <div key={i} className="h-48 bg-slate-200 rounded-2xl" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-16">
@@ -247,6 +264,66 @@ export default function PPLDashboard() {
           </div>
         )}
       </div>
+
+      {/* Completed Tasks Section — Riwayat Survei Diserahkan */}
+      {completedTasks.length > 0 && (
+        <div className="bg-white rounded-2xl p-6 border border-emerald-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <ClipboardCheck className="w-5 h-5 text-emerald-600" />
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Riwayat Survei Diserahkan ({completedTasks.length})
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Laporan telah dikirim — menunggu persetujuan akhir Admin Dinas Pertanian
+                </p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+              Selesai PPL
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {completedTasks.map((task) => (
+              <div
+                key={task.id}
+                className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-mono text-xs font-bold text-slate-400">#{task.id}</span>
+                    <h4 className="text-sm font-bold text-slate-900">
+                      {task.farmer?.nama} — {task.jumlah_diajukan} kg {task.fertilizer?.nama_pupuk}
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-500 ml-6 flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    {task.alamat_lahan}
+                  </p>
+                  {task.survey && (
+                    <div className="ml-6 flex flex-wrap gap-2 text-[11px]">
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
+                        Kondisi: {task.survey.kondisi_fisik_lahan}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-md font-semibold border ${
+                        task.survey.rekomendasi === 'SETUJU'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          : 'bg-rose-100 text-rose-800 border-rose-200'
+                      }`}>
+                        Rekomendasi: {task.survey.rekomendasi}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <StatusBadge status={task.status} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Modal: Input Hasil Survei Lapangan PPL */}
       {showSurveyModal && selectedTask && (

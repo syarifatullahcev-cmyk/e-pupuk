@@ -17,6 +17,7 @@ from app.models.models import (
 )
 
 def seed():
+    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
         # Check if already seeded
@@ -32,7 +33,6 @@ def seed():
             User(username="petani_budi", email="budi.santoso@gmail.com", password_hash=get_password_hash("petani123"), role="PETANI"),
             User(username="petani_siti", email="siti.aminah@gmail.com", password_hash=get_password_hash("petani123"), role="PETANI"),
             User(username="ppl_ahmad", email="ahmad.ppl@mojokertokab.go.id", password_hash=get_password_hash("ppl123"), role="PPL"),
-            User(username="pimpinan", email="kadis.pertanian@mojokertokab.go.id", password_hash=get_password_hash("pimpinan123"), role="PIMPINAN"),
         ]
         db.add_all(users)
         db.commit()

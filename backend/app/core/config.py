@@ -26,9 +26,8 @@ class Settings:
     
     @property
     def DATABASE_URL(self) -> str:
-        if self.MYSQL_PASSWORD:
-            return f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DB}?charset=utf8mb4"
-        return f"mysql+pymysql://{self.MYSQL_USER}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DB}?charset=utf8mb4"
+        db_path = BACKEND_DIR / "epupuk.db"
+        return f"sqlite:///{db_path}"
 
     # File uploads
     UPLOAD_PATH: Path = UPLOAD_DIR

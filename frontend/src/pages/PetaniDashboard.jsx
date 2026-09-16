@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Tractor, MapPin, Calendar, FileText, QrCode, 
   AlertTriangle, RefreshCw, Eye, CheckCircle2, ChevronRight,
-  ShieldCheck, ArrowUpRight, Sparkles, X, Map
+  ShieldCheck, ArrowUpRight, Sparkles, X, Map, Download
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import toast from 'react-hot-toast';
 import { 
   applicationsApi, farmersApi, landsApi, distributionsApi 
 } from '../services/api';
@@ -112,10 +114,11 @@ export default function PetaniDashboard() {
   const handleCreateApplication = async (e) => {
     e.preventDefault();
     if (!formData.land_id || !formData.fertilizer_id || !formData.jumlah_diajukan) {
-      alert('Harap lengkapi semua kolom yang wajib diisi.');
+      toast.error('Harap lengkapi semua kolom yang wajib diisi.');
       return;
     }
 
+    const toastId = toast.loading('Mengirim pengajuan subsidi...');
     try {
       await applicationsApi.create({
         land_id: parseInt(formData.land_id),
@@ -127,9 +130,9 @@ export default function PetaniDashboard() {
       });
       setShowApplyModal(false);
       fetchData();
-      alert('Pengajuan subsidi pupuk berhasil dikirim! Berkas Anda sedang dalam antrean verifikasi.');
+      toast.success('Pengajuan subsidi pupuk berhasil dikirim! Berkas Anda sedang dalam antrean verifikasi.', { id: toastId, duration: 5000 });
     } catch (err) {
-      alert(err.response?.data?.detail || 'Gagal mengirim pengajuan.');
+      toast.error(err.response?.data?.detail || 'Gagal mengirim pengajuan.', { id: toastId });
     }
   };
 
@@ -137,6 +140,7 @@ export default function PetaniDashboard() {
     e.preventDefault();
     if (!selectedApp) return;
 
+    const toastId = toast.loading('Mengunggah berkas perbaikan...');
     try {
       await applicationsApi.reviseDocs(selectedApp.id, {
         foto_ktp_url: reviseKtpUrl,
@@ -144,19 +148,34 @@ export default function PetaniDashboard() {
       });
       setShowReviseModal(false);
       fetchData();
-      alert('Perbaikan berkas berhasil diunggah! Status telah diperbarui ke Menunggu Verifikasi Berkas.');
+      toast.success('Perbaikan berkas berhasil diunggah! Status telah diperbarui ke Menunggu Verifikasi Berkas.', { id: toastId, duration: 5000 });
     } catch (err) {
-      alert(err.response?.data?.detail || 'Gagal memperbarui berkas.');
+      toast.error(err.response?.data?.detail || 'Gagal memperbarui berkas.', { id: toastId });
     }
   };
 
   const handleShowQR = (app) => {
     setSelectedApp(app);
-    // Determine QR code hash
     const qrHash = app.distribution?.qr_code_hash || `EPUPUK-${app.id}-CLAIM-TOKEN`;
     setSelectedQR(qrHash);
     setShowQRModal(true);
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-8 pb-16 animate-pulse">
+        <div className="rounded-3xl bg-emerald-100 h-36" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-28 bg-slate-200 rounded-2xl" />)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="h-64 bg-slate-200 rounded-2xl" />
+          <div className="lg:col-span-2 h-64 bg-slate-200 rounded-2xl" />
+        </div>
+        <div className="h-80 bg-slate-200 rounded-2xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-16">
@@ -541,7 +560,7 @@ export default function PetaniDashboard() {
                           Rekomendasi: <span className="font-bold text-emerald-700">{app.survey.rekomendasi}</span>
                         </p>
                         {app.survey.catatan_ppl && (
-                          <p className="mt-1 text-slate-600 italic">"{app.survey.catatan_ppl}"</p>
+                          <p className="mt-1 text-slate-600 italic">&ldquo;{app.survey.catatan_ppl}&rdquo;</p>
                         )}
                       </div>
                       {app.survey.foto_survei_urls?.[0] && (
@@ -773,10 +792,17 @@ export default function PetaniDashboard() {
               </button>
             </div>
 
-            {/* QR Mock Display */}
-            <div className="p-4 bg-slate-900 rounded-2xl border-4 border-emerald-500/30 flex flex-col items-center justify-center">
-              <QrCode className="w-44 h-44 text-white" />
-              <p className="mt-3 font-mono font-bold text-xs text-emerald-400 tracking-wider">
+            {/* Real QR Code Display */}
+            <div className="p-5 bg-slate-900 rounded-2xl border-4 border-emerald-500/30 flex flex-col items-center justify-center gap-3">
+              <QRCodeSVG
+                value={selectedQR || 'EPUPUK-TOKEN'}
+                size={176}
+                bgColor="#0f172a"
+                fgColor="#ffffff"
+                level="H"
+                includeMargin={false}
+              />
+              <p className="font-mono font-bold text-xs text-emerald-400 tracking-wider break-all max-w-[200px] text-center">
                 {selectedQR}
               </p>
             </div>
@@ -789,6 +815,14 @@ export default function PetaniDashboard() {
                 Petugas kios pupuk resmi akan memindai kode ini untuk validasi dan penyerahan fisik pupuk bersubsidi Anda.
               </p>
             </div>
+
+            {selectedApp && (
+              <div className="bg-slate-50 rounded-xl p-3 text-xs text-left space-y-1 border border-slate-200">
+                <p className="text-slate-500">Jenis Pupuk: <strong className="text-slate-800">{selectedApp.fertilizer?.nama_pupuk}</strong></p>
+                <p className="text-slate-500">Jumlah Disetujui: <strong className="text-emerald-700">{selectedApp.jumlah_disetujui || selectedApp.jumlah_diajukan} kg</strong></p>
+                <p className="text-slate-500">Status: <strong className="text-slate-800">{selectedApp.status}</strong></p>
+              </div>
+            )}
 
             <button
               onClick={() => setShowQRModal(false)}

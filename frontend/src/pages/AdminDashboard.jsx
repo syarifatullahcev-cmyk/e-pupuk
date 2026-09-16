@@ -4,6 +4,7 @@ import {
   AlertTriangle, Eye, MapPin, Calendar, Tractor, 
   Send, RefreshCw, Layers, ShieldAlert, Sparkles
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { adminApi, applicationsApi } from '../services/api';
 import KPICard from '../components/KPICard';
 import StatusBadge from '../components/StatusBadge';
@@ -82,6 +83,7 @@ export default function AdminDashboard() {
   // Verification Actions
   const handleVerify = async (action) => {
     if (!selectedApp) return;
+    const toastId = toast.loading('Memproses verifikasi berkas...');
     try {
       await adminApi.verifyDocs(selectedApp.id, {
         action,
@@ -90,15 +92,16 @@ export default function AdminDashboard() {
       setShowVerifyModal(false);
       setActionNotes('');
       fetchData();
-      alert(`Berkas pengajuan #${selectedApp.id} berhasil diproses: ${action}`);
+      toast.success(`Berkas pengajuan #${selectedApp.id} berhasil diproses: ${action}`, { id: toastId });
     } catch (err) {
-      alert(err.response?.data?.detail || 'Gagal memproses verifikasi berkas.');
+      toast.error(err.response?.data?.detail || 'Gagal memproses verifikasi berkas.', { id: toastId });
     }
   };
 
   // PPL Assignment Action
   const handleAssignPPL = async () => {
     if (!selectedApp || !selectedPplId) return;
+    const toastId = toast.loading('Menugaskan petugas PPL...');
     try {
       await adminApi.assignPpl(selectedApp.id, {
         ppl_id: parseInt(selectedPplId),
@@ -107,15 +110,16 @@ export default function AdminDashboard() {
       setShowAssignModal(false);
       setActionNotes('');
       fetchData();
-      alert(`Petugas PPL berhasil ditugaskan untuk pengajuan #${selectedApp.id}!`);
+      toast.success(`Petugas PPL berhasil ditugaskan untuk pengajuan #${selectedApp.id}!`, { id: toastId });
     } catch (err) {
-      alert(err.response?.data?.detail || 'Gagal menugaskan PPL.');
+      toast.error(err.response?.data?.detail || 'Gagal menugaskan PPL.', { id: toastId });
     }
   };
 
   // Final Approval Action
   const handleFinalApprove = async (action) => {
     if (!selectedApp) return;
+    const toastId = toast.loading('Menyimpan keputusan akhir...');
     try {
       await adminApi.finalApprove(selectedApp.id, {
         action,
@@ -126,11 +130,31 @@ export default function AdminDashboard() {
       setActionNotes('');
       setApprovedKg('');
       fetchData();
-      alert(`Keputusan akhir untuk pengajuan #${selectedApp.id} berhasil disimpan: ${action}`);
+      toast.success(
+        action === 'APPROVE'
+          ? `✅ Pengajuan #${selectedApp.id} disetujui & QR Code diterbitkan!`
+          : `❌ Pengajuan #${selectedApp.id} ditolak.`,
+        { id: toastId, duration: 5000 }
+      );
     } catch (err) {
-      alert(err.response?.data?.detail || 'Gagal menyimpan keputusan akhir.');
+      toast.error(err.response?.data?.detail || 'Gagal menyimpan keputusan akhir.', { id: toastId });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-8 pb-16 animate-pulse">
+        <div className="rounded-3xl bg-slate-200 h-32" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => <div key={i} className="h-28 bg-slate-200 rounded-2xl" />)}
+        </div>
+        <div className="h-10 bg-slate-200 rounded-xl" />
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => <div key={i} className="h-48 bg-slate-200 rounded-2xl" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-16">
@@ -571,7 +595,7 @@ export default function AdminDashboard() {
 
                       {app.survey.catatan_ppl && (
                         <div className="text-xs text-slate-700 bg-white/80 p-2.5 rounded-lg border border-purple-100 italic">
-                          "{app.survey.catatan_ppl}"
+                          &ldquo;{app.survey.catatan_ppl}&rdquo;
                         </div>
                       )}
 

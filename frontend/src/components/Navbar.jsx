@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Sprout, Bell, LogOut, User, Check, 
@@ -13,6 +13,7 @@ export default function Navbar() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const notifRef = useRef(null);
 
   const fetchNotifs = async () => {
     try {
@@ -29,6 +30,19 @@ export default function Navbar() {
     const interval = setInterval(fetchNotifs, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  // Close notification dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setShowNotifs(false);
+      }
+    };
+    if (showNotifs) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifs]);
 
   const handleMarkRead = async (id) => {
     try {
@@ -114,7 +128,7 @@ export default function Navbar() {
           {user && getRoleBadge(user.role)}
 
           {/* Notification Bell */}
-          <div className="relative">
+          <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotifs(!showNotifs)}
               className="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
