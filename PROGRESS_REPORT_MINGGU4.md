@@ -79,44 +79,144 @@ Subsidi pupuk merupakan salah satu program strategis pemerintah Indonesia untuk 
 | **ORM** | SQLAlchemy Declarative Base |
 | **Migration** | Schema SQL manual via `schema.sql` |
 
-### 2.2 Arsitektur Sistem
+### 2.2 Arsitektur Sistem Keseluruhan & Alur Spesifik Input-Output
+
+Arsitektur sistem E-Pupuk dirancang secara *multi-tier* (Frontend, Backend API, Data & File Storage) dengan aliran data terstruktur dari masing-masing aktor pengguna ke setiap modul fitur dan basis data tujuan.
+
+#### A. Diagram Arsitektur Sistem (Mermaid Flowchart)
+
+```mermaid
+graph TD
+    subgraph S1 [1. Pengguna Akhir / Aktor]
+        PETANI["Petani (Mobile/Web)<br/>• Registrasi, Pengajuan, Scan QR"]
+        ADMIN["Admin Pemda / Dinas<br/>• Verifikasi Berkas, Penugasan PPL, Approval"]
+        PPL["Petugas PPL (Lapangan)<br/>• Review Tugas, Map Satelit, Rekomendasi"]
+        KIOSK["Petugas Kios / Gudang<br/>• Scan QR Tebus & Penyaluran"]
+        PIMPINAN["Pimpinan Dinas<br/>• Monitoring Realisasi & Serapan"]
+    end
+
+    subgraph S2 [2. Frontend Layer (React + Vite)]
+        FE_AUTH["Halaman Auth (/login & /register)"]
+        FE_PETANI["Dashboard Petani (/petani)<br/>• Form Pengajuan & Stepper Status<br/>• Upload KTP/Lahan & Scan Karung"]
+        FE_ADMIN["Dashboard Admin (/admin)<br/>• Verifikasi Berkas & Assign PPL<br/>• Approval Final, Kuota, & Peta KPI"]
+        FE_PPL["Dashboard PPL (/ppl)<br/>• Tabel Tugas & Peta Citra Satelit<br/>• Evaluasi Survei & Bukti Lapangan"]
+        FE_KIOSK["Kiosk Scanner (/kiosk-scanner)<br/>• Scanner Kamera QR Voucher Penebusan"]
+    end
+
+    subgraph S3 [3. Backend API Layer (FastAPI)]
+        API_AUTH["/api/auth<br/>(Login, Me, Register Petani)"]
+        API_APP["/api/applications<br/>(Pengajuan, Alur Status, RDKK)"]
+        API_FARMERS["/api/farmers & /api/lands<br/>(Data NIK, Kelompok Tani, Spasial Lahan)"]
+        API_ADMIN["/api/admin<br/>(Verifikasi Berkas, Assign PPL, Final Approve)"]
+        API_PPL["/api/ppl<br/>(Task PPL, Submit Survei Satelit/GPS)"]
+        API_DIST["/api/distributions<br/>(Scan Kios QR & Geofence Karung)"]
+        API_FILES["/api/files<br/>(Upload & Serve KTP, Lahan, Bukti PPL)"]
+    end
+
+    subgraph S4 [4. Storage Tier (Database & Files)]
+        DB_USERS["users, farmers, farmer_groups<br/>(Akun, Profil Petani, Poktan)"]
+        DB_LANDS["lands<br/>(Titik Koordinat, Poligon, Luas Lahan)"]
+        DB_APPS["applications & field_surveys<br/>(Status Pengajuan, Hasil Survei PPL)"]
+        DB_DIST["distributions & qr_scans<br/>(QR Hash Token, Riwayat Tebus & Geofence)"]
+        DB_LOGS["audit_logs & notifications<br/>(Riwayat Aksi & Pesan Notifikasi)"]
+        FS_FILES["Penyimpanan Berkas Digital<br/>(uploads/ktp/, uploads/lahan/, uploads/survei/)"]
+    end
+
+    PETANI --> FE_AUTH
+    PETANI --> FE_PETANI
+    ADMIN --> FE_AUTH
+    ADMIN --> FE_ADMIN
+    PPL --> FE_AUTH
+    PPL --> FE_PPL
+    KIOSK --> FE_KIOSK
+    PIMPINAN --> FE_ADMIN
+
+    FE_AUTH --> API_AUTH
+    FE_PETANI --> API_AUTH
+    FE_PETANI --> API_APP
+    FE_PETANI --> API_FARMERS
+    FE_PETANI --> API_FILES
+    FE_PETANI --> API_DIST
+    FE_ADMIN --> API_ADMIN
+    FE_ADMIN --> API_APP
+    FE_ADMIN --> API_FARMERS
+    FE_PPL --> API_PPL
+    FE_PPL --> API_FILES
+    FE_KIOSK --> API_DIST
+
+    API_AUTH --> DB_USERS
+    API_AUTH --> DB_LOGS
+    API_FARMERS --> DB_USERS
+    API_FARMERS --> DB_LANDS
+    API_APP --> DB_APPS
+    API_APP --> DB_LOGS
+    API_ADMIN --> DB_APPS
+    API_ADMIN --> DB_DIST
+    API_ADMIN --> DB_LOGS
+    API_PPL --> DB_APPS
+    API_PPL --> DB_LOGS
+    API_DIST --> DB_DIST
+    API_DIST --> DB_LOGS
+    API_FILES --> FS_FILES
+```
+
+#### Diagram Visual Arsitektur Sistem (Visual Diagram)
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   PENGGUNA AKHIR                     │
-│    Petani (HP)  |  Admin Pemda  |  PPL (Lapangan)   │
-└──────────┬──────────────┬───────────────┬────────────┘
-           │              │               │
-           ▼              ▼               ▼
-┌──────────────────────────────────────────────────────┐
-│              FRONTEND (React + Vite)                  │
-│  /petani    │   /admin     │   /ppl   │  /kiosk-scan │
-│  PetaniDashboard  AdminDashboard  PPLDashboard  QRKiosk│
-└──────────────────────┬───────────────────────────────┘
-                       │ Axios HTTP (Vite Proxy /api → :8000)
-                       ▼
-┌──────────────────────────────────────────────────────┐
-│              BACKEND (FastAPI + Uvicorn :8000)        │
-│                                                      │
-│  /api/auth   /api/applications   /api/admin          │
-│  /api/ppl    /api/distributions  /api/farmers        │
-│  /api/lands  /api/files                              │
-│                                                      │
-│  ┌─────────────────────────────────────────────┐    │
-│  │ Middleware: JWT Auth | CORS | Role Guards   │    │
-│  └─────────────────────────────────────────────┘    │
-└──────────────────────┬───────────────────────────────┘
-                       │ SQLAlchemy ORM
-                       ▼
-┌──────────────────────────────────────────────────────┐
-│              DATABASE (SQLite → MySQL)                │
-│                                                      │
-│  users | farmers | lands | applications              │
-│  field_surveys | distributions | qr_scans            │
-│  fertilizers | fertilizer_batches | commodities      │
-│  notifications | audit_logs | farmer_groups          │
-└──────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 1. LAYER PENGGUNA (AKTOR)                                   │
+│  [Petani - Mobile]    [Admin Pemda - Web]    [PPL - Lapangan]    [Petugas Kios]   [Pimpinan]│
+└───────────┬────────────────────┬────────────────────┬───────────────────┬─────────────┬─────┘
+            │                    │                    │                   │             │
+            ▼                    ▼                    ▼                   ▼             ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                          2. LAYER FRONTEND (React 18 + Vite)                                │
+│  • /login & /register : Otentikasi & State Management (Zustand)                             │
+│  • /petani            : Form Pengajuan, Upload KTP/Lahan, Stepper Status, Digital QR Voucher│
+│  • /admin             : Modal Review Dokumen, Penugasan PPL, Approval Final, Peta Wilayah   │
+│  • /ppl               : Task Review, Map Citra Satelit, GPS Tracking, Form Evaluasi Lapangan│
+│  • /kiosk-scanner     : Pemindai Kamera QR Voucher Penebusan Pupuk                          │
+└──────────────────────────────────────────────┬──────────────────────────────────────────────┘
+                                               │ Axios HTTP Client (/api/*)
+                                               ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                         3. LAYER BACKEND REST API (FastAPI)                                 │
+│  • Security / Middleware : JWT Bearer Token, Role Guards (RBAC), CORS, Audit Logger         │
+│  • /api/auth             : Registrasi, Login, Profile State (/me)                           │
+│  • /api/applications     : Pengajuan Subsidi, State Machine Alur Status, Validasi RDKK      │
+│  • /api/farmers & /lands : Pendataan NIK, Poktan, Data Spasial & Titik Koordinat Lahan      │
+│  • /api/ppl              : Task Disposisi PPL, Simpan Hasil Survei Satelit/GPS              │
+│  • /api/admin            : Verifikasi Berkas, Penugasan PPL, Penetapan Kuota Akhir          │
+│  • /api/distributions    : Validasi QR Kios, Geofencing Barcode Karung di Lahan (<100m)     │
+│  • /api/files            : File Storage Handler (KTP, Foto Lahan, Bukti Survei Lapangan)    │
+└──────────────────────────────────────────────┬──────────────────────────────────────────────┘
+                                               │ SQLAlchemy ORM & File I/O
+                                               ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                          4. LAYER DATA & PENYIMPANAN BERKAS                                 │
+│  [Database MySQL / SQLite]                                   [Penyimpanan Berkas Digital]   │
+│  • users, farmers, farmer_groups, lands                      • /uploads/ktp/                │
+│  • applications, field_surveys, distributions                • /uploads/lahan/              │
+│  • qr_scans, fertilizers, commodities, audit_logs            • /uploads/survei/             │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+#### B. Matriks Rinci Aliran Input, Proses, dan Output per Fitur
+
+Setiap fitur pada sistem E-Pupuk memiliki pemetaan spesifik mulai dari masukan (*input*), modul pemrosesan (*processing logic*), hingga tujuan keluaran (*output/destination*) seperti dirinci pada tabel berikut:
+
+| No | Fitur / Aktor | Masukan (*Input*) | Modul Pemrosesan (*Processing Logic*) | Keluaran (*Output*) & Tujuan Entitas |
+|---|---|---|---|---|
+| **1** | **Autentikasi & Registrasi Petani** *(Petani)* | - Username, Password<br>- NIK, Nama Lengkap, No HP<br>- Pilihan Kelompok Tani (Poktan)<br>- Upload Foto KTP | - Validasi keunikan NIK & username (`routers/auth.py`)<br>- Hashing password (Bcrypt)<br>- Simpan foto KTP via `routers/files.py`<br>- Generate JWT Token dengan *claims* role `PETANI` | - **Output**: JWT Access Token, User Session<br>- **DB Target**: Tabel `users`, `farmers`, file `uploads/ktp/` |
+| **2** | **Pendaftaran Lahan Pertanian** *(Petani)* | - Luas lahan ($m^2$)<br>- Titik koordinat GPS awal (`latitude`, `longitude`)<br>- Status kepemilikan (Milik/Sewa/Garap)<br>- Komoditas tanaman (Padi/Jagung/dsb)<br>- Upload Foto Lahan | - Validasi format koordinat & batasan wilayah Mojokerto (`routers/lands.py`)<br>- Penyimpanan metadata lahan & path berkas foto | - **Output**: Entitas Lahan Terdaftar ID<br>- **DB Target**: Tabel `lands`, file `uploads/lahan/` |
+| **3** | **Pengajuan Alokasi Pupuk** *(Petani)* | - Pilihan ID Lahan terdaftar<br>- Pilihan Jenis Pupuk (Urea/NPK/Organik)<br>- Jumlah pupuk yang diminta ($kg$) | - Pemeriksaan batas maksimal kuota RDKK berbasis luas lahan (`routers/applications.py`)<br>- Inisiasi status awal: `MENUNGGU_VERIFIKASI_BERKAS`<br>- Pencatatan waktu pengajuan | - **Output**: Nomor Registrasi Pengajuan, Status Stepper Petani<br>- **DB Target**: Tabel `applications` (Status: `MENUNGGU_VERIFIKASI_BERKAS`) |
+| **4** | **Verifikasi Dokumen Berkas** *(Admin Pemda)* | - Review berkas KTP & foto lahan di modal admin<br>- Aksi: **Setuju** / **Minta Perbaikan** / **Tolak**<br>- Catatan/Alasan revisi | - Validasi hak akses Admin (`routers/admin.py:verify_doc`)<br>- Update status aplikasi ke `BERKAS_TERVERIFIKASI` atau `PERLU_PERBAIKAN_BERKAS`<br>- Pembuatan log audit dan notifikasi | - **Output**: Notifikasi status ke dashboard Petani<br>- **DB Target**: Tabel `applications`, `notifications`, `audit_logs` |
+| **5** | **Penugasan PPL Lapangan** *(Admin Pemda)* | - Pilihan ID Petugas PPL target<br>- ID Pengajuan yang lolos verifikasi berkas<br>- Catatan instruksi survei lapangan | - Pemetaan `assigned_ppl_id` pada pengajuan (`routers/admin.py:assign_ppl`)<br>- Transisi status ke `DITUGASKAN_KE_PPL`<br>- Notifikasi masuk ke akun PPL bersangkutan | - **Output**: Daftar tugas baru di PPL Dashboard<br>- **DB Target**: Tabel `applications` (`status='DITUGASKAN_KE_PPL'`, `assigned_ppl_id`) |
+| **6** | **Survei & Validasi Spasial Lapangan** *(Petugas PPL)* | - Titik koordinat aktual GPS lapangan<br>- Penyesuaian batas poligon/luas via Peta Satelit<br>- Evaluasi kondisi fisik tanaman & ekonomi petani<br>- Upload foto bukti survei lapangan di lokasi<br>- Rekomendasi: **Layak (Setuju)** / **Tidak Layak (Tolak)** | - `routers/ppl.py:submit_survey`<br>- Perhitungan deviasi titik GPS petani vs aktual PPL<br>- Penyimpanan instrumen survei & upload bukti lapangan<br>- Transisi status ke `MENUNGGU_PERSETUJUAN_AKHIR` | - **Output**: Berkas digital survei siap di-review Admin<br>- **DB Target**: Tabel `field_surveys`, `applications`, file `uploads/survei/` |
+| **7** | **Persetujuan Akhir & Penerbitan Kuota** *(Admin Pemda)* | - Review laporan PPL & foto bukti lapangan<br>- Input kuota final disetujui ($kg$)<br>- Tanggal alokasi jadwal penebusan | - `routers/admin.py:final_approve`<br>- Generate enkripsi unik `qr_hash` / Token Digital Voucher<br>- Transisi status ke `DIJADWALKAN_DISTRIBUSI`<br>- Pemotongan kuota agregat dinas | - **Output**: QR Code / Digital Voucher aktif di dashboard Petani<br>- **DB Target**: Tabel `applications` (`status='DIJADWALKAN_DISTRIBUSI'`), `distributions` |
+| **8** | **Penebusan Pupuk di Kios / Gudang** *(Petani & Kios)* | - Petani menunjukkan QR Code Voucher<br>- Petugas Kios memindai QR via `/kiosk-scanner` | - Dekripsi dan validasi keaslian `qr_hash` (`routers/distributions.py:scan_kiosk`)<br>- Verifikasi NIK petani & masa berlaku voucher<br>- Pencatatan realisasi penyaluran fisik<br>- Transisi status ke `TERSALURKAN` | - **Output**: Bukti tebus pupuk fisik, status `TERSALURKAN`<br>- **DB Target**: Tabel `distributions` (`status='TERSALURKAN'`), `applications` |
+| **9** | **Verifikasi Buka Karung Lahan (Geofencing)** *(Petani)* | - Scan barcode karung pupuk saat dibuka di lahan<br>- Deteksi otomatis koordinat GPS perangkat HP saat pemindaian | - `routers/distributions.py:scan_field_bag`<br>- Komparasi jarak spasial (Haversine Formula) antara titik scan HP vs koordinat survei PPL<br>- Validasi kepatuhan penggunaan di lahan terdaftar (< 100 meter = Valid) | - **Output**: Status kepatuhan pemanfaatan pupuk, Notifikasi Validitas<br>- **DB Target**: Tabel `qr_scans`, `audit_logs` |
+| **10** | **Monitoring Eksekutif & Pelaporan** *(Pimpinan / Admin)* | - Filter parameter: Kecamatan, Desa, Jenis Pupuk, Periode Bulan | - Agregasi data kuota, pengajuan, survei, dan distribusi real-time (`routers/admin.py:get_stats`)<br>- Kalkulasi serapan pupuk bersubsidi daerah | - **Output**: Visualisasi KPI, Grafik Serapan, Laporan Transparansi Subsidi |
 
 ### 2.3 Role & Hak Akses Sistem
 
