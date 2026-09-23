@@ -11,7 +11,6 @@ class UserRole:
     PETANI = "PETANI"
     PPL = "PPL"
     ADMIN = "ADMIN"
-    PIMPINAN = "PIMPINAN"
 
 class ApplicationStatus:
     DIAJUKAN = "DIAJUKAN"
@@ -34,7 +33,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     email = Column(String(150), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
-    role = Column(SQLEnum(UserRole.PETANI, UserRole.PPL, UserRole.ADMIN, UserRole.PIMPINAN), nullable=False)
+    role = Column(SQLEnum(UserRole.PETANI, UserRole.PPL, UserRole.ADMIN), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
 
@@ -212,7 +211,7 @@ class Distribution(Base):
     batch_id = Column(Integer, ForeignKey("fertilizer_batches.id", ondelete="SET NULL"), nullable=True)
     jumlah_disalurkan = Column(Numeric(10, 2), nullable=False)
     status_penyaluran = Column(SQLEnum("MENUNGGU_PENGAMBILAN", "SELESAI", "BATAL"), default="MENUNGGU_PENGAMBILAN")
-    qr_code_hash = Column(String(255), unique=True, nullable=False)
+    qr_code_hash = Column(String(255), unique=True, nullable=True)
     tanggal_penyaluran = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 

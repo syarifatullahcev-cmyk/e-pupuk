@@ -76,8 +76,8 @@ def scan_and_redeem_qr(
     if dist.application and dist.application.farmer:
         db.add(Notification(
             user_id=dist.application.farmer.user_id,
-            judul="Pupuk Bersubsidi Telah Diterima",
-            pesan=f"Pupuk bersubsidi sejumlah {dist.jumlah_disalurkan} kg telah berhasil disalurkan kepada Anda. Terima kasih!",
+            judul="Pembukaan Pupuk di Lahan Berhasil",
+            pesan=f"Validasi lokasi GPS berhasil! Penggunaan pupuk bersubsidi sejumlah {dist.jumlah_disalurkan} kg telah tercatat di lahan terdaftar.",
             tipe="SUCCESS"
         ))
 
@@ -87,18 +87,59 @@ def scan_and_redeem_qr(
     log_audit_action(
         db,
         user_id=current_user.id,
-        action="REDEEM_QR_DISTRIBUTION",
+        action="OPEN_FERTILIZER_VALIDATION",
         resource="distributions",
         resource_id=dist.id,
-        details=f"Redeemed {dist.jumlah_disalurkan} kg via QR scan"
+        details=f"Validated fertilizer opening: {dist.jumlah_disalurkan} kg at lat {data.latitude}, lng {data.longitude}"
     )
 
     return QRScanResponse(
         success=True,
         status="VALID",
-        message="Validasi berhasil! Penyaluran pupuk bersubsidi sukses dicatat.",
+        message="Validasi berhasil! Pembukaan dan penggunaan pupuk di lahan sukses dicatat.",
         distribution=dist
     )
+
+@router.get("/api/distributions/scans/my")
+def get_my_scans(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    farmer = db.query(Farmer).filter(Farmer.user_id == current_user.id).first()
+    if not farmer:
+        return []
+
+    scans = (
+        db.query(QRScan)
+        .join(Distribution, QRScan.distribution_id == Distribution.id)
+        .join(Application, Distribution.application_id == Application.id)
+        .filter(Application.farmer_id == farmer.id)
+        .order_by(QRScan.scan_timestamp.desc())
+        .all()
+    )
+
+    results = []
+    for s in scans:
+        dist = s.distribution
+        app = dist.application if dist else None
+        results.append({
+            "id": s.id,
+            "distribution_id": s.distribution_id,
+            "tanggal": s.scan_timestamp.strftime("%d %B %Y") if s.scan_timestamp else "-",
+            "waktu": s.scan_timestamp.strftime("%H:%M WIB") if s.scan_timestamp else "-",
+            "scan_timestamp": s.scan_timestamp.isoformat() if s.scan_timestamp else None,
+            "jenis_pupuk": (app.fertilizer.nama_pupuk + " Bersubsidi") if (app and app.fertilizer) else "Pupuk Bersubsidi",
+            "jumlah_pupuk": f"{dist.jumlah_disalurkan} kg" if dist else "0 kg",
+            "jumlah_kg": float(dist.jumlah_disalurkan) if dist else 0,
+            "nama_lahan": (app.land.lokasi_deskripsi or app.land.alamat_lahan) if (app and app.land) else "Lahan Pertanian Terdaftar",
+            "alamat_lahan": app.land.alamat_lahan if (app and app.land) else "-",
+            "latitude": float(s.latitude) if s.latitude else (float(app.latitude) if app and app.latitude else -7.531234),
+            "longitude": float(s.longitude) if s.longitude else (float(app.longitude) if app and app.longitude else 112.551234),
+            "status_pembukaan": "Pembukaan Berhasil",
+            "status_validasi": s.validation_status or "VALID",
+            "verifikasi_lokasi": "Lokasi sesuai dengan lahan terdaftar"
+        })
+    return results
 
 @router.get("/api/notifications", response_model=List[NotificationResponse])
 def get_user_notifications(

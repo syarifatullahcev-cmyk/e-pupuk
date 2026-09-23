@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldCheck, UserCheck, Award, FileText, Check, X, 
-  AlertTriangle, Eye, MapPin, Calendar, Tractor, 
-  Send, RefreshCw, Layers, ShieldAlert, Sparkles
+  ShieldCheck, UserCheck, Award, FileText, Check, X,
+  Eye, MapPin, Tractor,
+  RefreshCw, ShieldAlert, Users, LandPlot,
+  PackageCheck, BarChart3, ClipboardList, UserCog, Database,
+  Search
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminApi, applicationsApi } from '../services/api';
@@ -17,7 +19,7 @@ export default function AdminDashboard() {
   const [applications, setApplications] = useState([]);
   const [pplOfficers, setPplOfficers] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
-  const [activeTab, setActiveTab] = useState('verifikasi'); // 'verifikasi', 'penugasan', 'approval', 'audit'
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
 
   // Selected item for actions
@@ -79,6 +81,32 @@ export default function AdminDashboard() {
   const pendingFinalApps = applications.filter((a) =>
     ['MENUNGGU_PERSETUJUAN_AKHIR'].includes(a.status)
   );
+  const approvedApps = applications.filter((a) =>
+    ['DISETUJUI', 'DIJADWALKAN_DISTRIBUSI', 'TERSALURKAN'].includes(a.status)
+  );
+  const totalApprovedKg = approvedApps.reduce(
+    (total, app) => total + Number(app.jumlah_disetujui || app.jumlah_diajukan || 0),
+    0
+  );
+  const uniqueFarmers = Array.from(
+    new Map(applications.filter((app) => app.farmer).map((app) => [app.farmer.id, app.farmer])).values()
+  );
+  const uniqueLands = Array.from(
+    new Map(applications.filter((app) => app.land).map((app) => [app.land.id, app.land])).values()
+  );
+  const adminMenu = [
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'verifikasi', label: 'Verifikasi Berkas', icon: FileText, count: pendingVerifyApps.length },
+    { id: 'penugasan', label: 'Penugasan PPL', icon: UserCheck, count: pendingAssignApps.length },
+    { id: 'approval', label: 'Persetujuan Akhir', icon: Award, count: pendingFinalApps.length },
+    { id: 'petani', label: 'Data Petani', icon: Users },
+    { id: 'lahan', label: 'Data Lahan', icon: LandPlot },
+    { id: 'distribusi', label: 'Data Distribusi', icon: PackageCheck },
+    { id: 'monitoring', label: 'Monitoring', icon: BarChart3 },
+    { id: 'laporan', label: 'Laporan', icon: ClipboardList },
+    { id: 'pengguna', label: 'Manajemen Pengguna', icon: UserCog },
+    { id: 'audit', label: 'Audit Log', icon: Database, count: auditLogs.length },
+  ];
 
   // Verification Actions
   const handleVerify = async (action) => {
@@ -132,7 +160,7 @@ export default function AdminDashboard() {
       fetchData();
       toast.success(
         action === 'APPROVE'
-          ? `✅ Pengajuan #${selectedApp.id} disetujui & QR Code diterbitkan!`
+          ? `✅ Pengajuan #${selectedApp.id} disetujui. Alokasi pupuk siap digunakan melalui QR pada karung.`
           : `❌ Pengajuan #${selectedApp.id} ditolak.`,
         { id: toastId, duration: 5000 }
       );
@@ -157,19 +185,65 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="flex flex-col lg:flex-row gap-6 pb-16">
+      <aside className="hidden lg:flex lg:w-60 shrink-0 flex-col self-start sticky top-24 bg-white border border-slate-200 rounded-2xl p-3 shadow-xs">
+        <div className="px-3 py-3 mb-2 border-b border-slate-100">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700">Ruang Kerja</p>
+          <p className="text-sm font-black text-slate-900 mt-1">Admin Dinas</p>
+        </div>
+        <nav className="space-y-4" aria-label="Navigasi admin">
+          {[
+            ['UTAMA', ['dashboard']],
+            ['PENGAJUAN', ['verifikasi', 'penugasan', 'approval']],
+            ['DATA', ['petani', 'lahan', 'distribusi']],
+            ['MONITORING', ['monitoring', 'laporan']],
+            ['SISTEM', ['pengguna', 'audit']],
+          ].map(([group, itemIds]) => (
+            <div key={group}>
+              <p className="px-3 mb-1 text-[10px] font-bold tracking-[0.14em] text-slate-400">{group}</p>
+              <div className="space-y-0.5">
+                {adminMenu.filter((item) => itemIds.includes(item.id)).map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-left transition-colors cursor-pointer ${
+                        isActive ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                      {item.count !== undefined && <span className={`ml-auto text-[10px] ${isActive ? 'text-emerald-100' : 'text-slate-400'}`}>{item.count}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </nav>
+      </aside>
+
+      <div className="min-w-0 flex-1 space-y-6">
+        <div className="lg:hidden">
+          <label htmlFor="admin-section" className="sr-only">Bagian dashboard admin</label>
+          <select id="admin-section" value={activeTab} onChange={(event) => setActiveTab(event.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 outline-hidden focus:border-emerald-500">
+            {adminMenu.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+          </select>
+        </div>
       {/* Top Banner */}
-      <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white p-6 sm:p-8 relative overflow-hidden shadow-xl border border-slate-700">
+      <div className="rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 text-white p-6 sm:p-7 relative overflow-hidden shadow-lg border border-slate-700">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <div className="flex items-center gap-2 text-rose-400 text-xs font-bold uppercase tracking-wider mb-2">
-              <ShieldAlert className="w-4 h-4" /> Panel Administrasi & Pengambilan Keputusan
+            <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-2">
+              <ShieldAlert className="w-4 h-4" /> Pusat Pengelolaan Subsidi
             </div>
             <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
-              Dashboard Verifikasi Dinas Pertanian
+              Dashboard Admin Dinas
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-              Verifikasi berkas foto KTP & citra lahan, tugaskan petugas PPL lapangan untuk survei fisik ke sawah, dan berikan persetujuan akhir penerbitan kuota pupuk subsidi.
+              Kelola verifikasi pengajuan, penugasan PPL, persetujuan pupuk, dan monitoring distribusi.
             </p>
           </div>
 
@@ -184,9 +258,9 @@ export default function AdminDashboard() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
         <KPICard
-          title="Verifikasi Berkas"
+          title="Menunggu Verifikasi"
           value={stats?.menunggu_verifikasi_berkas || 0}
           subtitle="KTP & Lahan Perlu Dicek"
           icon={FileText}
@@ -202,7 +276,7 @@ export default function AdminDashboard() {
           badge="Disposisi"
         />
         <KPICard
-          title="Persetujuan Akhir"
+          title="Menunggu Persetujuan"
           value={stats?.menunggu_persetujuan_akhir || 0}
           subtitle="Hasil Survei Lapangan Siap"
           icon={Award}
@@ -212,72 +286,132 @@ export default function AdminDashboard() {
         <KPICard
           title="Total Disetujui"
           value={stats?.disetujui || 0}
-          subtitle="QR Terbit / Siap Diambil"
+          subtitle="Alokasi Pupuk Disetujui"
           icon={ShieldCheck}
           color="emerald"
           badge="Selesai"
         />
+        <KPICard
+          title="Total Ditolak"
+          value={stats?.ditolak || 0}
+          subtitle="Berkas atau survei ditolak"
+          icon={ShieldAlert}
+          color="rose"
+          badge="Ditolak"
+        />
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-slate-200 overflow-x-auto gap-2">
-        <button
-          onClick={() => setActiveTab('verifikasi')}
-          className={`pb-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-            activeTab === 'verifikasi'
-              ? 'border-emerald-600 text-emerald-700'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          <span>1. Verifikasi Berkas</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800">
-            {pendingVerifyApps.length}
-          </span>
-        </button>
+      {activeTab === 'dashboard' && (
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Ringkasan Alur Verifikasi</h3>
+                <p className="text-xs text-slate-500 mt-1">Pantau antrean yang membutuhkan tindakan Admin.</p>
+              </div>
+              <ClipboardList className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                ['Verifikasi Berkas', pendingVerifyApps.length, 'verifikasi', 'amber'],
+                ['Penugasan PPL', pendingAssignApps.length, 'penugasan', 'blue'],
+                ['Approval Akhir', pendingFinalApps.length, 'approval', 'purple'],
+              ].map(([label, value, tab, color]) => (
+                <button key={tab} onClick={() => setActiveTab(tab)} className="text-left rounded-xl border border-slate-200 p-3 hover:border-emerald-300 hover:bg-emerald-50/40 transition-colors cursor-pointer">
+                  <span className={`text-[10px] font-bold uppercase tracking-wide text-${color}-700`}>{label}</span>
+                  <strong className="block text-2xl font-black text-slate-900 mt-1">{value}</strong>
+                  <span className="text-[11px] text-slate-500">Perlu ditindaklanjuti</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="bg-slate-900 rounded-2xl p-5 text-white shadow-xs">
+            <div className="flex items-center gap-2 mb-4">
+              <ShieldCheck className="w-5 h-5 text-emerald-300" />
+              <h3 className="text-sm font-bold">Kinerja Sistem</h3>
+            </div>
+            <div className="space-y-4 text-xs">
+              <div className="flex items-center justify-between"><span className="text-slate-400">Total petani</span><strong>{stats?.total_petani || uniqueFarmers.length}</strong></div>
+              <div className="flex items-center justify-between"><span className="text-slate-400">Total lahan terdaftar</span><strong>{uniqueLands.length}</strong></div>
+              <div className="flex items-center justify-between"><span className="text-slate-400">Total pengajuan</span><strong>{stats?.total_pengajuan || applications.length}</strong></div>
+              <div className="pt-3 border-t border-slate-700 flex items-center justify-between"><span className="text-slate-400">Update terakhir</span><strong className="text-emerald-300">Hari ini</strong></div>
+            </div>
+          </div>
+          </div>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Pengajuan yang Membutuhkan Tindakan</h3>
+                <p className="text-xs text-slate-500 mt-1">Prioritas kerja Admin berdasarkan tahapan proses.</p>
+              </div>
+              <span className="text-[11px] font-bold text-slate-400">{pendingVerifyApps.length + pendingAssignApps.length + pendingFinalApps.length} antrean</span>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {[
+                ...pendingVerifyApps.map((app) => ({ app, label: 'Menunggu Verifikasi', tab: 'verifikasi', action: 'Periksa Berkas', tone: 'amber' })),
+                ...pendingAssignApps.map((app) => ({ app, label: 'Siap Ditugaskan ke PPL', tab: 'penugasan', action: 'Tugaskan PPL', tone: 'blue' })),
+                ...pendingFinalApps.map((app) => ({ app, label: 'Menunggu Persetujuan Akhir', tab: 'approval', action: 'Lihat Hasil Survei', tone: 'purple' })),
+              ].slice(0, 6).map(({ app, label, tab, action, tone }) => (
+                <div key={app.id} className="px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-sm font-bold text-slate-900">{app.farmer?.nama || 'Petani'}</h4>
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${tone === 'amber' ? 'bg-amber-100 text-amber-800' : tone === 'blue' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>{label}</span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1 truncate">{app.fertilizer?.nama_pupuk || 'Pupuk'} {app.jumlah_diajukan} kg · {app.land?.lokasi_deskripsi || app.alamat_lahan || 'Lahan terdaftar'}</p>
+                  </div>
+                  <button onClick={() => setActiveTab(tab)} className="shrink-0 self-start md:self-auto px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-emerald-700 hover:bg-emerald-50 cursor-pointer">{action}</button>
+                </div>
+              ))}
+            </div>
+            {pendingVerifyApps.length + pendingAssignApps.length + pendingFinalApps.length === 0 && <p className="py-10 text-center text-xs text-slate-400">Tidak ada pengajuan yang membutuhkan tindakan.</p>}
+          </div>
+        </div>
+      )}
 
-        <button
-          onClick={() => setActiveTab('penugasan')}
-          className={`pb-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-            activeTab === 'penugasan'
-              ? 'border-emerald-600 text-emerald-700'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <UserCheck className="w-4 h-4" />
-          <span>2. Penugasan PPL</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-100 text-blue-800">
-            {pendingAssignApps.length}
-          </span>
-        </button>
+      {activeTab === 'petani' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div><h3 className="text-sm font-bold text-slate-900">Data Petani</h3><p className="text-xs text-slate-500 mt-1">Profil petani yang terhubung dengan pengajuan subsidi.</p></div>
+            <div className="relative"><Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" /><input placeholder="Cari nama atau NIK" className="pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs outline-hidden focus:border-emerald-500" /></div>
+          </div>
+          <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500 uppercase text-[10px]"><tr><th className="p-3">No</th><th className="p-3">Nama / NIK</th><th className="p-3">Kelompok Tani</th><th className="p-3">Kontak</th><th className="p-3">Status</th><th className="p-3">Aksi</th></tr></thead><tbody className="divide-y divide-slate-100">{uniqueFarmers.map((farmer, index) => <tr key={farmer.id} className="hover:bg-slate-50"><td className="p-3 text-slate-400">{String(index + 1).padStart(2, '0')}</td><td className="p-3"><strong className="block text-slate-900">{farmer.nama}</strong><span className="font-mono text-[11px] text-slate-500">{farmer.nik}</span></td><td className="p-3 text-slate-600">{farmer.farmer_group?.nama_kelompok || '-'}</td><td className="p-3 text-slate-600">{farmer.kontak || '-'}</td><td className="p-3"><span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Terverifikasi</span></td><td className="p-3"><button className="text-emerald-700 font-bold hover:underline cursor-pointer">Detail</button></td></tr>)}</tbody></table></div>
+          {uniqueFarmers.length === 0 && <p className="py-10 text-center text-xs text-slate-400">Belum ada data petani.</p>}
+        </div>
+      )}
 
-        <button
-          onClick={() => setActiveTab('approval')}
-          className={`pb-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-            activeTab === 'approval'
-              ? 'border-emerald-600 text-emerald-700'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Award className="w-4 h-4" />
-          <span>3. Persetujuan Akhir</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-800">
-            {pendingFinalApps.length}
-          </span>
-        </button>
+      {activeTab === 'lahan' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+          <div className="mb-4"><h3 className="text-sm font-bold text-slate-900">Data Lahan</h3><p className="text-xs text-slate-500 mt-1">Lahan yang menjadi dasar pengajuan subsidi dan survei PPL.</p></div>
+          <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500 uppercase text-[10px]"><tr><th className="p-3">Petani</th><th className="p-3">Blok Lahan</th><th className="p-3">Luas</th><th className="p-3">Alamat</th><th className="p-3">Koordinat</th><th className="p-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{uniqueLands.map((land) => { const app = applications.find((item) => item.land?.id === land.id); return <tr key={land.id} className="hover:bg-slate-50"><td className="p-3 font-bold text-slate-900">{app?.farmer?.nama || '-'}</td><td className="p-3 text-slate-700">{land.lokasi_deskripsi || 'Lahan Sawah'}</td><td className="p-3 font-semibold">{land.luas_m2 || 0} m²</td><td className="p-3 text-slate-600">{app?.alamat_lahan || '-'}</td><td className="p-3 font-mono text-[11px] text-slate-500">{formatCoord(app?.latitude)}, {formatCoord(app?.longitude)}</td><td className="p-3"><span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Terverifikasi</span></td></tr>; })}</tbody></table></div>
+          {uniqueLands.length === 0 && <p className="py-10 text-center text-xs text-slate-400">Belum ada data lahan.</p>}
+        </div>
+      )}
 
-        <button
-          onClick={() => setActiveTab('audit')}
-          className={`pb-3 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-            activeTab === 'audit'
-              ? 'border-emerald-600 text-emerald-700'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Layers className="w-4 h-4" />
-          <span>Audit Log Sistem ({auditLogs.length})</span>
-        </button>
-      </div>
+      {activeTab === 'distribusi' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+          <div className="mb-4"><h3 className="text-sm font-bold text-slate-900">Data Distribusi</h3><p className="text-xs text-slate-500 mt-1">Alokasi yang disetujui dan riwayat pembukaan pupuk.</p></div>
+          <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500 uppercase text-[10px]"><tr><th className="p-3">Jenis Pupuk</th><th className="p-3">Disetujui</th><th className="p-3">Sudah Dibuka</th><th className="p-3">Sisa</th><th className="p-3">Petani</th><th className="p-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{approvedApps.map((app) => { const approved = Number(app.jumlah_disetujui || app.jumlah_diajukan || 0); return <tr key={app.id} className="hover:bg-slate-50"><td className="p-3 font-bold text-slate-900">{app.fertilizer?.nama_pupuk || '-'}</td><td className="p-3 font-semibold">{approved} kg</td><td className="p-3 text-slate-600">Data transaksi</td><td className="p-3 font-semibold text-emerald-700">{approved} kg</td><td className="p-3 text-slate-700">{app.farmer?.nama || '-'}</td><td className="p-3"><StatusBadge status={app.status} /></td></tr>; })}</tbody></table></div>
+          {approvedApps.length === 0 && <p className="py-10 text-center text-xs text-slate-400">Belum ada alokasi pupuk yang disetujui.</p>}
+        </div>
+      )}
+
+      {activeTab === 'monitoring' && (
+        <div className="space-y-5">
+          <div className="flex flex-wrap gap-2"><select className="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"><option>Semua Periode</option><option>Bulan ini</option><option>Tahun ini</option></select><select className="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"><option>Semua Jenis Pupuk</option>{Array.from(new Set(applications.map((app) => app.fertilizer?.nama_pupuk).filter(Boolean))).map((name) => <option key={name}>{name}</option>)}</select><select className="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"><option>Semua Status</option><option>Disetujui</option><option>Menunggu</option><option>Ditolak</option></select></div>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">{[['Total Petani', stats?.total_petani || uniqueFarmers.length], ['Total Lahan', uniqueLands.length], ['Total Pengajuan', applications.length], ['Pupuk Disetujui', `${totalApprovedKg} kg`], ['Pupuk Dibuka', 'Terpantau']].map(([label, value]) => <div key={label} className="bg-white rounded-2xl border border-slate-200 p-4"><span className="text-[11px] text-slate-500">{label}</span><strong className="block text-xl font-black text-slate-900 mt-1">{value}</strong></div>)}</div>
+          <div className="bg-white rounded-2xl border border-slate-200 p-5"><h3 className="text-sm font-bold text-slate-900 mb-4">Status Pengajuan</h3><div className="space-y-3">{[['Menunggu verifikasi', pendingVerifyApps.length, 'bg-amber-500'], ['Menunggu penugasan', pendingAssignApps.length, 'bg-blue-500'], ['Menunggu approval', pendingFinalApps.length, 'bg-purple-500'], ['Disetujui', approvedApps.length, 'bg-emerald-500']].map(([label, value, color]) => <div key={label} className="flex items-center gap-3 text-xs"><span className="w-32 text-slate-600">{label}</span><div className="h-2 flex-1 rounded-full bg-slate-100 overflow-hidden"><div className={`h-full ${color}`} style={{ width: `${applications.length ? Math.max(8, (value / applications.length) * 100) : 8}%` }} /></div><strong className="w-8 text-right">{value}</strong></div>)}</div></div>
+        </div>
+      )}
+
+      {activeTab === 'laporan' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs"><div className="mb-5"><h3 className="text-sm font-bold text-slate-900">Laporan Dinas</h3><p className="text-xs text-slate-500 mt-1">Pilih periode dan jenis laporan untuk kebutuhan pelaporan administrasi.</p></div><div className="flex flex-wrap gap-2 mb-5"><input type="date" className="px-3 py-2 rounded-xl border border-slate-300 text-xs" /><span className="self-center text-xs text-slate-400">sampai</span><input type="date" className="px-3 py-2 rounded-xl border border-slate-300 text-xs" /><select className="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"><option>Semua Kecamatan</option><option>Mojosari</option><option>Puri</option></select><select className="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"><option>Semua Status</option><option>Disetujui</option><option>Ditolak</option></select></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">{['Data Petani', 'Data Lahan', 'Pengajuan & Verifikasi', 'Survei PPL', 'Persetujuan', 'Distribusi', 'Pembukaan Pupuk'].map((report) => <div key={report} className="border border-slate-200 rounded-xl p-4"><FileText className="w-5 h-5 text-emerald-600 mb-2" /><h4 className="text-xs font-bold text-slate-800">Laporan {report}</h4><div className="flex gap-2 mt-3"><button onClick={() => toast.success(`Laporan ${report} siap diekspor sebagai PDF.`)} className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">Export PDF</button><button onClick={() => toast.success(`Laporan ${report} siap diekspor sebagai Excel.`)} className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer">Export Excel</button></div></div>)}</div></div>
+      )}
+
+      {activeTab === 'pengguna' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs"><div className="mb-4"><h3 className="text-sm font-bold text-slate-900">Manajemen Pengguna</h3><p className="text-xs text-slate-500 mt-1">Role sistem: USER / PETANI, PPL, dan ADMIN.</p></div><div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500 uppercase text-[10px]"><tr><th className="p-3">Nama</th><th className="p-3">Username</th><th className="p-3">Role</th><th className="p-3">Status</th><th className="p-3">Aksi</th></tr></thead><tbody className="divide-y divide-slate-100">{[...uniqueFarmers.map((farmer) => ({ name: farmer.nama, username: farmer.user?.username || '-', role: 'USER / PETANI' })), ...pplOfficers.map((ppl) => ({ name: ppl.username, username: ppl.username, role: 'PPL' }))].map((person, index) => <tr key={`${person.role}-${index}`}><td className="p-3 font-bold text-slate-900">{person.name}</td><td className="p-3 text-slate-600">{person.username}</td><td className="p-3"><span className="px-2 py-1 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">{person.role}</span></td><td className="p-3 text-emerald-700 font-bold">Aktif</td><td className="p-3 flex gap-3"><button className="text-emerald-700 font-bold hover:underline cursor-pointer">Detail</button><button className="text-slate-500 font-bold hover:underline cursor-pointer">Edit</button></td></tr>)}</tbody></table></div></div>
+      )}
 
       {/* TAB 1: VERIFIKASI BERKAS */}
       {activeTab === 'verifikasi' && (
@@ -889,7 +1023,7 @@ export default function AdminDashboard() {
                 onClick={() => handleFinalApprove('APPROVE')}
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-sm shadow-emerald-200"
               >
-                Setujui & Terbitkan QR
+                Setujui Alokasi Pupuk
               </button>
             </div>
           </div>
@@ -906,6 +1040,7 @@ export default function AdminDashboard() {
         secondaryTitle={viewerPhoto.secondaryTitle}
         description={viewerPhoto.description}
       />
+      </div>
     </div>
   );
 }

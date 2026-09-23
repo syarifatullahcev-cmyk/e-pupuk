@@ -7,6 +7,8 @@ import { useAuthStore } from './store/authStore';
 import Navbar from './components/Navbar';
 
 // Pages
+import Landing from './pages/Landing';
+import Register from './pages/Register';
 import Login from './pages/Login';
 import PetaniDashboard from './pages/PetaniDashboard';
 import AdminDashboard from './pages/AdminDashboard';
@@ -31,7 +33,7 @@ function ProtectedRoute({ children, allowedRoles }) {
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     // Redirect to their respective dashboard
-    if (user.role === 'ADMIN' || user.role === 'PIMPINAN') return <Navigate to="/admin" replace />;
+    if (user.role === 'ADMIN') return <Navigate to="/admin" replace />;
     if (user.role === 'PPL') return <Navigate to="/ppl" replace />;
     return <Navigate to="/petani" replace />;
   }
@@ -67,7 +69,7 @@ function RootRedirect() {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.role === 'ADMIN' || user.role === 'PIMPINAN') return <Navigate to="/admin" replace />;
+  if (user.role === 'ADMIN') return <Navigate to="/admin" replace />;
   if (user.role === 'PPL') return <Navigate to="/ppl" replace />;
   return <Navigate to="/petani" replace />;
 }
@@ -83,8 +85,13 @@ export default function App() {
     <BrowserRouter>
       <Toaster position="top-right" />
       <Routes>
-        {/* Public Login Route */}
+        {/* Landing Page */}
+        <Route path="/" element={<Landing />} />
+
+        {/* Public Login & Register Routes */}
         <Route path="/login" element={<Login />} />
+        <Route path="/login/:portalRole" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
         {/* Kiosk Scanner Route */}
         <Route path="/kiosk-scanner" element={<QRScannerKiosk />} />
@@ -105,7 +112,7 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute allowedRoles={['ADMIN', 'PIMPINAN']}>
+            <ProtectedRoute allowedRoles={['ADMIN']}>
               <DashboardLayout>
                 <AdminDashboard />
               </DashboardLayout>
@@ -125,8 +132,7 @@ export default function App() {
           }
         />
 
-        {/* Root Redirect */}
-        <Route path="/" element={<RootRedirect />} />
+        {/* Fallback Redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

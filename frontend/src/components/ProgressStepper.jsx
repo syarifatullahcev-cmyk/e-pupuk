@@ -6,8 +6,8 @@ const STAGES = [
   { id: 2, name: 'Verifikasi Berkas', icon: ShieldCheck },
   { id: 3, name: 'Penugasan PPL', icon: UserCheck },
   { id: 4, name: 'Survei Lapangan', icon: MapPin },
-  { id: 5, name: 'Persetujuan Akhir', icon: Award },
-  { id: 6, name: 'Penyaluran Pupuk', icon: PackageCheck },
+  { id: 5, name: 'Persetujuan Admin', icon: Award },
+  { id: 6, name: 'Penggunaan Pupuk', icon: PackageCheck },
 ];
 
 export default function ProgressStepper({ status }) {

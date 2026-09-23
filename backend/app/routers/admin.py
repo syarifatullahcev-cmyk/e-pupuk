@@ -1,4 +1,3 @@
-import uuid
 import datetime
 from decimal import Decimal
 from typing import List, Optional
@@ -21,7 +20,7 @@ router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
 
 @router.get("/stats", response_model=DashboardStatsAdmin)
 def get_admin_stats(
-    current_user: User = Depends(require_role("ADMIN", "PIMPINAN")),
+    current_user: User = Depends(require_role("ADMIN")),
     db: Session = Depends(get_db)
 ):
     total_pengajuan = db.query(Application).count()
@@ -211,15 +210,13 @@ def final_approve_application(
         app.status = ApplicationStatus.DISETUJUI
         app.jumlah_disetujui = data.jumlah_disetujui or app.jumlah_diajukan
 
-        # Create distribution record with unique QR hash
+        # Keep distribution allocation separate from the physical bag QR.
         existing_dist = db.query(Distribution).filter(Distribution.application_id == app.id).first()
         if not existing_dist:
-            qr_hash = f"EPUPUK-{app.id}-{uuid.uuid4().hex[:10].upper()}"
             dist = Distribution(
                 application_id=app.id,
                 jumlah_disalurkan=app.jumlah_disetujui,
-                status_penyaluran="MENUNGGU_PENGAMBILAN",
-                qr_code_hash=qr_hash
+                status_penyaluran="MENUNGGU_PENGAMBILAN"
             )
             db.add(dist)
             app.status = ApplicationStatus.DIJADWALKAN_DISTRIBUSI
@@ -228,7 +225,7 @@ def final_approve_application(
             db.add(Notification(
                 user_id=farmer_user_id,
                 judul="Pengajuan Subsidi Disetujui!",
-                pesan=f"Selamat! Pengajuan subsidi pupuk #{app.id} telah disetujui untuk kuota {app.jumlah_disetujui} kg. QR Code pengambilan telah diterbitkan.",
+                pesan=f"Selamat! Pengajuan subsidi pupuk #{app.id} telah disetujui untuk kuota {app.jumlah_disetujui} kg. Pembukaan pupuk menggunakan QR pada karung pupuk.",
                 tipe="SUCCESS"
             ))
 

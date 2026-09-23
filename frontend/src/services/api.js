@@ -93,6 +93,7 @@ export const filesApi = {
 
 export const distributionsApi = {
   getMyDistributions: () => api.get('/api/distributions/my'),
+  getMyScans: () => api.get('/api/distributions/scans/my'),
   scanQr: (data) => api.post('/api/distributions/scan-qr', data),
   getNotifications: () => api.get('/api/notifications'),
   markRead: (id) => api.put(`/api/notifications/${id}/read`),

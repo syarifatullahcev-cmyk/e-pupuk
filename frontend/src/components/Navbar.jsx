@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Sprout, Bell, LogOut, User, Check, 
-  QrCode, ExternalLink, Shield, Tractor, Briefcase
+  Sprout, Bell, LogOut, Check,
+  Shield, Tractor, Briefcase
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { distributionsApi } from '../services/api';
@@ -102,7 +102,7 @@ export default function Navbar() {
                   E-PUPUK
                 </span>
                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 uppercase tracking-wider">
-                  Mojokerto
+                  Kabupaten Mojokerto
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 font-medium -mt-0.5 hidden sm:block">
@@ -114,16 +114,6 @@ export default function Navbar() {
 
         {/* Right Menu */}
         <div className="flex items-center gap-3 sm:gap-4">
-          {/* Quick link to Kiosk Scanner */}
-          <Link
-            to="/kiosk-scanner"
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
-            title="Kiosk Pindai QR Penyaluran"
-          >
-            <QrCode className="w-4 h-4 text-emerald-600" />
-            <span>Kiosk QR Scan</span>
-          </Link>
-
           {/* Role badge */}
           {user && getRoleBadge(user.role)}
 
@@ -200,6 +190,9 @@ export default function Navbar() {
 
           {/* User Profile & Logout */}
           <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black">
+              {(user?.nama || user?.username || 'A').charAt(0).toUpperCase()}
+            </div>
             <div className="text-right hidden sm:block">
               <p className="text-xs font-bold text-slate-800 truncate max-w-[130px]">
                 {user?.nama || user?.username}
