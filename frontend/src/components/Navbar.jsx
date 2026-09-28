@@ -74,8 +74,8 @@ export default function Navbar() {
         );
       case 'PETANI':
         return (
-          <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-            <Tractor className="w-3 h-3" /> Petani Terdaftar
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-300">
+            <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" /> Petani Terdaftar
           </span>
         );
       default:
@@ -88,24 +88,24 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-green-500 flex items-center justify-center text-white shadow-sm shadow-emerald-300 group-hover:scale-105 transition-transform">
-              <Sprout className="w-6 h-6 stroke-[2.2]" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-700 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform shrink-0">
+              <Sprout className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-extrabold tracking-tight text-slate-900 font-display">
+                <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 font-display">
                   E-PUPUK
                 </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 uppercase tracking-wider">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 uppercase tracking-wider">
                   Kabupaten Mojokerto
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium -mt-0.5 hidden sm:block">
+              <p className="text-[11px] text-slate-400 font-medium -mt-0.5 hidden sm:block">
                 Sistem Subsidi & Distribusi Pupuk
               </p>
             </div>
@@ -189,21 +189,21 @@ export default function Navbar() {
           </div>
 
           {/* User Profile & Logout */}
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-black">
-              {(user?.nama || user?.username || 'A').charAt(0).toUpperCase()}
+          <div className="flex items-center gap-3 pl-2">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold shrink-0">
+              {(user?.nama || user?.username || 'B').charAt(0).toUpperCase()}
             </div>
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold text-slate-800 truncate max-w-[130px]">
-                {user?.nama || user?.username}
+            <div className="text-left hidden sm:block leading-tight">
+              <p className="text-xs font-bold text-slate-800 truncate max-w-[140px]">
+                {user?.nama || 'Budi Santoso'}
               </p>
               <p className="text-[10px] text-slate-400 font-mono">
-                @{user?.username}
+                @{user?.username || 'petani_budi'}
               </p>
             </div>
             <button
               onClick={handleLogout}
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 transition-colors ml-1"
               title="Keluar"
             >
               <LogOut className="w-4 h-4" />

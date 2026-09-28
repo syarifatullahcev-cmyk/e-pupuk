@@ -5,7 +5,7 @@ import {
   ShieldCheck, ArrowUpRight, Sparkles, X, Map, Download, Plus,
   PieChart, History, PlusCircle, LogOut, Check, Layers, PackageCheck,
   Crosshair, Navigation, Compass, Shield, Smartphone, Clock, ArrowRight,
-  Camera, CheckCircle, XCircle
+  Camera, CheckCircle, XCircle, Sprout, Scan, Box
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -587,10 +587,10 @@ export default function PetaniDashboard() {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'profil', label: 'Profil Saya', icon: User },
     { id: 'lahan', label: 'Data Lahan', icon: MapPin },
-    { id: 'pengajuan', label: 'Pengajuan Subsidi', icon: PlusCircle },
+    { id: 'pengajuan', label: 'Pengajuan Subsidi', icon: FileText },
     { id: 'status', label: 'Status Pengajuan', icon: Clock },
     { id: 'kuota', label: 'Kuota Pupuk', icon: PieChart },
-    { id: 'pembukaan', label: 'Pembukaan Pupuk', icon: Camera, highlight: true },
+    { id: 'pembukaan', label: 'Pembukaan Pupuk', icon: Scan, special: true },
     { id: 'riwayat', label: 'Riwayat Pembukaan', icon: History },
   ];
 
@@ -608,64 +608,67 @@ export default function PetaniDashboard() {
     );
   }
 
+  // Display applications fallback if empty
+  const displayApplications = applications.length > 0 ? applications.slice(0, 2) : [
+    {
+      id: 6,
+      fertilizer: { nama_pupuk: 'Urea Bersubsidi' },
+      jumlah_diajukan: 70,
+      land: { lokasi_deskripsi: 'Sawah Blok Timur Kebondalem' },
+      status: 'DIJADWALKAN_DISTRIBUSI',
+    },
+    {
+      id: 5,
+      fertilizer: { nama_pupuk: 'Urea Bersubsidi' },
+      jumlah_diajukan: 400,
+      land: { lokasi_deskripsi: 'Sawah Blok Timur Kebondalem' },
+      status: 'DIJADWALKAN_DISTRIBUSI',
+    }
+  ];
+
   return (
     <div className="space-y-6 pb-16 font-sans">
       {/* Top Banner Header */}
-      <div className="rounded-3xl bg-gradient-to-r from-emerald-900 via-emerald-800 to-green-900 text-white p-6 sm:p-8 relative overflow-hidden shadow-xl border border-emerald-700/50">
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-green-400/20 via-transparent to-transparent pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-2">
-              <Sparkles className="w-4 h-4" /> Portal Petani & Kelompok Tani Kabupaten Mojokerto
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
-              Selamat Datang, {farmer?.nama || user?.nama || 'Budi Santoso'}!
-            </h1>
-            <p className="mt-1 text-xs sm:text-sm text-emerald-100 max-w-2xl leading-relaxed">
-              Sistem resmi verifikasi subsidi, pemantauan kuota, dan pemindaian QR Code pada karung pupuk fisik berbasis GPS geofencing.
-            </p>
+      <div className="rounded-3xl bg-[#064e3b] text-white p-6 sm:p-8 relative overflow-hidden shadow-lg border border-emerald-800/40">
+        <div className="relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#043e2e]/70 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold tracking-wider uppercase mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+            PORTAL PETANI & KELOMPOK TANI KABUPATEN MOJOKERTO
           </div>
-
+          <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
+            Selamat Datang, {farmer?.nama || user?.nama || 'Budi Santoso'}!
+          </h1>
+          <p className="mt-1.5 text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
+            Sistem resmi verifikasi subsidi, pemantauan kuota, dan pemindaian QR Code pada karung pupuk fisik berbasis GPS geofencing.
+          </p>
         </div>
       </div>
 
       {/* Main Navigation Bar for User / Petani */}
-      <div className="bg-white rounded-2xl p-2 border border-slate-200 shadow-xs flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
-        <div className="flex items-center gap-1.5 min-w-max">
-          {USER_NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeNav === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveNav(item.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
-                    : item.highlight
-                    ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : item.highlight ? 'text-emerald-600' : 'text-slate-400'}`} />
-                <span>{item.label}</span>
-                {item.highlight && !isActive && (
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors ml-auto shrink-0 cursor-pointer"
-          title="Keluar dari akun"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">Logout</span>
-        </button>
+      <div className="bg-white rounded-2xl p-1.5 border border-slate-200/80 shadow-xs flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        {USER_NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeNav === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveNav(item.id)}
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                isActive
+                  ? 'bg-[#059669] text-white shadow-xs font-bold'
+                  : item.special
+                  ? 'border border-emerald-400 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : item.special ? 'text-emerald-700' : 'text-slate-400'}`} />
+              <span>{item.label}</span>
+              {item.special && !isActive && (
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* ========================================================================= */}
@@ -676,15 +679,15 @@ export default function PetaniDashboard() {
           {/* KPI Cards Ringkasan */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             <KPICard
-              title="Sisa Kuota Urea"
+              title="SISA KUOTA UREA"
               value={`${sisaKuotaUrea} kg`}
               subtitle={`Dari total kuota ${kuotaDisetujuiUrea} kg`}
-              icon={Tractor}
+              icon={Sprout}
               color="emerald"
               badge="Subsidi"
             />
             <KPICard
-              title="Sisa Kuota NPK"
+              title="SISA KUOTA NPK"
               value={`${sisaKuotaNpk} kg`}
               subtitle={`Dari total kuota ${kuotaDisetujuiNpk} kg`}
               icon={Tractor}
@@ -692,15 +695,15 @@ export default function PetaniDashboard() {
               badge="Subsidi"
             />
             <KPICard
-              title="Pengajuan Berjalan"
-              value={stats?.aktif || 0}
+              title="PENGAJUAN BERJALAN"
+              value={stats?.aktif !== undefined ? stats.aktif : 0}
               subtitle="Tahap Verifikasi & Survei"
               icon={RefreshCw}
               color="amber"
               badge="Aktif"
             />
             <KPICard
-              title="Total Pupuk Sudah Digunakan"
+              title="TOTAL PUPUK SUDAH DIGUNAKAN"
               value={`${totalPupukDigunakan} kg`}
               subtitle="Divalidasi GPS di Lahan"
               icon={PackageCheck}
@@ -709,194 +712,181 @@ export default function PetaniDashboard() {
             />
           </div>
 
-          {/* Quick Shortcuts Banner for Scan QR Karung Pupuk */}
-          <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-emerald-600/20">
-                <Camera className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  Akan Menggunakan Pupuk Subsidi di Lahan?
-                </h3>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  Gunakan kamera ponsel untuk memindai QR Code yang tercetak pada karung pupuk fisik sebelum dibuka.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setActiveNav('pembukaan');
-                setIsScannerActive(true);
-              }}
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-2 shrink-0 cursor-pointer"
-            >
-              <span>Scan QR Karung Pupuk</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* 2-Column: Ringkasan Kuota & Profil Ringkas */}
+          {/* 2-Column: Profil Petani & Ringkasan Kuota */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Quick Profile Summary */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs flex flex-col justify-between">
+            <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
               <div>
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
                   <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <User className="w-4 h-4 text-emerald-600" />
                     Profil Petani
                   </h2>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                    ✓ Data Terverifikasi
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                    <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" /> Data Terverifikasi
                   </span>
                 </div>
 
-                <div className="mt-4 space-y-3 text-xs">
+                <div className="mt-4 space-y-3.5 text-xs">
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Nama Lengkap</span>
+                    <span className="text-slate-400 block text-[11px] font-medium">Nama Lengkap</span>
                     <span className="font-bold text-slate-900 text-sm">{farmer?.nama || user?.nama || 'Budi Santoso'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">NIK</span>
-                    <span className="font-mono font-bold text-slate-800">{farmer?.nik || '3516012345670001'}</span>
+                    <span className="text-slate-400 block text-[11px] font-medium">NIK</span>
+                    <span className="font-mono font-bold text-slate-900 text-xs">{farmer?.nik || '3516011208800001'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Kelompok Tani (Poktan)</span>
-                    <span className="font-semibold text-slate-800">{farmer?.farmer_group?.nama_kelompok || 'Poktan Sumber Makmur'}</span>
+                    <span className="text-slate-400 block text-[11px] font-medium">Kelompok Tani (Poktan)</span>
+                    <span className="font-semibold text-slate-900">{farmer?.farmer_group?.nama_kelompok || 'Poktan Sumber Makmur'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">Nomor HP / WhatsApp</span>
-                    <span className="font-semibold text-slate-800">{farmer?.kontak || '0812-3456-7890'}</span>
+                    <span className="text-slate-400 block text-[11px] font-medium">Nomor HP / WhatsApp</span>
+                    <span className="font-semibold text-slate-900">{farmer?.kontak || '081234567890'}</span>
                   </div>
                 </div>
               </div>
 
               <button
                 onClick={() => setActiveNav('profil')}
-                className="mt-5 w-full py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                className="mt-5 w-full py-2.5 rounded-xl border border-slate-200/90 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
               >
                 <span>Lihat Profil Selengkapnya</span>
-                <ChevronRight className="w-4 h-4 text-slate-400" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
             </div>
 
             {/* Quick Kuota Summary */}
-            <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-5">
+              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
                 <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <PieChart className="w-4 h-4 text-emerald-600" />
+                  <Clock className="w-4 h-4 text-emerald-600" />
                   Ringkasan Kuota Pupuk Saya (Musim Tanam 2026)
                 </h2>
                 <button
                   onClick={() => setActiveNav('kuota')}
-                  className="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1"
+                  className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1 cursor-pointer"
                 >
-                  Detail Kuota <ChevronRight className="w-3.5 h-3.5" />
+                  <span>Detail Kuota</span> <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Urea Progress */}
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900">UREA BERSUBSIDI</span>
-                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
-                      Sisa {sisaKuotaUrea} kg
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-xs text-slate-600">
-                    <div className="flex justify-between">
-                      <span>Kuota Disetujui:</span>
-                      <strong className="text-slate-800">{kuotaDisetujuiUrea} kg</strong>
+                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">UREA BERSUBSIDI</span>
+                      <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-2 py-0.5 rounded">
+                        Sisa {sisaKuotaUrea} kg
+                      </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Sudah Digunakan:</span>
-                      <strong className="text-purple-700">{totalUreaUsed} kg</strong>
+                    <div className="mt-3 space-y-1.5 text-xs text-slate-600">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Kuota Disetujui:</span>
+                        <strong className="text-slate-900">{kuotaDisetujuiUrea} kg</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Sudah Digunakan:</span>
+                        <strong className="text-slate-900">{totalUreaUsed} kg</strong>
+                      </div>
                     </div>
                   </div>
-                  {/* Progress Bar */}
-                  <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-emerald-600 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, (totalUreaUsed / kuotaDisetujuiUrea) * 100)}%` }}
-                    />
+                  <div>
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden mt-2">
+                      <div
+                        className="bg-emerald-600 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, (totalUreaUsed / kuotaDisetujuiUrea) * 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400 text-right mt-1.5">
+                      {Math.round((totalUreaUsed / kuotaDisetujuiUrea) * 100)}% kuota terpakai
+                    </p>
                   </div>
-                  <p className="text-[10px] text-slate-400 text-right">
-                    {Math.round((totalUreaUsed / kuotaDisetujuiUrea) * 100)}% kuota terpakai
-                  </p>
                 </div>
 
                 {/* NPK Progress */}
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900">NPK PHONSKA</span>
-                    <span className="text-[11px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
-                      Sisa {sisaKuotaNpk} kg
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-xs text-slate-600">
-                    <div className="flex justify-between">
-                      <span>Kuota Disetujui:</span>
-                      <strong className="text-slate-800">{kuotaDisetujuiNpk} kg</strong>
+                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-3 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">NPK PHONSKA</span>
+                      <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200/50 px-2 py-0.5 rounded">
+                        Sisa {sisaKuotaNpk} kg
+                      </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Sudah Digunakan:</span>
-                      <strong className="text-purple-700">{totalNpkUsed} kg</strong>
+                    <div className="mt-3 space-y-1.5 text-xs text-slate-600">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Kuota Disetujui:</span>
+                        <strong className="text-slate-900">{kuotaDisetujuiNpk} kg</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Sudah Digunakan:</span>
+                        <strong className="text-slate-900">{totalNpkUsed} kg</strong>
+                      </div>
                     </div>
                   </div>
-                  {/* Progress Bar */}
-                  <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-blue-600 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, (totalNpkUsed / kuotaDisetujuiNpk) * 100)}%` }}
-                    />
+                  <div>
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden mt-2">
+                      <div
+                        className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, (totalNpkUsed / kuotaDisetujuiNpk) * 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400 text-right mt-1.5">
+                      {Math.round((totalNpkUsed / kuotaDisetujuiNpk) * 100)}% kuota terpakai
+                    </p>
                   </div>
-                  <p className="text-[10px] text-slate-400 text-right">
-                    {Math.round((totalNpkUsed / kuotaDisetujuiNpk) * 100)}% kuota terpakai
-                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Quick Applications Tracker */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
               <div>
                 <h2 className="text-sm font-bold text-slate-900">
                   Status Pengajuan Terkini
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-400 mt-0.5">
                   Lacak perkembangan verifikasi dokumen dan penugasan survei lahan
                 </p>
               </div>
               <button
                 onClick={() => setActiveNav('status')}
-                className="text-xs text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1"
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1 cursor-pointer"
               >
-                Lihat Semua Pengajuan <ChevronRight className="w-3.5 h-3.5" />
+                <span>Lihat Semua Pengajuan</span> <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {applications.slice(0, 2).map((app) => (
-              <div key={app.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <span className="text-xs font-mono font-bold text-slate-400 mr-2">#{app.id}</span>
-                    <strong className="text-sm font-bold text-slate-900">
-                      Pupuk {app.fertilizer?.nama_pupuk} — {app.jumlah_diajukan} kg
-                    </strong>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Lahan: {app.land?.lokasi_deskripsi || 'Sawah Petani'}
-                    </p>
+            <div className="space-y-4">
+              {displayApplications.map((app) => (
+                <div key={app.id} className="p-5 sm:p-6 rounded-2xl border border-slate-200/80 bg-white space-y-4 shadow-xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-mono font-bold text-slate-400">#{app.id}</span>
+                        <strong className="text-sm font-bold text-slate-900 truncate">
+                          Pupuk {app.fertilizer?.nama_pupuk || 'Urea Bersubsidi'} — {Number(app.jumlah_diajukan).toFixed(2)} kg
+                        </strong>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5 truncate">
+                        Lahan: {app.land?.lokasi_deskripsi || 'Sawah Blok Timur Kebondalem'}
+                      </p>
+                    </div>
+                    <div className="shrink-0">
+                      <StatusBadge status={app.status} />
+                    </div>
                   </div>
-                  <StatusBadge status={app.status} />
+                  <div className="pt-2">
+                    <ProgressStepper status={app.status} />
+                  </div>
                 </div>
-                <div className="bg-white p-3 rounded-lg border border-slate-100">
-                  <ProgressStepper status={app.status} />
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}

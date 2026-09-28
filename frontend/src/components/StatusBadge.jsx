@@ -57,8 +57,8 @@ export const STATUS_CONFIG = {
   },
   DIJADWALKAN_DISTRIBUSI: {
     label: 'Siap Diambil (QR Terbit)',
-    bg: 'bg-emerald-100 text-emerald-900 border-emerald-400 font-semibold ring-2 ring-emerald-500/20',
-    icon: PackageCheck,
+    bg: 'bg-emerald-50 text-emerald-700 border-emerald-300 font-semibold',
+    icon: CheckCircle,
   },
   TERSALURKAN: {
     label: 'Telah Disalurkan',
@@ -78,7 +78,7 @@ export default function StatusBadge({ status, className = '' }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border shadow-xs transition-colors ${config.bg} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border shadow-xs transition-colors shrink-0 whitespace-nowrap ${config.bg} ${className}`}
     >
       <IconComponent className="w-3.5 h-3.5 shrink-0" />
       <span>{config.label}</span>

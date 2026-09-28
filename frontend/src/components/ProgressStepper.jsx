@@ -64,20 +64,8 @@ export default function ProgressStepper({ status }) {
   }
 
   return (
-    <div className="w-full py-4">
-      <div className="flex items-center justify-between relative">
-        {/* Continuous track line */}
-        <div className="absolute top-1/2 left-6 right-6 -translate-y-1/2 h-1 bg-slate-200 z-0">
-          <div
-            className={`h-full transition-all duration-500 ${
-              isRejected ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-emerald-500'
-            }`}
-            style={{
-              width: `${Math.min(100, Math.max(0, ((currentStage - 1) / (STAGES.length - 1)) * 100))}%`,
-            }}
-          />
-        </div>
-
+    <div className="w-full pt-2 pb-2">
+      <div className="flex items-start">
         {STAGES.map((stage) => {
           const isDone = currentStage > stage.id;
           const isActive = currentStage === stage.id;
@@ -85,49 +73,79 @@ export default function ProgressStepper({ status }) {
           const isThisStageWarning = isWarning && stage.id === 2;
 
           let circleBg = 'bg-white border-2 border-slate-300 text-slate-400';
+          let lineBg = 'bg-slate-200';
+
           if (isDone) {
-            circleBg = 'bg-emerald-600 border-2 border-emerald-600 text-white shadow-sm shadow-emerald-200';
+            circleBg = 'bg-emerald-600 text-white shadow-xs';
+            lineBg = 'bg-emerald-500';
           } else if (isThisStageRejected) {
-            circleBg = 'bg-rose-600 border-2 border-rose-600 text-white shadow-sm shadow-rose-200 ring-4 ring-rose-100';
+            circleBg = 'bg-rose-600 text-white shadow-xs ring-2 ring-rose-100';
+            lineBg = 'bg-rose-500';
           } else if (isThisStageWarning) {
-            circleBg = 'bg-amber-500 border-2 border-amber-500 text-white shadow-sm shadow-amber-200 ring-4 ring-amber-100 animate-pulse';
+            circleBg = 'bg-amber-500 text-white shadow-xs ring-2 ring-amber-100 animate-pulse';
+            lineBg = 'bg-amber-500';
           } else if (isActive) {
-            circleBg = 'bg-blue-600 border-2 border-blue-600 text-white shadow-md shadow-blue-200 ring-4 ring-blue-100 animate-pulse';
+            circleBg = 'bg-blue-600 text-white shadow-xs ring-4 ring-blue-100';
+            lineBg = 'bg-emerald-500';
           }
 
+          // Format label into two lines if it contains space for neat vertical centering
+          const words = stage.name.split(' ');
+          const line1 = words[0];
+          const line2 = words.slice(1).join(' ');
+
           return (
-            <div key={stage.id} className="relative z-10 flex flex-col items-center group">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${circleBg}`}
-              >
-                {isDone ? (
-                  <Check className="w-5 h-5 stroke-[2.5]" />
-                ) : isThisStageRejected ? (
-                  <X className="w-5 h-5 stroke-[2.5]" />
-                ) : isThisStageWarning ? (
-                  <AlertTriangle className="w-5 h-5 stroke-[2.5]" />
-                ) : (
-                  <stage.icon className="w-4 h-4" />
-                )}
+            <div key={stage.id} className="flex-1 flex flex-col min-w-0">
+              {/* Top: Track Line leading to Circle Checkpoint */}
+              <div className="flex items-center h-8">
+                <div className={`flex-1 h-[2.5px] transition-colors duration-500 ${lineBg}`} />
+                <div
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 shrink-0 ${circleBg}`}
+                >
+                  {isDone ? (
+                    <Check className="w-4 h-4 stroke-[3]" />
+                  ) : isThisStageRejected ? (
+                    <X className="w-4 h-4 stroke-[3]" />
+                  ) : isThisStageWarning ? (
+                    <AlertTriangle className="w-4 h-4 stroke-[2.5]" />
+                  ) : isActive && stage.id === 6 ? (
+                    <PackageCheck className="w-4 h-4" />
+                  ) : (
+                    <stage.icon className="w-4 h-4" />
+                  )}
+                </div>
               </div>
-              <span
-                className={`mt-2 text-xs font-medium text-center max-w-[80px] leading-tight transition-colors ${
-                  isThisStageRejected
-                    ? 'text-rose-600 font-bold'
-                    : isThisStageWarning
-                    ? 'text-amber-600 font-bold'
-                    : isActive
-                    ? 'text-blue-700 font-bold'
-                    : isDone
-                    ? 'text-emerald-700 font-semibold'
-                    : 'text-slate-400'
-                }`}
-              >
-                {stage.name}
-              </span>
+
+              {/* Bottom: Label placed under the line segment to the left of the circle */}
+              <div className="pr-5 sm:pr-8 text-center mt-2 min-h-[32px] flex flex-col justify-start items-center">
+                <span
+                  className={`text-[11px] sm:text-xs font-medium leading-tight block ${
+                    isThisStageRejected
+                      ? 'text-rose-600 font-bold'
+                      : isThisStageWarning
+                      ? 'text-amber-600 font-bold'
+                      : isActive && stage.id === 6
+                      ? 'text-blue-600 font-bold'
+                      : isDone
+                      ? 'text-slate-800'
+                      : 'text-slate-400'
+                  }`}
+                >
+                  {line1}
+                  {line2 && <span className="block mt-0.5">{line2}</span>}
+                </span>
+              </div>
             </div>
           );
         })}
+
+        {/* Trailing end tail after step 6 */}
+        <div className="flex flex-col shrink-0">
+          <div className="flex items-center h-8">
+            <div className={`w-3 sm:w-5 h-[2.5px] ${currentStage >= 6 ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+          </div>
+          <div className="min-h-[32px] mt-2" />
+        </div>
       </div>
     </div>
   );
