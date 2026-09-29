@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from decimal import Decimal
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,7 +9,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role, log_audit_action
 from app.models.models import (
     User, Farmer, Land, Application, ApplicationStatus,
-    Distribution, Notification, AuditLog, FieldSurvey
+    Distribution, Notification, AuditLog, FieldSurvey, FertilizerBatch
 )
 from app.schemas.schemas import (
     DashboardStatsAdmin, ApplicationResponse,
@@ -212,13 +213,26 @@ def final_approve_application(
 
         # Keep distribution allocation separate from the physical bag QR.
         existing_dist = db.query(Distribution).filter(Distribution.application_id == app.id).first()
+        farmer_name_clean = "".join(c for c in (app.farmer.nama if app.farmer and app.farmer.nama else "PETANI") if c.isalnum()).upper()[:6]
+        qr_token = f"EPUPUK-{app.id}-{farmer_name_clean}-{uuid.uuid4().hex[:6].upper()}"
+        batch = db.query(FertilizerBatch).filter(FertilizerBatch.fertilizer_id == app.fertilizer_id).first()
+
         if not existing_dist:
             dist = Distribution(
                 application_id=app.id,
+                batch_id=batch.id if batch else None,
                 jumlah_disalurkan=app.jumlah_disetujui,
-                status_penyaluran="MENUNGGU_PENGAMBILAN"
+                status_penyaluran="MENUNGGU_PENGAMBILAN",
+                qr_code_hash=qr_token
             )
             db.add(dist)
+            app.status = ApplicationStatus.DIJADWALKAN_DISTRIBUSI
+        else:
+            existing_dist.jumlah_disalurkan = app.jumlah_disetujui
+            if not existing_dist.qr_code_hash:
+                existing_dist.qr_code_hash = qr_token
+            if not existing_dist.batch_id and batch:
+                existing_dist.batch_id = batch.id
             app.status = ApplicationStatus.DIJADWALKAN_DISTRIBUSI
 
         if farmer_user_id:

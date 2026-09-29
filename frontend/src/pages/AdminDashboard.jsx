@@ -149,9 +149,13 @@ export default function AdminDashboard() {
     if (!selectedApp) return;
     const toastId = toast.loading('Menyimpan keputusan akhir...');
     try {
+      const parsedKg = approvedKg !== '' && approvedKg !== null && approvedKg !== undefined
+        ? parseFloat(String(approvedKg).replace(',', '.'))
+        : null;
+
       await adminApi.finalApprove(selectedApp.id, {
         action,
-        jumlah_disetujui: approvedKg ? parseFloat(approvedKg) : null,
+        jumlah_disetujui: parsedKg,
         catatan: actionNotes,
       });
       setShowFinalModal(false);
@@ -165,7 +169,12 @@ export default function AdminDashboard() {
         { id: toastId, duration: 5000 }
       );
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Gagal menyimpan keputusan akhir.', { id: toastId });
+      const errorMsg = typeof err.response?.data?.detail === 'string'
+        ? err.response.data.detail
+        : (Array.isArray(err.response?.data?.detail)
+          ? err.response.data.detail.map((e) => e.msg).join(', ')
+          : 'Gagal menyimpan keputusan akhir.');
+      toast.error(errorMsg, { id: toastId });
     }
   };
 
