@@ -11,6 +11,7 @@ import {
   ShieldCheck 
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { authApi } from '../services/api';
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -39,18 +40,38 @@ export default function Register() {
       return;
     }
 
+    if (formData.password.length < 6) {
+      toast.error('Kata Sandi minimal 6 karakter');
+      return;
+    }
+
     if (formData.nik.length < 16) {
       toast.error('NIK wajib berisi 16 digit angka');
       return;
     }
 
     setLoading(true);
-    // Simulate API registration
-    setTimeout(() => {
-      setLoading(false);
-      toast.success('Pendaftaran akun petani berhasil! Silakan masuk.');
+    try {
+      const res = await authApi.register({
+        nama: formData.namaLengkap.trim(),
+        nik: formData.nik.trim(),
+        kontak: formData.nomorHp.trim(),
+        username: formData.username.trim(),
+        password: formData.password,
+      });
+
+      toast.success(res.data.message || 'Pendaftaran akun petani berhasil! Silakan masuk.');
       navigate('/login/petani');
-    }, 1200);
+    } catch (err) {
+      const errorMsg = typeof err.response?.data?.detail === 'string'
+        ? err.response.data.detail
+        : (Array.isArray(err.response?.data?.detail)
+          ? err.response.data.detail.map((e) => e.msg).join(', ')
+          : 'Pendaftaran gagal. Silakan periksa kembali data Anda.');
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -7,7 +7,7 @@ import {
   Search
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { adminApi, applicationsApi } from '../services/api';
+import { adminApi, applicationsApi, farmersApi, landsApi } from '../services/api';
 import KPICard from '../components/KPICard';
 import StatusBadge from '../components/StatusBadge';
 import ProgressStepper from '../components/ProgressStepper';
@@ -19,6 +19,8 @@ export default function AdminDashboard() {
   const [applications, setApplications] = useState([]);
   const [pplOfficers, setPplOfficers] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [farmersList, setFarmersList] = useState([]);
+  const [landsList, setLandsList] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
 
@@ -46,16 +48,20 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [sRes, aRes, pRes, lRes] = await Promise.all([
+      const [sRes, aRes, pRes, lRes, fRes, landRes] = await Promise.all([
         adminApi.getStats(),
         applicationsApi.getAll(),
         adminApi.getPplOfficers(),
         adminApi.getAuditLogs(),
+        farmersApi.getAll().catch(() => ({ data: [] })),
+        landsApi.getAll().catch(() => ({ data: [] })),
       ]);
       setStats(sRes.data);
       setApplications(aRes.data);
       setPplOfficers(pRes.data);
       setAuditLogs(lRes.data);
+      setFarmersList(fRes.data || []);
+      setLandsList(landRes.data || []);
 
       if (pRes.data.length > 0) {
         setSelectedPplId(pRes.data[0].id);
@@ -88,12 +94,16 @@ export default function AdminDashboard() {
     (total, app) => total + Number(app.jumlah_disetujui || app.jumlah_diajukan || 0),
     0
   );
-  const uniqueFarmers = Array.from(
-    new Map(applications.filter((app) => app.farmer).map((app) => [app.farmer.id, app.farmer])).values()
-  );
-  const uniqueLands = Array.from(
-    new Map(applications.filter((app) => app.land).map((app) => [app.land.id, app.land])).values()
-  );
+  const uniqueFarmers = farmersList.length > 0
+    ? farmersList
+    : Array.from(
+        new Map(applications.filter((app) => app.farmer).map((app) => [app.farmer.id, app.farmer])).values()
+      );
+  const uniqueLands = landsList.length > 0
+    ? landsList
+    : Array.from(
+        new Map(applications.filter((app) => app.land).map((app) => [app.land.id, app.land])).values()
+      );
   const adminMenu = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'verifikasi', label: 'Verifikasi Berkas', icon: FileText, count: pendingVerifyApps.length },

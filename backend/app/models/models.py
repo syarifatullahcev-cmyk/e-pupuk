@@ -11,6 +11,7 @@ class UserRole:
     PETANI = "PETANI"
     PPL = "PPL"
     ADMIN = "ADMIN"
+    PIMPINAN = "PIMPINAN"
 
 class ApplicationStatus:
     DIAJUKAN = "DIAJUKAN"
@@ -33,7 +34,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     email = Column(String(150), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
-    role = Column(SQLEnum(UserRole.PETANI, UserRole.PPL, UserRole.ADMIN), nullable=False)
+    role = Column(SQLEnum(UserRole.PETANI, UserRole.PPL, UserRole.ADMIN, UserRole.PIMPINAN), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
 

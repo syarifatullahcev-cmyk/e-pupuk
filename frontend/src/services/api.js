@@ -35,6 +35,7 @@ api.interceptors.response.use(
 
 export const authApi = {
   login: (credentials) => api.post('/api/auth/login', credentials),
+  register: (data) => api.post('/api/auth/register', data),
   getMe: () => api.get('/api/auth/me'),
   logout: () => api.post('/api/auth/logout'),
 };
@@ -67,6 +68,7 @@ export const farmersApi = {
   getAll: (params) => api.get('/api/farmers', { params }),
   getMe: () => api.get('/api/farmers/me'),
   getById: (id) => api.get(`/api/farmers/${id}`),
+  update: (id, data) => api.put(`/api/farmers/${id}`, data),
   getGroups: () => api.get('/api/farmer-groups'),
   getCommodities: () => api.get('/api/commodities'),
   getFertilizers: () => api.get('/api/fertilizers'),

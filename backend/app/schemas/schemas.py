@@ -8,6 +8,16 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    nama: str
+    nik: str
+    kontak: Optional[str] = None
+    email: Optional[EmailStr] = None
+    alamat: Optional[str] = "Kabupaten Mojokerto"
+    farmer_group_id: Optional[int] = None
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -82,6 +92,7 @@ class FarmerUpdate(BaseModel):
     kontak: Optional[str] = None
     alamat: Optional[str] = None
     farmer_group_id: Optional[int] = None
+    foto_ktp_url: Optional[str] = None
 
 class FarmerResponse(FarmerBase):
     id: int

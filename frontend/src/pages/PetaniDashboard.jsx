@@ -103,6 +103,7 @@ export default function PetaniDashboard() {
   const [selectedLandDetail, setSelectedLandDetail] = useState(null);
   const [selectedHistoryDetail, setSelectedHistoryDetail] = useState(null);
   const [selectedApp, setSelectedApp] = useState(null);
+  const [isEditingKtp, setIsEditingKtp] = useState(false);
 
   // Lightbox / Photo Viewer Modal
   const [viewerPhoto, setViewerPhoto] = useState({
@@ -915,30 +916,78 @@ export default function PetaniDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Photo KTP Card */}
               <div className="space-y-3">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Foto KTP Terdaftar
-                </label>
-                <div 
-                  onClick={() => setViewerPhoto({
-                    isOpen: true,
-                    title: `Foto KTP: ${farmer?.nama || user?.nama || 'Petani'}`,
-                    url: farmer?.foto_ktp_url || '/files/ktp/sample_ktp1.jpg',
-                    description: `NIK: ${farmer?.nik || '3516012345670001'} | Status: Data Terverifikasi`
-                  })}
-                  className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-16/10 group cursor-pointer shadow-xs flex items-center justify-center"
-                >
-                  <img 
-                    src={farmer?.foto_ktp_url || '/files/ktp/sample_ktp1.jpg'} 
-                    alt="Foto KTP" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-bold backdrop-blur-xs">
-                    <Eye className="w-4 h-4" /> Klik untuk Perbesar KTP
-                  </div>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Foto KTP Terdaftar
+                  </label>
+                  {farmer?.foto_ktp_url && !isEditingKtp && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingKtp(true)}
+                      className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer"
+                    >
+                      Ubah Foto
+                    </button>
+                  )}
                 </div>
-                <p className="text-[11px] text-slate-400 text-center">
-                  Klik foto KTP untuk memeriksa data ukuran penuh
-                </p>
+
+                {!farmer?.foto_ktp_url || isEditingKtp ? (
+                  <div className="space-y-2">
+                    <FileUploadZone
+                      label={farmer?.foto_ktp_url ? "Unggah Foto KTP Baru" : "Unggah Foto KTP Asli"}
+                      category="ktp"
+                      initialUrl={farmer?.foto_ktp_url}
+                      onUploadSuccess={async (url) => {
+                        if (!farmer?.id) {
+                          toast.error('Profil belum siap, silakan coba beberapa saat lagi.');
+                          return;
+                        }
+                        const toastId = toast.loading('Menyimpan foto KTP ke profil...');
+                        try {
+                          const res = await farmersApi.update(farmer.id, { foto_ktp_url: url });
+                          setFarmer(res.data);
+                          setIsEditingKtp(false);
+                          toast.success('Foto KTP berhasil disimpan ke profil!', { id: toastId });
+                        } catch (err) {
+                          toast.error(err.response?.data?.detail || 'Gagal menyimpan foto KTP.', { id: toastId });
+                        }
+                      }}
+                    />
+                    {farmer?.foto_ktp_url && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingKtp(false)}
+                        className="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline block mx-auto cursor-pointer"
+                      >
+                        Batal Ubah Foto
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <div 
+                      onClick={() => setViewerPhoto({
+                        isOpen: true,
+                        title: `Foto KTP: ${farmer?.nama || user?.nama || 'Petani'}`,
+                        url: farmer.foto_ktp_url,
+                        description: `NIK: ${farmer?.nik || '-'} | Status: Data Terverifikasi`
+                      })}
+                      className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-16/10 group cursor-pointer shadow-xs flex items-center justify-center"
+                    >
+                      <img 
+                        src={farmer.foto_ktp_url} 
+                        alt="Foto KTP" 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-bold backdrop-blur-xs">
+                        <Eye className="w-4 h-4" /> Klik untuk Perbesar KTP
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-400 text-center mt-1.5">
+                      Klik foto KTP untuk memeriksa data ukuran penuh
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Farmer Details */}
