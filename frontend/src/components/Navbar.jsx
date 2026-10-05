@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  Sprout, Bell, LogOut, Check,
-  Shield, Tractor, Briefcase
+  BookOpen, Bell, LogOut, Check,
+  ShieldCheck, Tractor, Briefcase
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { distributionsApi } from '../services/api';
@@ -62,19 +62,19 @@ export default function Navbar() {
     switch (role) {
       case 'ADMIN':
         return (
-          <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">
-            <Shield className="w-3 h-3" /> Admin Dinas
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200 shadow-2xs">
+            <ShieldCheck className="w-3.5 h-3.5 stroke-[2.2]" /> Admin Dinas
           </span>
         );
       case 'PPL':
         return (
-          <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-            <Briefcase className="w-3 h-3" /> Petugas PPL
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs">
+            <Briefcase className="w-3.5 h-3.5 stroke-[2.2]" /> Petugas PPL
           </span>
         );
       case 'PETANI':
         return (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-300">
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-300 shadow-2xs">
             <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" /> Petani Terdaftar
           </span>
         );
@@ -94,15 +94,15 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 rounded-xl bg-emerald-700 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform shrink-0">
-              <Sprout className="w-5 h-5 stroke-[2.2]" />
+              <BookOpen className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 font-display">
                   E-PUPUK
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 uppercase tracking-wider">
-                  Kabupaten Mojokerto
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase tracking-wider">
+                  KABUPATEN MOJOKERTO
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 font-medium -mt-0.5 hidden sm:block">

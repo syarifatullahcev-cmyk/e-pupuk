@@ -40,44 +40,6 @@ function calculateHaversineMeters(lat1, lon1, lat2, lon2) {
   return Math.round(R * c);
 }
 
-// Initial Sample History (as required)
-const DEFAULT_SAMPLE_HISTORY = [
-  {
-    id: 'HIST-2026-001',
-    id_pupuk: 'EPU-000123',
-    tanggal: '22 September 2026',
-    waktu: '08:42 WIB',
-    jenis_pupuk: 'Urea Bersubsidi',
-    jumlah_pupuk: '70 kg',
-    jumlah_kg: 70,
-    nama_lahan: 'Sawah Blok Timur Kebondalem',
-    alamat_lahan: 'Dusun Kebondalem RT 02/RW 03, Mojokerto',
-    latitude: -7.531234,
-    longitude: 112.551234,
-    jarak_meter: 18,
-    status_pembukaan: 'Pembukaan Berhasil',
-    status_validasi: 'VALID',
-    verifikasi_lokasi: 'Lokasi sesuai dengan lahan terdaftar'
-  },
-  {
-    id: 'HIST-2026-002',
-    id_pupuk: 'EPU-000124',
-    tanggal: '18 September 2026',
-    waktu: '09:15 WIB',
-    jenis_pupuk: 'NPK Phonska',
-    jumlah_pupuk: '50 kg',
-    jumlah_kg: 50,
-    nama_lahan: 'Sawah Blok Timur Kebondalem',
-    alamat_lahan: 'Dusun Kebondalem RT 02/RW 03, Mojokerto',
-    latitude: -7.531234,
-    longitude: 112.551234,
-    jarak_meter: 24,
-    status_pembukaan: 'Pembukaan Berhasil',
-    status_validasi: 'VALID',
-    verifikasi_lokasi: 'Lokasi sesuai dengan lahan terdaftar'
-  }
-];
-
 export default function PetaniDashboard() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -93,7 +55,8 @@ export default function PetaniDashboard() {
   const [applications, setApplications] = useState([]);
   const [fertilizers, setFertilizers] = useState([]);
   const [commodities, setCommodities] = useState([]);
-  const [historyList, setHistoryList] = useState(DEFAULT_SAMPLE_HISTORY);
+  const [historyList, setHistoryList] = useState([]);
+  const [allocations, setAllocations] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Modals state
@@ -134,7 +97,7 @@ export default function PetaniDashboard() {
     status_kepemilikan: 'MILIK',
     latitude: -7.531234,
     longitude: 112.551234,
-    foto_lahan_url: '/files/lahan/sample_lahan1.jpg',
+    foto_lahan_url: '',
   });
 
   // Revise Documents Form State
@@ -172,49 +135,46 @@ export default function PetaniDashboard() {
   const [isProcessingOpen, setIsProcessingOpen] = useState(false);
   const [openSuccessState, setOpenSuccessState] = useState(null); // stores final success data
 
-  // Mock allocation list — in production this comes from approved applications
-  const MOCK_ALLOCATIONS = [
-    {
-      id: 'ALOK-2026-001',
-      jenis_pupuk: 'Urea Bersubsidi',
-      jumlah_kg: 70,
-      nama_lahan: 'Sawah Blok Timur Kebondalem',
-      alamat_lahan: 'Dusun Kebondalem RT 02/RW 03, Mojokerto',
-      status: 'Siap Dibuka',
-      latitude: -7.531200,
-      longitude: 112.551210,
-    },
-    {
-      id: 'ALOK-2026-002',
-      jenis_pupuk: 'NPK Phonska Bersubsidi',
-      jumlah_kg: 50,
-      nama_lahan: 'Sawah Blok Barat Mojosari',
-      alamat_lahan: 'Desa Mojosari, Kecamatan Mojosari, Mojokerto',
-      status: 'Siap Dibuka',
-      latitude: -7.528000,
-      longitude: 112.548500,
-    },
-  ];
-
   // Fetch Dashboard Data
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [fRes, landsRes, appsRes, fertsRes, statsRes, comRes] = await Promise.all([
+      const [fRes, landsRes, appsRes, fertsRes, statsRes, comRes, scansRes, distributionsRes] = await Promise.all([
         farmersApi.getMe(),
         landsApi.getAll(),
         applicationsApi.getAll(),
         farmersApi.getFertilizers(),
         applicationsApi.getPetaniStats(),
         farmersApi.getCommodities().catch(() => ({ data: [] })),
+        distributionsApi.getMyScans(),
+        distributionsApi.getMyDistributions(),
       ]);
 
       setFarmer(fRes.data);
-      setLands(landsRes.data || []);
-      setApplications(appsRes.data || []);
+      const activeFarmerId = fRes.data?.id;
+      setLands((Array.isArray(landsRes.data) ? landsRes.data : [])
+        .filter((land) => land.farmer_id === activeFarmerId));
+      setApplications((Array.isArray(appsRes.data) ? appsRes.data : [])
+        .filter((app) => app.farmer_id === activeFarmerId));
       setFertilizers(fertsRes.data || []);
       setStats(statsRes.data || null);
       setCommodities(comRes.data || []);
+      setHistoryList(scansRes.data || []);
+      setAllocations((distributionsRes.data || [])
+        .filter((distribution) => distribution.status_penyaluran === 'MENUNGGU_PENGAMBILAN')
+        .map((distribution) => ({
+          id: distribution.id,
+          qr_token: distribution.qr_code_hash,
+          jenis_pupuk: distribution.application?.fertilizer?.nama_pupuk || 'Pupuk belum tersedia',
+          jumlah_kg: Number(distribution.jumlah_disalurkan),
+          nama_lahan: distribution.application?.land?.lokasi_deskripsi
+            || distribution.application?.land?.alamat_lahan
+            || 'Lahan belum tersedia',
+          alamat_lahan: distribution.application?.land?.alamat_lahan || 'Alamat lahan belum tersedia',
+          latitude: distribution.application?.latitude,
+          longitude: distribution.application?.longitude,
+          status: distribution.status_penyaluran,
+        })));
 
       if (landsRes.data && landsRes.data.length > 0) {
         setFormData((prev) => ({
@@ -229,19 +189,9 @@ export default function PetaniDashboard() {
         setFormData((prev) => ({ ...prev, fertilizer_id: fertsRes.data[0].id }));
       }
 
-      // Fetch dynamic scans from backend if any
-      try {
-        const scansRes = await distributionsApi.getMyScans();
-        if (scansRes.data && scansRes.data.length > 0) {
-          const existingIds = new Set(scansRes.data.map((s) => s.id));
-          const uniqueDefault = DEFAULT_SAMPLE_HISTORY.filter((d) => !existingIds.has(d.id));
-          setHistoryList([...scansRes.data, ...uniqueDefault]);
-        }
-      } catch (err) {
-        // Fallback to sample history
-      }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
+      toast.error('Gagal memuat data Petani dari server.');
     } finally {
       setLoading(false);
     }
@@ -249,6 +199,12 @@ export default function PetaniDashboard() {
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const refreshOnFocus = () => fetchData();
+    window.addEventListener('focus', refreshOnFocus);
+    return () => window.removeEventListener('focus', refreshOnFocus);
   }, []);
 
   // Handle Geolocation from Browser / Device
@@ -290,14 +246,10 @@ export default function PetaniDashboard() {
   };
 
   // Target Land Coordinates (First land or selected application land)
-  const targetLand = lands[0] || {
-    lokasi_deskripsi: 'Sawah Blok Timur Kebondalem',
-    latitude: -7.531200,
-    longitude: 112.551210,
-  };
+  const targetLand = lands[0] || null;
 
-  const targetLandLat = targetLand.latitude || -7.531200;
-  const targetLandLon = targetLand.longitude || 112.551210;
+  const targetLandLat = targetLand?.latitude || null;
+  const targetLandLon = targetLand?.longitude || null;
 
   // Use selectedAllocation land coords (or fall back to first land)
   const activeAllocLat = selectedAllocation?.latitude || targetLandLat;
@@ -326,42 +278,21 @@ export default function PetaniDashboard() {
 
   // Handler for Scanning Physical Bag QR Code
   const handleScanBagId = (bagIdToUse) => {
-    const rawCode = (bagIdToUse || manualInputId || '').trim().toUpperCase();
+    const rawCode = String(bagIdToUse || manualInputId || '').trim();
     if (!rawCode) {
       toast.error('Masukkan atau pindai ID QR Pupuk pada karung.');
       return;
     }
 
-    // Check validation scenarios
-    if (rawCode === 'EPU-000099') {
-      // Already used bag
-      setScannedBag({
-        idPupuk: 'EPU-000099',
-        jenisPupuk: 'Urea Bersubsidi',
-        beratKg: 50,
-        statusBag: 'Sudah Dibuka',
-        waktuDigunakan: '18 September 2026, 07:30 WIB',
-      });
-      setQrValidation({
-        isScanned: true,
-        isValidQr: false,
-        isAlreadyUsed: true,
-        message: 'Karung pupuk ini sudah pernah dibuka pada 18 September 2026. Tidak dapat digunakan kembali.',
-      });
-      setIsScannerActive(false);
-      setPembukaanStep('result');
-      toast.error('QR Pupuk Sudah Pernah Digunakan!');
-      return;
-    }
-
-    if (rawCode === 'EPU-INVALID' || (rawCode.length < 5 && !rawCode.startsWith('EPU'))) {
-      // Unrecognized QR
+    if (!selectedAllocation || rawCode !== selectedAllocation.qr_token) {
       setScannedBag(null);
       setQrValidation({
         isScanned: true,
         isValidQr: false,
         isAlreadyUsed: false,
-        message: 'QR Code tidak terdaftar dalam sistem E-PUPUK. Pastikan memindai QR yang tercetak pada karung pupuk bersubsidi.',
+        message: selectedAllocation
+          ? 'QR Code tidak sesuai dengan alokasi pengajuan ini.'
+          : 'Pilih alokasi pupuk yang tersedia sebelum memindai QR.',
       });
       setIsScannerActive(false);
       setPembukaanStep('result');
@@ -369,41 +300,25 @@ export default function PetaniDashboard() {
       return;
     }
 
-    // Valid physical bag QR Code (e.g., EPU-000123 or EPU-000124)
-    const isNpk = rawCode.includes('124') || rawCode.toLowerCase().includes('npk');
-    const weight = isNpk ? 50 : 70;
-    const fertName = isNpk ? 'NPK Phonska Bersubsidi' : 'Urea Bersubsidi';
-
-    // Check if bag matches selected allocation
-    const isAllocMatch = !selectedAllocation || 
-      (isNpk && (selectedAllocation.jenis_pupuk.toLowerCase().includes('npk') || selectedAllocation.jenis_pupuk.toLowerCase().includes('phonska'))) ||
-      (!isNpk && selectedAllocation.jenis_pupuk.toLowerCase().includes('urea'));
-
     setScannedBag({
       idPupuk: rawCode,
-      jenisPupuk: fertName,
-      beratKg: weight,
+      jenisPupuk: selectedAllocation.jenis_pupuk,
+      beratKg: selectedAllocation.jumlah_kg,
       statusBag: 'SIAP DIBUKA',
-      isAllocationMatch: isAllocMatch,
+      isAllocationMatch: true,
     });
 
     setQrValidation({
       isScanned: true,
       isValidQr: true,
       isAlreadyUsed: false,
-      isAllocationMatch: isAllocMatch,
-      message: isAllocMatch
-        ? 'QR Pupuk valid & pupuk sesuai alokasi petani'
-        : `Peringatan: Jenis pupuk karung (${fertName}) tidak cocok dengan alokasi yang dipilih (${selectedAllocation?.jenis_pupuk})`,
+      isAllocationMatch: true,
+      message: 'QR Pupuk sesuai dengan alokasi pengajuan.',
     });
 
     setIsScannerActive(false);
     setPembukaanStep('result');
-    if (isAllocMatch) {
-      toast.success(`QR Pupuk ${rawCode} Berhasil Dipindai!`);
-    } else {
-      toast.error(`Jenis pupuk tidak sesuai alokasi (${fertName})!`);
-    }
+    toast.success(`QR Pupuk ${rawCode} Berhasil Dipindai!`);
   };
 
   // Confirm Pembukaan Pupuk Handler
@@ -426,41 +341,43 @@ export default function PetaniDashboard() {
 
     try {
       // Send scan data to backend
-      await distributionsApi.scanQr({
+      const scanRes = await distributionsApi.scanQr({
         qr_token: scannedBag.idPupuk,
         latitude: latToUse,
         longitude: lngToUse,
-      }).catch(() => null); // mock fallback if backend token differs
+      });
+      if (!scanRes.data?.success) {
+        const message = scanRes.data?.message || 'QR pupuk tidak dapat divalidasi oleh server.';
+        setQrValidation((current) => ({ ...current, isValidQr: false, message }));
+        toast.error(message, { id: toastId });
+        return;
+      }
 
-      const now = new Date();
-      const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-      const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
-
-      const landName = selectedAllocation?.nama_lahan || targetLand.lokasi_deskripsi || 'Sawah Blok Timur Kebondalem';
-      const landAddr = selectedAllocation?.alamat_lahan || targetLand.alamat_lahan || 'Kabupaten Mojokerto';
-
-      const newHistoryItem = {
-        id: `HIST-${Date.now()}`,
+      const distribution = scanRes.data.distribution;
+      const app = distribution?.application;
+      const now = distribution?.tanggal_penyaluran
+        ? new Date(distribution.tanggal_penyaluran)
+        : new Date();
+      const successData = {
+        id: distribution?.id,
         id_pupuk: scannedBag.idPupuk,
-        tanggal: dateStr,
-        waktu: timeStr,
-        jenis_pupuk: scannedBag.jenisPupuk,
-        jumlah_pupuk: `${scannedBag.beratKg} kg`,
-        jumlah_kg: scannedBag.beratKg,
-        nama_lahan: landName,
-        alamat_lahan: landAddr,
+        tanggal: now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        waktu: `${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`,
+        jenis_pupuk: app?.fertilizer?.nama_pupuk || scannedBag.jenisPupuk,
+        jumlah_pupuk: `${distribution?.jumlah_disalurkan ?? scannedBag.beratKg} kg`,
+        jumlah_kg: Number(distribution?.jumlah_disalurkan ?? scannedBag.beratKg),
+        nama_lahan: app?.land?.lokasi_deskripsi || app?.land?.alamat_lahan || selectedAllocation?.nama_lahan || 'Lahan belum tersedia',
+        alamat_lahan: app?.land?.alamat_lahan || selectedAllocation?.alamat_lahan || 'Alamat lahan belum tersedia',
         latitude: latToUse,
         longitude: lngToUse,
         jarak_meter: displayedDistance,
         status_pembukaan: 'Pembukaan Berhasil',
         status_validasi: 'VALID',
-        verifikasi_lokasi: 'Lokasi sesuai dengan lahan terdaftar'
+        verifikasi_lokasi: 'Lokasi sesuai dengan lahan terdaftar',
       };
-
-      setHistoryList([newHistoryItem, ...historyList]);
-      setOpenSuccessState({ ...newHistoryItem, petani: farmer?.nama || user?.nama || 'Budi Santoso' });
+      setOpenSuccessState({ ...successData, petani: farmer?.nama || user?.nama || 'Petani' });
       setPembukaanStep('success');
-      fetchData();
+      await fetchData();
 
       toast.success(
         `PUPUK BERHASIL DIBUKA! ${scannedBag.jenisPupuk} ${scannedBag.beratKg} kg sukses dicatat.`,
@@ -484,11 +401,20 @@ export default function PetaniDashboard() {
 
   const totalPupukDigunakan = totalUreaUsed + totalNpkUsed;
 
-  const kuotaDisetujuiUrea = 500;
+  const approvedApplications = applications.filter((app) =>
+    ['DISETUJUI', 'DIJADWALKAN_DISTRIBUSI', 'TERSALURKAN'].includes(app.status)
+  );
+  const kuotaDisetujuiUrea = approvedApplications
+    .filter((app) => app.fertilizer?.nama_pupuk?.toLowerCase().includes('urea'))
+    .reduce((sum, app) => sum + Number(app.jumlah_disetujui || 0), 0);
   const sisaKuotaUrea = Math.max(0, kuotaDisetujuiUrea - totalUreaUsed);
 
-  const kuotaDisetujuiNpk = 400;
+  const kuotaDisetujuiNpk = approvedApplications
+    .filter((app) => app.fertilizer?.nama_pupuk?.toLowerCase().includes('npk'))
+    .reduce((sum, app) => sum + Number(app.jumlah_disetujui || 0), 0);
   const sisaKuotaNpk = Math.max(0, kuotaDisetujuiNpk - totalNpkUsed);
+  const ureaUsagePercent = kuotaDisetujuiUrea > 0 ? Math.round((totalUreaUsed / kuotaDisetujuiUrea) * 100) : 0;
+  const npkUsagePercent = kuotaDisetujuiNpk > 0 ? Math.round((totalNpkUsed / kuotaDisetujuiNpk) * 100) : 0;
 
   // Form Handlers
   const handleLandSelectChange = (e) => {
@@ -523,7 +449,7 @@ export default function PetaniDashboard() {
         longitude: formData.longitude,
       });
       setShowApplyModal(false);
-      fetchData();
+      await fetchData();
       toast.success('Pengajuan subsidi pupuk berhasil dikirim! Berkas Anda masuk ke tahap Verifikasi.', { id: toastId, duration: 5000 });
       setActiveNav('status');
     } catch (err) {
@@ -551,7 +477,7 @@ export default function PetaniDashboard() {
         foto_lahan_url: landFormData.foto_lahan_url,
       });
       setShowAddLandModal(false);
-      fetchData();
+      await fetchData();
       toast.success('Lahan pertanian berhasil didaftarkan!', { id: toastId });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Gagal mendaftarkan lahan.', { id: toastId });
@@ -569,7 +495,7 @@ export default function PetaniDashboard() {
         foto_lahan_url: reviseLahanUrl,
       });
       setShowReviseModal(false);
-      fetchData();
+      await fetchData();
       toast.success('Perbaikan berkas berhasil diunggah! Status telah diperbarui ke Menunggu Verifikasi Berkas.', { id: toastId, duration: 5000 });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Gagal memperbarui berkas.', { id: toastId });
@@ -609,23 +535,7 @@ export default function PetaniDashboard() {
     );
   }
 
-  // Display applications fallback if empty
-  const displayApplications = applications.length > 0 ? applications.slice(0, 2) : [
-    {
-      id: 6,
-      fertilizer: { nama_pupuk: 'Urea Bersubsidi' },
-      jumlah_diajukan: 70,
-      land: { lokasi_deskripsi: 'Sawah Blok Timur Kebondalem' },
-      status: 'DIJADWALKAN_DISTRIBUSI',
-    },
-    {
-      id: 5,
-      fertilizer: { nama_pupuk: 'Urea Bersubsidi' },
-      jumlah_diajukan: 400,
-      land: { lokasi_deskripsi: 'Sawah Blok Timur Kebondalem' },
-      status: 'DIJADWALKAN_DISTRIBUSI',
-    }
-  ];
+  const displayApplications = applications.slice(0, 2);
 
   return (
     <div className="space-y-6 pb-16 font-sans">
@@ -637,7 +547,7 @@ export default function PetaniDashboard() {
             PORTAL PETANI & KELOMPOK TANI KABUPATEN MOJOKERTO
           </div>
           <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
-            Selamat Datang, {farmer?.nama || user?.nama || 'Budi Santoso'}!
+            Selamat Datang, {farmer?.nama || user?.nama || 'Petani'}!
           </h1>
           <p className="mt-1.5 text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
             Sistem resmi verifikasi subsidi, pemantauan kuota, dan pemindaian QR Code pada karung pupuk fisik berbasis GPS geofencing.
@@ -724,26 +634,26 @@ export default function PetaniDashboard() {
                     Profil Petani
                   </h2>
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                    <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" /> Data Terverifikasi
+                    <Check className="w-3 h-3 text-emerald-600 stroke-[2.5]" /> Status akun
                   </span>
                 </div>
 
                 <div className="mt-4 space-y-3.5 text-xs">
                   <div>
                     <span className="text-slate-400 block text-[11px] font-medium">Nama Lengkap</span>
-                    <span className="font-bold text-slate-900 text-sm">{farmer?.nama || user?.nama || 'Budi Santoso'}</span>
+                    <span className="font-bold text-slate-900 text-sm">{farmer?.nama || user?.nama || 'Belum tersedia'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[11px] font-medium">NIK</span>
-                    <span className="font-mono font-bold text-slate-900 text-xs">{farmer?.nik || '3516011208800001'}</span>
+                    <span className="font-mono font-bold text-slate-900 text-xs">{farmer?.nik || 'Belum tersedia'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[11px] font-medium">Kelompok Tani (Poktan)</span>
-                    <span className="font-semibold text-slate-900">{farmer?.farmer_group?.nama_kelompok || 'Poktan Sumber Makmur'}</span>
+                    <span className="font-semibold text-slate-900">{farmer?.farmer_group?.nama_kelompok || 'Belum tersedia'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[11px] font-medium">Nomor HP / WhatsApp</span>
-                    <span className="font-semibold text-slate-900">{farmer?.kontak || '081234567890'}</span>
+                    <span className="font-semibold text-slate-900">{farmer?.kontak || 'Belum tersedia'}</span>
                   </div>
                 </div>
               </div>
@@ -798,11 +708,11 @@ export default function PetaniDashboard() {
                     <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden mt-2">
                       <div
                         className="bg-emerald-600 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, (totalUreaUsed / kuotaDisetujuiUrea) * 100)}%` }}
+                        style={{ width: `${Math.min(100, ureaUsagePercent)}%` }}
                       />
                     </div>
                     <p className="text-[10px] text-slate-400 text-right mt-1.5">
-                      {Math.round((totalUreaUsed / kuotaDisetujuiUrea) * 100)}% kuota terpakai
+                      {ureaUsagePercent}% kuota terpakai
                     </p>
                   </div>
                 </div>
@@ -832,11 +742,11 @@ export default function PetaniDashboard() {
                     <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden mt-2">
                       <div
                         className="bg-blue-600 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, (totalNpkUsed / kuotaDisetujuiNpk) * 100)}%` }}
+                        style={{ width: `${Math.min(100, npkUsagePercent)}%` }}
                       />
                     </div>
                     <p className="text-[10px] text-slate-400 text-right mt-1.5">
-                      {Math.round((totalNpkUsed / kuotaDisetujuiNpk) * 100)}% kuota terpakai
+                      {npkUsagePercent}% kuota terpakai
                     </p>
                   </div>
                 </div>
@@ -864,6 +774,9 @@ export default function PetaniDashboard() {
             </div>
 
             <div className="space-y-4">
+              {displayApplications.length === 0 && (
+                <p className="text-xs text-slate-500">Belum ada pengajuan dari akun ini.</p>
+              )}
               {displayApplications.map((app) => (
                 <div key={app.id} className="p-5 sm:p-6 rounded-2xl border border-slate-200/80 bg-white space-y-4 shadow-xs">
                   <div className="flex items-center justify-between gap-3">
@@ -871,11 +784,11 @@ export default function PetaniDashboard() {
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-mono font-bold text-slate-400">#{app.id}</span>
                         <strong className="text-sm font-bold text-slate-900 truncate">
-                          Pupuk {app.fertilizer?.nama_pupuk || 'Urea Bersubsidi'} — {Number(app.jumlah_diajukan).toFixed(2)} kg
+                          Pupuk {app.fertilizer?.nama_pupuk || 'Belum tersedia'} — {Number(app.jumlah_diajukan).toLocaleString('id-ID')} {app.fertilizer?.satuan || 'kg'}
                         </strong>
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5 truncate">
-                        Lahan: {app.land?.lokasi_deskripsi || 'Sawah Blok Timur Kebondalem'}
+                        Lahan: {app.land?.lokasi_deskripsi || app.land?.alamat_lahan || 'Belum tersedia'}
                       </p>
                     </div>
                     <div className="shrink-0">
@@ -909,7 +822,7 @@ export default function PetaniDashboard() {
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Data Terverifikasi
+                <CheckCircle2 className="w-3.5 h-3.5" /> Status belum tersedia
               </span>
             </div>
 
@@ -970,7 +883,7 @@ export default function PetaniDashboard() {
                         isOpen: true,
                         title: `Foto KTP: ${farmer?.nama || user?.nama || 'Petani'}`,
                         url: farmer.foto_ktp_url,
-                        description: `NIK: ${farmer?.nik || '-'} | Status: Data Terverifikasi`
+                        description: `NIK: ${farmer?.nik || 'Belum tersedia'}`
                       })}
                       className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 aspect-16/10 group cursor-pointer shadow-xs flex items-center justify-center"
                     >
@@ -994,41 +907,41 @@ export default function PetaniDashboard() {
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[11px]">Nama Lengkap</span>
-                  <strong className="text-slate-900 text-sm mt-0.5 block">{farmer?.nama || user?.nama || 'Budi Santoso'}</strong>
+                  <strong className="text-slate-900 text-sm mt-0.5 block">{farmer?.nama || user?.nama || 'Belum tersedia'}</strong>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[11px]">Nomor Induk Kependudukan (NIK)</span>
-                  <strong className="font-mono text-slate-900 text-sm mt-0.5 block">{farmer?.nik || '3516012345670001'}</strong>
+                  <strong className="font-mono text-slate-900 text-sm mt-0.5 block">{farmer?.nik || 'Belum tersedia'}</strong>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[11px]">Nomor HP / WhatsApp</span>
-                  <strong className="text-slate-900 text-sm mt-0.5 block">{farmer?.kontak || '0812-3456-7890'}</strong>
+                  <strong className="text-slate-900 text-sm mt-0.5 block">{farmer?.kontak || 'Belum tersedia'}</strong>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[11px]">Alamat Email</span>
-                  <strong className="text-slate-900 text-sm mt-0.5 block">{user?.email || 'budi.santoso@pertanian.id'}</strong>
+                  <strong className="text-slate-900 text-sm mt-0.5 block">{user?.email || 'Belum tersedia'}</strong>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[11px]">Kelompok Tani (Poktan)</span>
-                  <strong className="text-slate-900 text-sm mt-0.5 block">{farmer?.farmer_group?.nama_kelompok || 'Poktan Sumber Makmur'}</strong>
-                  <span className="text-[10px] text-emerald-700 font-semibold">Wilayah: {farmer?.farmer_group?.wilayah || 'Kec. Bangsal, Mojokerto'}</span>
+                  <strong className="text-slate-900 text-sm mt-0.5 block">{farmer?.farmer_group?.nama_kelompok || 'Belum tersedia'}</strong>
+                  <span className="text-[10px] text-emerald-700 font-semibold">Wilayah: {farmer?.farmer_group?.wilayah || 'Belum tersedia'}</span>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[11px]">Status Verifikasi Akun</span>
                   <span className="inline-flex items-center gap-1 text-emerald-700 font-bold text-xs mt-1">
-                    <CheckCircle2 className="w-4 h-4" /> ✓ Data Terverifikasi Dinas
+                    <CheckCircle2 className="w-4 h-4" /> Status belum tersedia
                   </span>
                 </div>
 
                 <div className="sm:col-span-2 p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="text-slate-400 block text-[11px]">Alamat Domisili KTP</span>
                   <p className="font-medium text-slate-800 leading-relaxed mt-0.5">
-                    {farmer?.alamat || 'Dusun Kebondalem RT 02 / RW 03, Desa Kebondalem, Kecamatan Mojosari, Kabupaten Mojokerto, Jawa Timur 61382'}
+                    {farmer?.alamat || 'Belum tersedia'}
                   </p>
                 </div>
               </div>
@@ -1070,24 +983,28 @@ export default function PetaniDashboard() {
                 >
                   {/* Photo Lahan */}
                   <div
-                    onClick={() => setViewerPhoto({
+                    onClick={() => land.foto_lahan_url && setViewerPhoto({
                       isOpen: true,
                       title: `Foto Lahan: ${land.lokasi_deskripsi || 'Lahan Pertanian'}`,
-                      url: land.foto_lahan_url || '/files/lahan/sample_lahan1.jpg',
-                      description: `Luas: ${land.luas_m2} m² | Alamat: ${land.alamat_lahan}`
+                      url: land.foto_lahan_url,
+                      description: `Luas: ${land.luas_m2} m² | Alamat: ${land.alamat_lahan || 'Belum tersedia'}`
                     })}
-                    className="relative aspect-16/10 bg-slate-100 overflow-hidden group cursor-pointer"
+                    className={`relative aspect-16/10 bg-slate-100 overflow-hidden group ${land.foto_lahan_url ? 'cursor-pointer' : ''}`}
                   >
-                    <img
-                      src={land.foto_lahan_url || '/files/lahan/sample_lahan1.jpg'}
-                      alt={land.lokasi_deskripsi}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                    {land.foto_lahan_url ? (
+                      <img
+                        src={land.foto_lahan_url}
+                        alt={land.lokasi_deskripsi || 'Foto lahan'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-slate-500">Foto lahan belum tersedia</div>
+                    )}
                     <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-black/60 text-white text-[10px] font-bold backdrop-blur-xs">
-                      {land.commodity?.nama_komoditas || 'Padi'}
+                      {land.commodity?.nama_komoditas || 'Belum tersedia'}
                     </div>
                     <div className="absolute top-2 right-2 px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-bold shadow-xs">
-                      ✓ Terverifikasi
+                      {land.status_kepemilikan || 'Status belum tersedia'}
                     </div>
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1">
                       <Eye className="w-4 h-4" /> Lihat Foto
@@ -1098,7 +1015,7 @@ export default function PetaniDashboard() {
                   <div className="p-4 flex-1 flex flex-col justify-between space-y-3 text-xs">
                     <div>
                       <h4 className="font-bold text-slate-900 text-sm">
-                        {land.lokasi_deskripsi || 'Sawah Blok Timur Kebondalem'}
+                        {land.lokasi_deskripsi || 'Lokasi belum tersedia'}
                       </h4>
                       <div className="mt-2 space-y-1 text-slate-600">
                         <div className="flex justify-between">
@@ -1107,11 +1024,15 @@ export default function PetaniDashboard() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-400">Komoditas:</span>
-                          <span className="font-semibold text-emerald-700">{land.commodity?.nama_komoditas || 'Padi'}</span>
+                          <span className="font-semibold text-emerald-700">{land.commodity?.nama_komoditas || 'Belum tersedia'}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Status Lahan:</span>
-                          <span className="font-medium text-slate-700">{land.status_kepemilikan || 'MILIK'}</span>
+                          <span className="text-slate-400">Status verifikasi:</span>
+                          <span className="font-medium text-slate-700">Belum tersedia</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Kepemilikan:</span>
+                          <span className="font-medium text-slate-700">{land.status_kepemilikan || 'Belum tersedia'}</span>
                         </div>
                       </div>
 
@@ -1171,7 +1092,7 @@ export default function PetaniDashboard() {
                   <option value="">-- Pilih Lahan Terdaftar --</option>
                   {lands.map((l) => (
                     <option key={l.id} value={l.id}>
-                      {l.lokasi_deskripsi || 'Lahan Sawah'} — {l.luas_m2} m² ({l.commodity?.nama_komoditas || 'Padi'})
+                      {l.lokasi_deskripsi || 'Lokasi belum tersedia'} — {l.luas_m2} m² ({l.commodity?.nama_komoditas || 'Belum tersedia'})
                     </option>
                   ))}
                 </select>
@@ -1304,7 +1225,7 @@ export default function PetaniDashboard() {
             ) : (
               <div className="space-y-6">
                 {applications.map((app) => {
-                  const isNeedsRevision = app.status === 'PERLU_PERBAIKAN_BERKAS' || app.status === 'DITOLAK_BERKAS';
+                  const isNeedsRevision = app.status === 'PERLU_PERBAIKAN_BERKAS';
                   const isApproved = app.status === 'DISETUJUI' || app.status === 'DIJADWALKAN_DISTRIBUSI';
                   const isUsed = app.status === 'TERSALURKAN';
 
@@ -1335,7 +1256,7 @@ export default function PetaniDashboard() {
                               })}
                             </span>
                             <span>•</span>
-                            <span>Lahan: {app.land?.lokasi_deskripsi || 'Lahan Sawah'}</span>
+                            <span>Lahan: {app.land?.lokasi_deskripsi || app.land?.alamat_lahan || 'Belum tersedia'}</span>
                           </p>
                         </div>
 
@@ -1389,6 +1310,22 @@ export default function PetaniDashboard() {
                             <strong className="font-bold">Catatan Verifikasi Admin: </strong>
                             <span>{app.catatan_admin_berkas}</span>
                           </div>
+                        </div>
+                      )}
+
+                      {['DISETUJUI', 'DIJADWALKAN_DISTRIBUSI', 'TERSALURKAN', 'DITOLAK_LAPANGAN'].includes(app.status) && (
+                        <div className="text-xs p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800">
+                          <strong className="font-bold">Keputusan Akhir Admin: </strong>
+                          <span>{app.status === 'DITOLAK_LAPANGAN' ? 'DITOLAK' : 'DISETUJUI'}</span>
+                          <p className="mt-1">
+                            Jumlah pupuk diajukan: <strong>{app.jumlah_diajukan} {app.fertilizer?.satuan || 'kg'}</strong>
+                          </p>
+                          <p className="mt-1">
+                            Jumlah pupuk disetujui: <strong>{app.jumlah_disetujui != null ? `${app.jumlah_disetujui} ${app.fertilizer?.satuan || 'kg'}` : 'Belum tersedia'}</strong>
+                          </p>
+                          {app.catatan_final_admin && (
+                            <p className="mt-1">Catatan/alasan: {app.catatan_final_admin}</p>
+                          )}
                         </div>
                       )}
 
@@ -1481,7 +1418,7 @@ export default function PetaniDashboard() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs text-slate-500">
                     <span>Kemajuan Penggunaan</span>
-                    <span className="font-bold text-slate-700">{Math.round((totalUreaUsed / kuotaDisetujuiUrea) * 100)}%</span>
+                    <span className="font-bold text-slate-700">{ureaUsagePercent}%</span>
                   </div>
                   <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
                     <div
@@ -1528,7 +1465,7 @@ export default function PetaniDashboard() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs text-slate-500">
                     <span>Kemajuan Penggunaan</span>
-                    <span className="font-bold text-slate-700">{Math.round((totalNpkUsed / kuotaDisetujuiNpk) * 100)}%</span>
+                    <span className="font-bold text-slate-700">{npkUsagePercent}%</span>
                   </div>
                   <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
                     <div
@@ -1634,7 +1571,10 @@ export default function PetaniDashboard() {
                     </h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {MOCK_ALLOCATIONS.map((alloc) => (
+                      {allocations.length === 0 && (
+                        <p className="text-xs text-slate-500">Belum ada alokasi pupuk yang tersedia dari pengajuan Anda.</p>
+                      )}
+                      {allocations.map((alloc) => (
                         <div
                           key={alloc.id}
                           className="p-5 rounded-2xl border-2 border-slate-200 hover:border-emerald-500 bg-white hover:bg-emerald-50/20 transition-all cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-between gap-4 group"
@@ -1650,7 +1590,7 @@ export default function PetaniDashboard() {
                                 {alloc.id}
                               </span>
                               <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                {alloc.status}
+                                Siap Dibuka
                               </span>
                             </div>
 
@@ -1875,53 +1815,34 @@ export default function PetaniDashboard() {
                       <span>Petani scan pakai HP</span>
                     </div>
 
-                    {/* Simulator buttons for laptop / demo testing */}
+                    {/* Scanner controls use the selected backend allocation. */}
                     <div className="pt-4 border-t border-slate-800/80 space-y-3">
                       <p className="text-[11px] text-slate-400 font-semibold">
-                        Simulasikan Pemindaian QR Karung Pupuk:
+                        Pindai QR alokasi pupuk:
                       </p>
                       <div className="flex flex-wrap items-center justify-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleScanBagId('EPU-000123')}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs cursor-pointer shadow-sm"
-                        >
-                          📷 Scan Karung Urea 70kg (EPU-000123)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleScanBagId('EPU-000124')}
-                          className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-mono font-bold text-xs cursor-pointer shadow-sm"
-                        >
-                          📷 Scan Karung NPK 50kg (EPU-000124)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleScanBagId('EPU-000099')}
-                          className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-mono font-bold text-xs cursor-pointer shadow-sm"
-                        >
-                          ⚠️ Scan QR Sudah Digunakan (EPU-000099)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleScanBagId('EPU-INVALID')}
-                          className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-mono font-bold text-xs cursor-pointer shadow-sm"
-                        >
-                          ✕ Scan QR Tidak Valid
-                        </button>
+                        {selectedAllocation?.qr_token && (
+                          <button
+                            type="button"
+                            onClick={() => handleScanBagId(selectedAllocation.qr_token)}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs cursor-pointer shadow-sm"
+                          >
+                            📷 Scan {selectedAllocation.jenis_pupuk} {selectedAllocation.jumlah_kg}kg
+                          </button>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 max-w-xs mx-auto pt-2">
                         <input
                           type="text"
-                          placeholder="Ketik ID Karung (misal EPU-000123)"
+                          placeholder="Ketik token QR pada karung"
                           value={manualInputId}
                           onChange={(e) => setManualInputId(e.target.value)}
                           className="flex-1 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white font-mono uppercase focus:border-emerald-500 outline-hidden"
                         />
                         <button
                           type="button"
-                          onClick={() => handleScanBagId(manualInputId || 'EPU-000123')}
+                          onClick={() => handleScanBagId(manualInputId)}
                           className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold text-xs cursor-pointer"
                         >
                           Pindai
@@ -2041,19 +1962,19 @@ export default function PetaniDashboard() {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                           <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                             <span className="text-slate-400 block text-[10px]">Alokasi Petani:</span>
-                            <strong className="text-slate-900">{farmer?.nama || user?.nama || 'Budi Santoso'}</strong>
+                            <strong className="text-slate-900">{farmer?.nama || user?.nama || 'Belum tersedia'}</strong>
                           </div>
                           <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                             <span className="text-slate-400 block text-[10px]">Jenis Alokasi:</span>
-                            <strong className="text-slate-900">{selectedAllocation?.jenis_pupuk || 'Urea Bersubsidi'}</strong>
+                            <strong className="text-slate-900">{selectedAllocation?.jenis_pupuk || 'Belum tersedia'}</strong>
                           </div>
                           <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                             <span className="text-slate-400 block text-[10px]">Berat Alokasi:</span>
-                            <strong className="text-slate-900">{selectedAllocation?.jumlah_kg || 70} kg</strong>
+                            <strong className="text-slate-900">{selectedAllocation?.jumlah_kg ?? 'Belum tersedia'}{selectedAllocation?.jumlah_kg != null ? ' kg' : ''}</strong>
                           </div>
                           <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                             <span className="text-slate-400 block text-[10px]">Lahan Terdaftar:</span>
-                            <strong className="text-slate-900">{selectedAllocation?.nama_lahan || targetLand.lokasi_deskripsi}</strong>
+                            <strong className="text-slate-900">{selectedAllocation?.nama_lahan || targetLand?.lokasi_deskripsi || 'Belum tersedia'}</strong>
                           </div>
                         </div>
                       </div>
@@ -2442,7 +2363,7 @@ export default function PetaniDashboard() {
 
               <div className="p-2.5 rounded-xl bg-slate-50 flex justify-between items-center">
                 <span className="text-slate-500">ID QR Pupuk:</span>
-                <strong className="font-mono text-slate-900 font-bold">{selectedHistoryDetail.id_pupuk || 'EPU-000123'}</strong>
+                <strong className="font-mono text-slate-900 font-bold">{selectedHistoryDetail.id_pupuk || 'Belum tersedia'}</strong>
               </div>
 
               <div className="p-2.5 rounded-xl bg-slate-50 flex justify-between items-center">
@@ -2457,7 +2378,7 @@ export default function PetaniDashboard() {
 
               <div className="p-2.5 rounded-xl bg-slate-50 flex justify-between items-center">
                 <span className="text-slate-500">Nama Petani:</span>
-                <strong className="text-slate-900">{selectedHistoryDetail.nama_petani || farmer?.nama || user?.nama || 'Budi Santoso'}</strong>
+                <strong className="text-slate-900">{selectedHistoryDetail.nama_petani || farmer?.nama || user?.nama || 'Belum tersedia'}</strong>
               </div>
 
               <div className="p-2.5 rounded-xl bg-slate-50">
@@ -2552,7 +2473,7 @@ export default function PetaniDashboard() {
               </div>
               <div className="p-3 bg-slate-50 rounded-xl">
                 <span className="text-slate-400 block text-[11px]">Komoditas:</span>
-                <strong className="text-emerald-700 font-bold text-sm">{selectedLandDetail.commodity?.nama_komoditas || 'Padi'}</strong>
+                <strong className="text-emerald-700 font-bold text-sm">{selectedLandDetail.commodity?.nama_komoditas || 'Belum tersedia'}</strong>
               </div>
               <div className="p-3 bg-slate-50 rounded-xl col-span-2">
                 <span className="text-slate-400 block text-[11px]">Alamat Lengkap:</span>
@@ -2604,7 +2525,7 @@ export default function PetaniDashboard() {
                 </label>
                 <input
                   type="text"
-                  placeholder="Contoh: Sawah Blok Timur Kebondalem"
+                  placeholder="Masukkan lokasi lahan"
                   value={landFormData.lokasi_deskripsi}
                   onChange={(e) => setLandFormData({ ...landFormData, lokasi_deskripsi: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:border-emerald-500 outline-hidden font-medium"
@@ -2725,7 +2646,7 @@ export default function PetaniDashboard() {
                   <option value="">-- Pilih Lahan Terdaftar --</option>
                   {lands.map((l) => (
                     <option key={l.id} value={l.id}>
-                      {l.lokasi_deskripsi || 'Lahan Sawah'} — {l.luas_m2} m² ({l.commodity?.nama_komoditas || 'Padi'})
+                      {l.lokasi_deskripsi || 'Lokasi belum tersedia'} — {l.luas_m2} m² ({l.commodity?.nama_komoditas || 'Belum tersedia'})
                     </option>
                   ))}
                 </select>

@@ -110,7 +110,7 @@ export default function App() {
 
         {/* Admin Dashboard Route */}
         <Route
-          path="/admin"
+          path="/admin/*"
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <DashboardLayout>

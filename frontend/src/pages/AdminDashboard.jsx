@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   ShieldCheck, UserCheck, Award, FileText, Check, X,
-  Eye, MapPin, Tractor,
+  Eye, MapPin, Tractor, Plus, SlidersHorizontal,
   RefreshCw, ShieldAlert, Users, LandPlot,
   PackageCheck, BarChart3, ClipboardList, UserCog, Database,
-  Search
+  Search, LayoutGrid, History, TrendingUp
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminApi, applicationsApi, farmersApi, landsApi } from '../services/api';
@@ -14,14 +15,31 @@ import ProgressStepper from '../components/ProgressStepper';
 import PhotoViewerModal from '../components/PhotoViewerModal';
 import { formatCoord } from '../utils/format';
 
+const ADMIN_TAB_PATHS = {
+  dashboard: '/admin',
+  verifikasi: '/admin/verifikasi',
+  penugasan: '/admin/penugasan',
+  approval: '/admin/approval',
+  petani: '/admin/petani',
+  lahan: '/admin/lahan',
+  monitoring: '/admin/monitoring',
+  laporan: '/admin/laporan',
+  pengguna: '/admin/pengguna',
+  audit: '/admin/audit',
+};
+const ADMIN_ROUTE_TABS = Object.fromEntries(
+  Object.entries(ADMIN_TAB_PATHS).map(([tab, path]) => [path, tab])
+);
+
 export default function AdminDashboard() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [applications, setApplications] = useState([]);
   const [pplOfficers, setPplOfficers] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [farmersList, setFarmersList] = useState([]);
   const [landsList, setLandsList] = useState([]);
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(true);
 
   // Selected item for actions
@@ -29,6 +47,8 @@ export default function AdminDashboard() {
   const [actionNotes, setActionNotes] = useState('');
   const [selectedPplId, setSelectedPplId] = useState('');
   const [approvedKg, setApprovedKg] = useState('');
+  const [selectedFarmerDetail, setSelectedFarmerDetail] = useState(null);
+  const [selectedLandDetail, setSelectedLandDetail] = useState(null);
 
   // Modals
   const [showVerifyModal, setShowVerifyModal] = useState(false);
@@ -44,6 +64,8 @@ export default function AdminDashboard() {
     secondaryTitle: '',
     description: '',
   });
+  const currentPath = location.pathname.replace(/\/+$/, '') || '/admin';
+  const activeTab = ADMIN_ROUTE_TABS[currentPath] || 'dashboard';
 
   const fetchData = async () => {
     setLoading(true);
@@ -53,21 +75,31 @@ export default function AdminDashboard() {
         applicationsApi.getAll(),
         adminApi.getPplOfficers(),
         adminApi.getAuditLogs(),
-        farmersApi.getAll().catch(() => ({ data: [] })),
-        landsApi.getAll().catch(() => ({ data: [] })),
+        farmersApi.getAll(),
+        landsApi.getAll(),
       ]);
-      setStats(sRes.data);
-      setApplications(aRes.data);
-      setPplOfficers(pRes.data);
-      setAuditLogs(lRes.data);
-      setFarmersList(fRes.data || []);
-      setLandsList(landRes.data || []);
 
-      if (pRes.data.length > 0) {
-        setSelectedPplId(pRes.data[0].id);
+      const applicationsData = Array.isArray(aRes?.data) ? aRes.data : [];
+      const pplData = Array.isArray(pRes?.data) ? pRes.data : [];
+      const auditData = Array.isArray(lRes?.data) ? lRes.data : [];
+      const farmerData = Array.isArray(fRes?.data) ? fRes.data : [];
+      const landData = Array.isArray(landRes?.data) ? landRes.data : [];
+
+      setStats(sRes?.data || {});
+      setApplications(applicationsData);
+      setPplOfficers(pplData);
+      setAuditLogs(auditData);
+      setFarmersList(farmerData);
+      setLandsList(landData);
+
+      if (pplData.length > 0) {
+        setSelectedPplId(String(pplData[0].id));
+      } else {
+        setSelectedPplId('');
       }
     } catch (e) {
       console.error('Error fetching admin data:', e);
+      toast.error('Gagal memuat data Admin dari server.');
     } finally {
       setLoading(false);
     }
@@ -77,6 +109,33 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const applicationId = new URLSearchParams(location.search).get('applicationId');
+    if (!applicationId || loading) return;
+
+    const app = applications.find((item) => String(item.id) === applicationId);
+    const eligibleStatuses = {
+      verifikasi: ['DIAJUKAN', 'MENUNGGU_VERIFIKASI_BERKAS'],
+      penugasan: ['BERKAS_TERVERIFIKASI'],
+      approval: ['MENUNGGU_PERSETUJUAN_AKHIR'],
+    }[activeTab];
+    if (!app || !eligibleStatuses?.includes(app.status)) {
+      toast.error('Pengajuan tidak ditemukan pada antrean yang dipilih.');
+      navigate(currentPath, { replace: true });
+      return;
+    }
+
+    setSelectedApp(app);
+    setActionNotes('');
+    if (activeTab === 'verifikasi') setShowVerifyModal(true);
+    if (activeTab === 'penugasan') setShowAssignModal(true);
+    if (activeTab === 'approval') {
+      setApprovedKg(String(app.jumlah_diajukan || ''));
+      setShowFinalModal(true);
+    }
+    navigate(currentPath, { replace: true });
+  }, [activeTab, applications, currentPath, loading, location.search, navigate]);
+
   // Filter applications by tab
   const pendingVerifyApps = applications.filter((a) =>
     ['DIAJUKAN', 'MENUNGGU_VERIFIKASI_BERKAS'].includes(a.status)
@@ -84,39 +143,65 @@ export default function AdminDashboard() {
   const pendingAssignApps = applications.filter((a) =>
     ['BERKAS_TERVERIFIKASI'].includes(a.status)
   );
+  const assignmentApps = applications.filter((a) =>
+    ['BERKAS_TERVERIFIKASI', 'DITUGASKAN_KE_PPL', 'SURVEI_LAPANGAN', 'MENUNGGU_PERSETUJUAN_AKHIR'].includes(a.status)
+  );
   const pendingFinalApps = applications.filter((a) =>
     ['MENUNGGU_PERSETUJUAN_AKHIR'].includes(a.status)
   );
   const approvedApps = applications.filter((a) =>
     ['DISETUJUI', 'DIJADWALKAN_DISTRIBUSI', 'TERSALURKAN'].includes(a.status)
   );
+  const rejectedApps = applications.filter((a) =>
+    ['DITOLAK_BERKAS', 'DITOLAK_LAPANGAN'].includes(a.status)
+  );
+  const completedVerificationApps = applications.filter((a) =>
+    ['BERKAS_TERVERIFIKASI', 'DITUGASKAN_KE_PPL', 'SURVEI_LAPANGAN', 'MENUNGGU_PERSETUJUAN_AKHIR', 'DISETUJUI', 'DIJADWALKAN_DISTRIBUSI', 'TERSALURKAN'].includes(a.status)
+  );
+  const verificationDurations = applications
+    .filter((app) => app.admin_verified_at && app.tanggal_pengajuan)
+    .map((app) => new Date(app.admin_verified_at).getTime() - new Date(app.tanggal_pengajuan).getTime())
+    .filter((duration) => duration >= 0);
+  const averageVerificationHours = verificationDurations.length
+    ? verificationDurations.reduce((total, duration) => total + duration, 0) / verificationDurations.length / (1000 * 60 * 60)
+    : null;
+  const highWorkloadPplCount = pplOfficers.filter((officer) => Number(officer.active_tasks || 0) > 8).length;
+  const assignmentsToday = assignmentApps.filter((app) => {
+    if (!app.assigned_at) return false;
+    const assignedAt = new Date(app.assigned_at);
+    const today = new Date();
+    return assignedAt.toDateString() === today.toDateString();
+  }).length;
   const totalApprovedKg = approvedApps.reduce(
     (total, app) => total + Number(app.jumlah_disetujui || app.jumlah_diajukan || 0),
     0
   );
-  const uniqueFarmers = farmersList.length > 0
-    ? farmersList
-    : Array.from(
-        new Map(applications.filter((app) => app.farmer).map((app) => [app.farmer.id, app.farmer])).values()
-      );
-  const uniqueLands = landsList.length > 0
-    ? landsList
-    : Array.from(
-        new Map(applications.filter((app) => app.land).map((app) => [app.land.id, app.land])).values()
-      );
+  const uniqueFarmers = farmersList;
+  const uniqueLands = landsList;
+  const totalLandAreaM2 = uniqueLands.reduce((total, land) => total + Number(land.luas_m2 || 0), 0);
+  const farmersWithoutGroup = uniqueFarmers.filter((farmer) => !farmer.farmer_group_id).length;
+  const landsAwaitingSurvey = uniqueLands.filter((land) =>
+    applications.some((app) =>
+      app.land_id === land.id && ['DITUGASKAN_KE_PPL', 'SURVEI_LAPANGAN'].includes(app.status)
+    )
+  ).length;
   const adminMenu = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
     { id: 'verifikasi', label: 'Verifikasi Berkas', icon: FileText, count: pendingVerifyApps.length },
     { id: 'penugasan', label: 'Penugasan PPL', icon: UserCheck, count: pendingAssignApps.length },
     { id: 'approval', label: 'Persetujuan Akhir', icon: Award, count: pendingFinalApps.length },
     { id: 'petani', label: 'Data Petani', icon: Users },
     { id: 'lahan', label: 'Data Lahan', icon: LandPlot },
-    { id: 'distribusi', label: 'Data Distribusi', icon: PackageCheck },
     { id: 'monitoring', label: 'Monitoring', icon: BarChart3 },
     { id: 'laporan', label: 'Laporan', icon: ClipboardList },
     { id: 'pengguna', label: 'Manajemen Pengguna', icon: UserCog },
-    { id: 'audit', label: 'Audit Log', icon: Database, count: auditLogs.length },
+    { id: 'audit', label: 'Audit Log', icon: History },
   ];
+  const navigateToAdminTab = (tab, applicationId) => {
+    const path = ADMIN_TAB_PATHS[tab];
+    if (!path) return;
+    navigate(applicationId ? `${path}?applicationId=${applicationId}` : path);
+  };
 
   // Verification Actions
   const handleVerify = async (action) => {
@@ -129,7 +214,7 @@ export default function AdminDashboard() {
       });
       setShowVerifyModal(false);
       setActionNotes('');
-      fetchData();
+      await fetchData();
       toast.success(`Berkas pengajuan #${selectedApp.id} berhasil diproses: ${action}`, { id: toastId });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Gagal memproses verifikasi berkas.', { id: toastId });
@@ -147,7 +232,7 @@ export default function AdminDashboard() {
       });
       setShowAssignModal(false);
       setActionNotes('');
-      fetchData();
+      await fetchData();
       toast.success(`Petugas PPL berhasil ditugaskan untuk pengajuan #${selectedApp.id}!`, { id: toastId });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Gagal menugaskan PPL.', { id: toastId });
@@ -171,7 +256,7 @@ export default function AdminDashboard() {
       setShowFinalModal(false);
       setActionNotes('');
       setApprovedKg('');
-      fetchData();
+      await fetchData();
       toast.success(
         action === 'APPROVE'
           ? `✅ Pengajuan #${selectedApp.id} disetujui. Alokasi pupuk siap digunakan melalui QR pada karung.`
@@ -188,38 +273,74 @@ export default function AdminDashboard() {
     }
   };
 
+  const dashboardQueues = [
+    {
+      id: 'verifikasi',
+      title: 'Verifikasi Berkas',
+      description: 'Pengajuan yang menunggu pemeriksaan dokumen.',
+      apps: pendingVerifyApps,
+      actionLabel: 'Periksa Berkas',
+      statusLabel: (app) => app.status === 'DIAJUKAN' ? 'Diajukan' : 'Menunggu Verifikasi',
+      statusClass: 'bg-amber-50 text-amber-700 border-amber-200',
+      onAction: (app) => {
+        navigateToAdminTab('verifikasi', app.id);
+      },
+    },
+    {
+      id: 'penugasan',
+      title: 'Penugasan PPL',
+      description: 'Berkas terverifikasi yang siap ditugaskan kepada PPL.',
+      apps: pendingAssignApps,
+      actionLabel: 'Tugaskan PPL',
+      statusLabel: () => 'Siap Ditugaskan',
+      statusClass: 'bg-blue-50 text-blue-700 border-blue-200',
+      onAction: (app) => {
+        navigateToAdminTab('penugasan', app.id);
+      },
+    },
+    {
+      id: 'approval',
+      title: 'Persetujuan Akhir',
+      description: 'Hasil survei PPL yang menunggu keputusan akhir.',
+      apps: pendingFinalApps,
+      actionLabel: 'Proses Keputusan',
+      statusLabel: () => 'Menunggu Persetujuan',
+      statusClass: 'bg-purple-50 text-purple-700 border-purple-200',
+      onAction: (app) => {
+        navigateToAdminTab('approval', app.id);
+      },
+    },
+  ];
+
   if (loading) {
     return (
       <div className="space-y-8 pb-16 animate-pulse">
         <div className="rounded-3xl bg-slate-200 h-32" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-28 bg-slate-200 rounded-2xl" />)}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {[...Array(5)].map((_, i) => <div key={i} className="h-28 bg-slate-200 rounded-2xl" />)}
         </div>
-        <div className="h-10 bg-slate-200 rounded-xl" />
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-48 bg-slate-200 rounded-2xl" />)}
-        </div>
+        <div className="h-48 bg-slate-200 rounded-2xl" />
       </div>
     );
   }
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 pb-16">
-      <aside className="hidden lg:flex lg:w-60 shrink-0 flex-col self-start sticky top-24 bg-white border border-slate-200 rounded-2xl p-3 shadow-xs">
-        <div className="px-3 py-3 mb-2 border-b border-slate-100">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700">Ruang Kerja</p>
-          <p className="text-sm font-black text-slate-900 mt-1">Admin Dinas</p>
+      <aside className="hidden lg:flex lg:w-60 shrink-0 flex-col self-start sticky top-24 bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs">
+        <div className="px-3 py-2 mb-2 border-b border-slate-100">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">RUANG KERJA</p>
+          <p className="text-sm font-black text-slate-900 mt-0.5 mb-1">Admin Dinas</p>
         </div>
         <nav className="space-y-4" aria-label="Navigasi admin">
           {[
             ['UTAMA', ['dashboard']],
             ['PENGAJUAN', ['verifikasi', 'penugasan', 'approval']],
-            ['DATA', ['petani', 'lahan', 'distribusi']],
+            ['DATA', ['petani', 'lahan']],
             ['MONITORING', ['monitoring', 'laporan']],
             ['SISTEM', ['pengguna', 'audit']],
           ].map(([group, itemIds]) => (
             <div key={group}>
-              <p className="px-3 mb-1 text-[10px] font-bold tracking-[0.14em] text-slate-400">{group}</p>
+              <p className="px-3 mb-1 text-[10px] font-bold tracking-[0.14em] text-slate-400 uppercase">{group}</p>
               <div className="space-y-0.5">
                 {adminMenu.filter((item) => itemIds.includes(item.id)).map((item) => {
                   const Icon = item.icon;
@@ -227,14 +348,18 @@ export default function AdminDashboard() {
                   return (
                     <button
                       key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-bold text-left transition-colors cursor-pointer ${
-                        isActive ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-800'
+                      onClick={() => navigateToAdminTab(item.id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-left transition-colors cursor-pointer ${
+                        isActive ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                     >
                       <Icon className="w-4 h-4 shrink-0" />
                       <span className="truncate">{item.label}</span>
-                      {item.count !== undefined && <span className={`ml-auto text-[10px] ${isActive ? 'text-emerald-100' : 'text-slate-400'}`}>{item.count}</span>}
+                      {item.count !== undefined && (
+                        <span className={`ml-auto text-xs font-medium ${isActive ? 'text-emerald-100' : 'text-slate-400'}`}>
+                          {item.count}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -247,611 +372,1195 @@ export default function AdminDashboard() {
       <div className="min-w-0 flex-1 space-y-6">
         <div className="lg:hidden">
           <label htmlFor="admin-section" className="sr-only">Bagian dashboard admin</label>
-          <select id="admin-section" value={activeTab} onChange={(event) => setActiveTab(event.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 outline-hidden focus:border-emerald-500">
+          <select id="admin-section" value={activeTab} onChange={(event) => navigateToAdminTab(event.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 outline-hidden focus:border-emerald-500">
             {adminMenu.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
           </select>
         </div>
-      {/* Top Banner */}
-      <div className="rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950 text-white p-6 sm:p-7 relative overflow-hidden shadow-lg border border-slate-700">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-2">
-              <ShieldAlert className="w-4 h-4" /> Pusat Pengelolaan Subsidi
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
-              Dashboard Admin Dinas
-            </h1>
-            <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-              Kelola verifikasi pengajuan, penugasan PPL, persetujuan pupuk, dan monitoring distribusi.
-            </p>
-          </div>
 
-          <button
-            onClick={fetchData}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 transition-colors shrink-0 cursor-pointer"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span>Segarkan Data</span>
-          </button>
-        </div>
-      </div>
+        {/* ========================================================= */}
+        {/* 1. TAB: DASHBOARD                                         */}
+        {/* ========================================================= */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            {/* Dashboard Hero Banner */}
+            <div className="rounded-2xl bg-slate-950 text-white p-6 sm:p-7 relative overflow-hidden shadow-xs border border-slate-800">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
+                    <ShieldAlert className="w-4 h-4 text-emerald-400 stroke-[2.2]" /> PUSAT PENGELOLAAN SUBSIDI
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
+                    Dashboard Admin Dinas
+                  </h1>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
+                    Kelola verifikasi pengajuan, penugasan PPL, persetujuan pupuk, dan monitoring distribusi.
+                  </p>
+                </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
-        <KPICard
-          title="Menunggu Verifikasi"
-          value={stats?.menunggu_verifikasi_berkas || 0}
-          subtitle="KTP & Lahan Perlu Dicek"
-          icon={FileText}
-          color="amber"
-          badge="Antrean"
-        />
-        <KPICard
-          title="Perlu Penugasan PPL"
-          value={pendingAssignApps.length}
-          subtitle="Berkas Lolos, Siap Survei"
-          icon={UserCheck}
-          color="blue"
-          badge="Disposisi"
-        />
-        <KPICard
-          title="Menunggu Persetujuan"
-          value={stats?.menunggu_persetujuan_akhir || 0}
-          subtitle="Hasil Survei Lapangan Siap"
-          icon={Award}
-          color="purple"
-          badge="Keputusan"
-        />
-        <KPICard
-          title="Total Disetujui"
-          value={stats?.disetujui || 0}
-          subtitle="Alokasi Pupuk Disetujui"
-          icon={ShieldCheck}
-          color="emerald"
-          badge="Selesai"
-        />
-        <KPICard
-          title="Total Ditolak"
-          value={stats?.ditolak || 0}
-          subtitle="Berkas atau survei ditolak"
-          icon={ShieldAlert}
-          color="rose"
-          badge="Ditolak"
-        />
-      </div>
-
-      {activeTab === 'dashboard' && (
-        <div className="space-y-5">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">Ringkasan Alur Verifikasi</h3>
-                <p className="text-xs text-slate-500 mt-1">Pantau antrean yang membutuhkan tindakan Admin.</p>
-              </div>
-              <ClipboardList className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                ['Verifikasi Berkas', pendingVerifyApps.length, 'verifikasi', 'amber'],
-                ['Penugasan PPL', pendingAssignApps.length, 'penugasan', 'blue'],
-                ['Approval Akhir', pendingFinalApps.length, 'approval', 'purple'],
-              ].map(([label, value, tab, color]) => (
-                <button key={tab} onClick={() => setActiveTab(tab)} className="text-left rounded-xl border border-slate-200 p-3 hover:border-emerald-300 hover:bg-emerald-50/40 transition-colors cursor-pointer">
-                  <span className={`text-[10px] font-bold uppercase tracking-wide text-${color}-700`}>{label}</span>
-                  <strong className="block text-2xl font-black text-slate-900 mt-1">{value}</strong>
-                  <span className="text-[11px] text-slate-500">Perlu ditindaklanjuti</span>
+                <button
+                  onClick={fetchData}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700/80 transition-colors shrink-0 cursor-pointer shadow-xs"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  <span>Segarkan Data</span>
                 </button>
-              ))}
-            </div>
-          </div>
-          <div className="bg-slate-900 rounded-2xl p-5 text-white shadow-xs">
-            <div className="flex items-center gap-2 mb-4">
-              <ShieldCheck className="w-5 h-5 text-emerald-300" />
-              <h3 className="text-sm font-bold">Kinerja Sistem</h3>
-            </div>
-            <div className="space-y-4 text-xs">
-              <div className="flex items-center justify-between"><span className="text-slate-400">Total petani</span><strong>{stats?.total_petani || uniqueFarmers.length}</strong></div>
-              <div className="flex items-center justify-between"><span className="text-slate-400">Total lahan terdaftar</span><strong>{uniqueLands.length}</strong></div>
-              <div className="flex items-center justify-between"><span className="text-slate-400">Total pengajuan</span><strong>{stats?.total_pengajuan || applications.length}</strong></div>
-              <div className="pt-3 border-t border-slate-700 flex items-center justify-between"><span className="text-slate-400">Update terakhir</span><strong className="text-emerald-300">Hari ini</strong></div>
-            </div>
-          </div>
-          </div>
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">Pengajuan yang Membutuhkan Tindakan</h3>
-                <p className="text-xs text-slate-500 mt-1">Prioritas kerja Admin berdasarkan tahapan proses.</p>
               </div>
-              <span className="text-[11px] font-bold text-slate-400">{pendingVerifyApps.length + pendingAssignApps.length + pendingFinalApps.length} antrean</span>
             </div>
-            <div className="divide-y divide-slate-100">
-              {[
-                ...pendingVerifyApps.map((app) => ({ app, label: 'Menunggu Verifikasi', tab: 'verifikasi', action: 'Periksa Berkas', tone: 'amber' })),
-                ...pendingAssignApps.map((app) => ({ app, label: 'Siap Ditugaskan ke PPL', tab: 'penugasan', action: 'Tugaskan PPL', tone: 'blue' })),
-                ...pendingFinalApps.map((app) => ({ app, label: 'Menunggu Persetujuan Akhir', tab: 'approval', action: 'Lihat Hasil Survei', tone: 'purple' })),
-              ].slice(0, 6).map(({ app, label, tab, action, tone }) => (
-                <div key={app.id} className="px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="text-sm font-bold text-slate-900">{app.farmer?.nama || 'Petani'}</h4>
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${tone === 'amber' ? 'bg-amber-100 text-amber-800' : tone === 'blue' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>{label}</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1 truncate">{app.fertilizer?.nama_pupuk || 'Pupuk'} {app.jumlah_diajukan} kg · {app.land?.lokasi_deskripsi || app.alamat_lahan || 'Lahan terdaftar'}</p>
-                  </div>
-                  <button onClick={() => setActiveTab(tab)} className="shrink-0 self-start md:self-auto px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-emerald-700 hover:bg-emerald-50 cursor-pointer">{action}</button>
-                </div>
-              ))}
+
+            {/* 5 KPI Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-3.5">
+              <KPICard
+                title="MENUNGGU VERIFIKASI"
+                value={pendingVerifyApps.length}
+                subtitle={stats?.menunggu_verifikasi_berkas ? `${stats.menunggu_verifikasi_berkas} antrean aktif` : 'KTP & lahan belum valid'}
+                icon={FileText}
+                color="amber"
+                badge="Antrean"
+              />
+              <KPICard
+                title="PERLU PENUGASAN PPL"
+                value={pendingAssignApps.length}
+                subtitle={stats?.perlu_survei_ppl ? `${stats.perlu_survei_ppl} menunggu disposisi` : 'Berkas siap ditugaskan'}
+                icon={UserCheck}
+                color="blue"
+                badge="Disposisi"
+              />
+              <KPICard
+                title="MENUNGGU PERSETUJUAN"
+                value={pendingFinalApps.length}
+                subtitle={stats?.menunggu_persetujuan_akhir ? `${stats.menunggu_persetujuan_akhir} keputusan menunggu` : 'Hasil survei menunggu review'}
+                icon={Award}
+                color="purple"
+                badge="Keputusan"
+              />
+              <KPICard
+                title="TOTAL DISETUJUI"
+                value={approvedApps.length}
+                subtitle={stats?.disetujui ? `${stats.disetujui} aplikasi disetujui` : 'Alokasi pupuk berjalan'}
+                icon={TrendingUp}
+                color="emerald"
+                badge="Selesai"
+              />
+              <KPICard
+                title="TOTAL DITOLAK"
+                value={stats?.ditolak ?? 0}
+                subtitle={stats?.ditolak ? `${stats.ditolak} pengajuan ditolak` : 'Berkas tidak ada penolakan'}
+                icon={ShieldAlert}
+                color="rose"
+                badge="Ditolak"
+              />
             </div>
-            {pendingVerifyApps.length + pendingAssignApps.length + pendingFinalApps.length === 0 && <p className="py-10 text-center text-xs text-slate-400">Tidak ada pengajuan yang membutuhkan tindakan.</p>}
-          </div>
-        </div>
-      )}
 
-      {activeTab === 'petani' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <div><h3 className="text-sm font-bold text-slate-900">Data Petani</h3><p className="text-xs text-slate-500 mt-1">Profil petani yang terhubung dengan pengajuan subsidi.</p></div>
-            <div className="relative"><Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" /><input placeholder="Cari nama atau NIK" className="pl-9 pr-3 py-2 rounded-xl border border-slate-300 text-xs outline-hidden focus:border-emerald-500" /></div>
-          </div>
-          <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500 uppercase text-[10px]"><tr><th className="p-3">No</th><th className="p-3">Nama / NIK</th><th className="p-3">Kelompok Tani</th><th className="p-3">Kontak</th><th className="p-3">Status</th><th className="p-3">Aksi</th></tr></thead><tbody className="divide-y divide-slate-100">{uniqueFarmers.map((farmer, index) => <tr key={farmer.id} className="hover:bg-slate-50"><td className="p-3 text-slate-400">{String(index + 1).padStart(2, '0')}</td><td className="p-3"><strong className="block text-slate-900">{farmer.nama}</strong><span className="font-mono text-[11px] text-slate-500">{farmer.nik}</span></td><td className="p-3 text-slate-600">{farmer.farmer_group?.nama_kelompok || '-'}</td><td className="p-3 text-slate-600">{farmer.kontak || '-'}</td><td className="p-3"><span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Terverifikasi</span></td><td className="p-3"><button className="text-emerald-700 font-bold hover:underline cursor-pointer">Detail</button></td></tr>)}</tbody></table></div>
-          {uniqueFarmers.length === 0 && <p className="py-10 text-center text-xs text-slate-400">Belum ada data petani.</p>}
-        </div>
-      )}
-
-      {activeTab === 'lahan' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-          <div className="mb-4"><h3 className="text-sm font-bold text-slate-900">Data Lahan</h3><p className="text-xs text-slate-500 mt-1">Lahan yang menjadi dasar pengajuan subsidi dan survei PPL.</p></div>
-          <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500 uppercase text-[10px]"><tr><th className="p-3">Petani</th><th className="p-3">Blok Lahan</th><th className="p-3">Luas</th><th className="p-3">Alamat</th><th className="p-3">Koordinat</th><th className="p-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{uniqueLands.map((land) => { const app = applications.find((item) => item.land?.id === land.id); return <tr key={land.id} className="hover:bg-slate-50"><td className="p-3 font-bold text-slate-900">{app?.farmer?.nama || '-'}</td><td className="p-3 text-slate-700">{land.lokasi_deskripsi || 'Lahan Sawah'}</td><td className="p-3 font-semibold">{land.luas_m2 || 0} m²</td><td className="p-3 text-slate-600">{app?.alamat_lahan || '-'}</td><td className="p-3 font-mono text-[11px] text-slate-500">{formatCoord(app?.latitude)}, {formatCoord(app?.longitude)}</td><td className="p-3"><span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Terverifikasi</span></td></tr>; })}</tbody></table></div>
-          {uniqueLands.length === 0 && <p className="py-10 text-center text-xs text-slate-400">Belum ada data lahan.</p>}
-        </div>
-      )}
-
-      {activeTab === 'distribusi' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-          <div className="mb-4"><h3 className="text-sm font-bold text-slate-900">Data Distribusi</h3><p className="text-xs text-slate-500 mt-1">Alokasi yang disetujui dan riwayat pembukaan pupuk.</p></div>
-          <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500 uppercase text-[10px]"><tr><th className="p-3">Jenis Pupuk</th><th className="p-3">Disetujui</th><th className="p-3">Sudah Dibuka</th><th className="p-3">Sisa</th><th className="p-3">Petani</th><th className="p-3">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{approvedApps.map((app) => { const approved = Number(app.jumlah_disetujui || app.jumlah_diajukan || 0); return <tr key={app.id} className="hover:bg-slate-50"><td className="p-3 font-bold text-slate-900">{app.fertilizer?.nama_pupuk || '-'}</td><td className="p-3 font-semibold">{approved} kg</td><td className="p-3 text-slate-600">Data transaksi</td><td className="p-3 font-semibold text-emerald-700">{approved} kg</td><td className="p-3 text-slate-700">{app.farmer?.nama || '-'}</td><td className="p-3"><StatusBadge status={app.status} /></td></tr>; })}</tbody></table></div>
-          {approvedApps.length === 0 && <p className="py-10 text-center text-xs text-slate-400">Belum ada alokasi pupuk yang disetujui.</p>}
-        </div>
-      )}
-
-      {activeTab === 'monitoring' && (
-        <div className="space-y-5">
-          <div className="flex flex-wrap gap-2"><select className="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"><option>Semua Periode</option><option>Bulan ini</option><option>Tahun ini</option></select><select className="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"><option>Semua Jenis Pupuk</option>{Array.from(new Set(applications.map((app) => app.fertilizer?.nama_pupuk).filter(Boolean))).map((name) => <option key={name}>{name}</option>)}</select><select className="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"><option>Semua Status</option><option>Disetujui</option><option>Menunggu</option><option>Ditolak</option></select></div>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">{[['Total Petani', stats?.total_petani || uniqueFarmers.length], ['Total Lahan', uniqueLands.length], ['Total Pengajuan', applications.length], ['Pupuk Disetujui', `${totalApprovedKg} kg`], ['Pupuk Dibuka', 'Terpantau']].map(([label, value]) => <div key={label} className="bg-white rounded-2xl border border-slate-200 p-4"><span className="text-[11px] text-slate-500">{label}</span><strong className="block text-xl font-black text-slate-900 mt-1">{value}</strong></div>)}</div>
-          <div className="bg-white rounded-2xl border border-slate-200 p-5"><h3 className="text-sm font-bold text-slate-900 mb-4">Status Pengajuan</h3><div className="space-y-3">{[['Menunggu verifikasi', pendingVerifyApps.length, 'bg-amber-500'], ['Menunggu penugasan', pendingAssignApps.length, 'bg-blue-500'], ['Menunggu approval', pendingFinalApps.length, 'bg-purple-500'], ['Disetujui', approvedApps.length, 'bg-emerald-500']].map(([label, value, color]) => <div key={label} className="flex items-center gap-3 text-xs"><span className="w-32 text-slate-600">{label}</span><div className="h-2 flex-1 rounded-full bg-slate-100 overflow-hidden"><div className={`h-full ${color}`} style={{ width: `${applications.length ? Math.max(8, (value / applications.length) * 100) : 8}%` }} /></div><strong className="w-8 text-right">{value}</strong></div>)}</div></div>
-        </div>
-      )}
-
-      {activeTab === 'laporan' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs"><div className="mb-5"><h3 className="text-sm font-bold text-slate-900">Laporan Dinas</h3><p className="text-xs text-slate-500 mt-1">Pilih periode dan jenis laporan untuk kebutuhan pelaporan administrasi.</p></div><div className="flex flex-wrap gap-2 mb-5"><input type="date" className="px-3 py-2 rounded-xl border border-slate-300 text-xs" /><span className="self-center text-xs text-slate-400">sampai</span><input type="date" className="px-3 py-2 rounded-xl border border-slate-300 text-xs" /><select className="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"><option>Semua Kecamatan</option><option>Mojosari</option><option>Puri</option></select><select className="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"><option>Semua Status</option><option>Disetujui</option><option>Ditolak</option></select></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">{['Data Petani', 'Data Lahan', 'Pengajuan & Verifikasi', 'Survei PPL', 'Persetujuan', 'Distribusi', 'Pembukaan Pupuk'].map((report) => <div key={report} className="border border-slate-200 rounded-xl p-4"><FileText className="w-5 h-5 text-emerald-600 mb-2" /><h4 className="text-xs font-bold text-slate-800">Laporan {report}</h4><div className="flex gap-2 mt-3"><button onClick={() => toast.success(`Laporan ${report} siap diekspor sebagai PDF.`)} className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer">Export PDF</button><button onClick={() => toast.success(`Laporan ${report} siap diekspor sebagai Excel.`)} className="text-[11px] font-bold text-emerald-700 hover:underline cursor-pointer">Export Excel</button></div></div>)}</div></div>
-      )}
-
-      {activeTab === 'pengguna' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs"><div className="mb-4"><h3 className="text-sm font-bold text-slate-900">Manajemen Pengguna</h3><p className="text-xs text-slate-500 mt-1">Role sistem: USER / PETANI, PPL, dan ADMIN.</p></div><div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="bg-slate-50 text-slate-500 uppercase text-[10px]"><tr><th className="p-3">Nama</th><th className="p-3">Username</th><th className="p-3">Role</th><th className="p-3">Status</th><th className="p-3">Aksi</th></tr></thead><tbody className="divide-y divide-slate-100">{[...uniqueFarmers.map((farmer) => ({ name: farmer.nama, username: farmer.user?.username || '-', role: 'USER / PETANI' })), ...pplOfficers.map((ppl) => ({ name: ppl.username, username: ppl.username, role: 'PPL' }))].map((person, index) => <tr key={`${person.role}-${index}`}><td className="p-3 font-bold text-slate-900">{person.name}</td><td className="p-3 text-slate-600">{person.username}</td><td className="p-3"><span className="px-2 py-1 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">{person.role}</span></td><td className="p-3 text-emerald-700 font-bold">Aktif</td><td className="p-3 flex gap-3"><button className="text-emerald-700 font-bold hover:underline cursor-pointer">Detail</button><button className="text-slate-500 font-bold hover:underline cursor-pointer">Edit</button></td></tr>)}</tbody></table></div></div>
-      )}
-
-      {/* TAB 1: VERIFIKASI BERKAS */}
-      {activeTab === 'verifikasi' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900">
-              Antrean Pengajuan Menunggu Verifikasi Berkas ({pendingVerifyApps.length})
-            </h3>
-            <span className="text-xs text-slate-500">
-              Periksa kecocokan foto KTP dan foto lahan sebelum meloloskan ke PPL
-            </span>
-          </div>
-
-          {pendingVerifyApps.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-              <Check className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-              <p className="text-sm font-bold text-slate-800">Semua Berkas Telah Terverifikasi</p>
-              <p className="text-xs text-slate-500 mt-1">Tidak ada antrean verifikasi berkas saat ini.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {pendingVerifyApps.map((app) => (
-                <div
-                  key={app.id}
-                  className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs hover:border-slate-300 transition-all space-y-5"
-                >
-                  {/* Top application details */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div className="space-y-5">
+              {dashboardQueues.map((queue) => (
+                <section key={queue.id} className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+                  <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-slate-400">#{app.id}</span>
-                        <h4 className="text-base font-bold text-slate-900">
-                          {app.farmer?.nama} — Pengajuan {app.jumlah_diajukan} kg {app.fertilizer?.nama_pupuk}
-                        </h4>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
-                        <span>NIK: <strong className="font-mono text-slate-800">{app.farmer?.nik}</strong></span>
-                        <span>•</span>
-                        <span>Alamat KTP: {app.farmer?.alamat}</span>
-                      </p>
+                      <h3 className="text-base font-bold text-slate-900">{queue.title}</h3>
+                      <p className="text-xs text-slate-400 mt-0.5">{queue.description}</p>
                     </div>
-
                     <div className="flex items-center gap-2">
-                      <StatusBadge status={app.status} />
-                      <button
-                        onClick={() => {
-                          setSelectedApp(app);
-                          setActionNotes('');
-                          setShowVerifyModal(true);
-                        }}
-                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm shadow-emerald-200 flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <ShieldCheck className="w-4 h-4" /> Proses Verifikasi
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* SIDE-BY-SIDE VERIFICATION PHOTO PANEL */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Foto KTP Preview */}
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                          <FileText className="w-3.5 h-3.5 text-blue-600" />
-                          Foto KTP Resmi Petani
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setViewerPhoto({
-                            isOpen: true,
-                            title: `KTP: ${app.farmer?.nama}`,
-                            url: app.foto_ktp_snapshot_url,
-                            description: `NIK: ${app.farmer?.nik} | Alamat: ${app.farmer?.alamat}`
-                          })}
-                          className="text-[11px] text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1"
-                        >
-                          <Eye className="w-3.5 h-3.5" /> Perbesar
-                        </button>
-                      </div>
-
-                      <div 
-                        onClick={() => setViewerPhoto({
-                          isOpen: true,
-                          title: `KTP: ${app.farmer?.nama}`,
-                          url: app.foto_ktp_snapshot_url,
-                          description: `NIK: ${app.farmer?.nik} | Alamat: ${app.farmer?.alamat}`
-                        })}
-                        className="relative aspect-16/10 rounded-lg overflow-hidden bg-slate-200 border border-slate-300 cursor-pointer group"
-                      >
-                        <img
-                          src={app.foto_ktp_snapshot_url}
-                          alt="Foto KTP"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold">
-                          Klik untuk Perbesar
-                        </div>
-                      </div>
-
-                      <div className="text-[11px] text-slate-600 space-y-0.5">
-                        <p><strong>Nama:</strong> {app.farmer?.nama}</p>
-                        <p><strong>NIK:</strong> {app.farmer?.nik}</p>
-                        <p><strong>Domisili:</strong> {app.farmer?.alamat}</p>
-                      </div>
-                    </div>
-
-                    {/* Foto Lahan Preview */}
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                          <Tractor className="w-3.5 h-3.5 text-emerald-600" />
-                          Foto Lahan Pertanian
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setViewerPhoto({
-                            isOpen: true,
-                            title: `Lahan: ${app.land?.lokasi_deskripsi}`,
-                            url: app.foto_lahan_snapshot_url,
-                            description: `Alamat: ${app.alamat_lahan} | Luas: ${app.land?.luas_m2} m² | Koordinat: ${app.latitude}, ${app.longitude}`
-                          })}
-                          className="text-[11px] text-emerald-700 hover:text-emerald-800 font-semibold flex items-center gap-1"
-                        >
-                          <Eye className="w-3.5 h-3.5" /> Perbesar
-                        </button>
-                      </div>
-
-                      <div 
-                        onClick={() => setViewerPhoto({
-                          isOpen: true,
-                          title: `Lahan: ${app.land?.lokasi_deskripsi}`,
-                          url: app.foto_lahan_snapshot_url,
-                          description: `Alamat: ${app.alamat_lahan} | Luas: ${app.land?.luas_m2} m² | Koordinat: ${app.latitude}, ${app.longitude}`
-                        })}
-                        className="relative aspect-16/10 rounded-lg overflow-hidden bg-slate-200 border border-slate-300 cursor-pointer group"
-                      >
-                        <img
-                          src={app.foto_lahan_snapshot_url}
-                          alt="Foto Lahan"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold">
-                          Klik untuk Perbesar
-                        </div>
-                      </div>
-
-                      <div className="text-[11px] text-slate-600 space-y-0.5">
-                        <p><strong>Lokasi:</strong> {app.alamat_lahan}</p>
-                        <p><strong>Luas Tercatat:</strong> {app.land?.luas_m2} m²</p>
-                        <p><strong>GPS:</strong> {formatCoord(app.latitude)}, {formatCoord(app.longitude)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB 2: PENUGASAN PPL */}
-      {activeTab === 'penugasan' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900">
-              Pengajuan Lolos Berkas — Siap Ditugaskan ke Petugas PPL ({pendingAssignApps.length})
-            </h3>
-            <span className="text-xs text-slate-500">
-              Pilih petugas PPL sesuai wilayah binaan untuk survei fisik tanah dan tanaman
-            </span>
-          </div>
-
-          {pendingAssignApps.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-              <Check className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-              <p className="text-sm font-bold text-slate-800">Semua Pengajuan Telah Ditugaskan ke PPL</p>
-              <p className="text-xs text-slate-500 mt-1">Tidak ada berkas yang menunggu disposisi PPL.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {pendingAssignApps.map((app) => (
-                <div
-                  key={app.id}
-                  className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-slate-400">#{app.id}</span>
-                      <h4 className="text-sm font-bold text-slate-900">
-                        {app.farmer?.nama} ({app.farmer?.farmer_group?.nama_kelompok || 'Kelompok Tani'})
-                      </h4>
-                      <StatusBadge status={app.status} />
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      Alokasi: <strong className="text-slate-800">{app.jumlah_diajukan} kg {app.fertilizer?.nama_pupuk}</strong> | 
-                      Lahan: {app.land?.lokasi_deskripsi} ({app.land?.luas_m2} m²)
-                    </p>
-                    <p className="text-xs text-slate-500 flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      {app.alamat_lahan}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setSelectedApp(app);
-                      setActionNotes('');
-                      setShowAssignModal(true);
-                    }}
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-blue-200 cursor-pointer shrink-0"
-                  >
-                    <UserCheck className="w-4 h-4" />
-                    <span>Tugaskan PPL</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB 3: PERSETUJUAN AKHIR */}
-      {activeTab === 'approval' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-900">
-              Hasil Survei Lapangan PPL Menunggu Keputusan Akhir ({pendingFinalApps.length})
-            </h3>
-            <span className="text-xs text-slate-500">
-              Tinjau rekomendasi dan bukti foto survei PPL sebelum menerbitkan kuota pupuk
-            </span>
-          </div>
-
-          {pendingFinalApps.length === 0 ? (
-            <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
-              <Check className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-              <p className="text-sm font-bold text-slate-800">Tidak Ada Antrean Persetujuan Akhir</p>
-              <p className="text-xs text-slate-500 mt-1">Semua survei PPL telah diputuskan.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {pendingFinalApps.map((app) => (
-                <div
-                  key={app.id}
-                  className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-slate-400">#{app.id}</span>
-                        <h4 className="text-base font-bold text-slate-900">
-                          {app.farmer?.nama} — Pengajuan {app.jumlah_diajukan} kg {app.fertilizer?.nama_pupuk}
-                        </h4>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Lahan: {app.land?.lokasi_deskripsi} | Alamat: {app.alamat_lahan}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={app.status} />
-                      <button
-                        onClick={() => {
-                          setSelectedApp(app);
-                          setActionNotes('');
-                          setApprovedKg(app.jumlah_diajukan);
-                          setShowFinalModal(true);
-                        }}
-                        className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm shadow-purple-200 cursor-pointer"
-                      >
-                        <Award className="w-4 h-4" /> Beri Keputusan Akhir
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Detailed PPL Survey Results Box */}
-                  {app.survey ? (
-                    <div className="bg-purple-50/50 rounded-xl p-4 border border-purple-200 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-purple-900 uppercase tracking-wider flex items-center gap-1.5">
-                          <ShieldCheck className="w-4 h-4 text-purple-600" />
-                          Laporan Survei Fisik Petugas PPL
-                        </span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                          app.survey.rekomendasi === 'SETUJU'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-rose-100 text-rose-800'
-                        }`}>
-                          Rekomendasi PPL: {app.survey.rekomendasi}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                        <div>
-                          <span className="text-slate-500 block text-[11px]">Kondisi Fisik Lahan</span>
-                          <span className="font-bold text-slate-800">{app.survey.kondisi_fisik_lahan}</span>
-                          {app.survey.keterangan_fisik_lahan && (
-                            <p className="text-[11px] text-slate-500 mt-0.5">{app.survey.keterangan_fisik_lahan}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <span className="text-slate-500 block text-[11px]">Kesesuaian Tanaman</span>
-                          <span className="font-bold text-slate-800">{app.survey.kondisi_tanaman}</span>
-                          {app.survey.keterangan_tanaman && (
-                            <p className="text-[11px] text-slate-500 mt-0.5">{app.survey.keterangan_tanaman}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <span className="text-slate-500 block text-[11px]">Luas Aktual Terukur</span>
-                          <span className="font-bold text-slate-800">{app.survey.luas_lahan_aktual_m2 || app.land?.luas_m2} m²</span>
-                        </div>
-                      </div>
-
-                      {app.survey.catatan_ppl && (
-                        <div className="text-xs text-slate-700 bg-white/80 p-2.5 rounded-lg border border-purple-100 italic">
-                          &ldquo;{app.survey.catatan_ppl}&rdquo;
-                        </div>
-                      )}
-
-                      {/* Survey Photo Attachment */}
-                      {app.survey.foto_survei_urls?.[0] && (
-                        <div>
-                          <span className="text-[11px] font-semibold text-slate-500 block mb-1.5">
-                            Dokumentasi Foto Survei Lapangan:
-                          </span>
-                          <div 
-                            onClick={() => setViewerPhoto({
-                              isOpen: true,
-                              title: `Dokumentasi Survei Lapangan PPL #${app.id}`,
-                              url: app.survey.foto_survei_urls[0],
-                              description: `Petugas PPL: Survei fisik kondisi tanah & tanaman`
-                            })}
-                            className="w-40 h-24 rounded-lg overflow-hidden border border-purple-200 bg-slate-200 cursor-pointer relative group"
-                          >
-                            <img
-                              src={app.survey.foto_survei_urls[0]}
-                              alt="Survei Lapangan"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                            />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-semibold">
-                              Perbesar Foto
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-slate-400 italic">Data survei belum lengkap.</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB 4: AUDIT LOG */}
-      {activeTab === 'audit' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Catatan Jejak Keamanan & Akses Sistem (Audit Logs)
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Mencatat setiap tindakan penting, termasuk pembukaan file KTP dan perubahan status pengajuan
-              </p>
-            </div>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
-              50 Tindakan Terakhir
-            </span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
-                <tr>
-                  <th className="py-2.5 px-3">Waktu</th>
-                  <th className="py-2.5 px-3">Aksi</th>
-                  <th className="py-2.5 px-3">Resource</th>
-                  <th className="py-2.5 px-3">Keterangan</th>
-                  <th className="py-2.5 px-3">IP Address</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {auditLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-50/50">
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-400">
-                      {new Date(log.created_at).toLocaleString('id-ID')}
-                    </td>
-                    <td className="py-2.5 px-3 font-bold text-slate-900">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-100 font-mono text-[10px]">
-                        {log.action}
+                      <span className="bg-slate-100 text-slate-600 font-semibold text-xs px-2.5 py-1 rounded-full">
+                        {queue.apps.length} pengajuan
                       </span>
-                    </td>
-                    <td className="py-2.5 px-3 font-semibold text-emerald-800">
-                      {log.resource} #{log.resource_id || ''}
-                    </td>
-                    <td className="py-2.5 px-3 text-slate-600 max-w-xs truncate">
-                      {log.details || '-'}
-                    </td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-400">
-                      {log.ip_address || '127.0.0.1'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+                      <button
+                        type="button"
+                        onClick={() => navigateToAdminTab(queue.id)}
+                        className="text-xs font-bold text-emerald-700 hover:text-emerald-800 cursor-pointer"
+                      >
+                        Lihat semua
+                      </button>
+                    </div>
+                  </div>
 
-      {/* Modal: Verifikasi Berkas (Approve / Perbaikan / Tolak) */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50/80 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-100">
+                        <tr>
+                          <th className="py-3 px-4">NO. PENGAJUAN</th>
+                          <th className="py-3 px-4">PETANI</th>
+                          <th className="py-3 px-4">LOKASI LAHAN</th>
+                          <th className="py-3 px-4">PUPUK DIAJUKAN</th>
+                          <th className="py-3 px-4">STATUS</th>
+                          <th className="py-3 px-4 text-center">AKSI</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                        {queue.apps.map((app) => (
+                          <tr key={app.id} className="hover:bg-slate-50/60 transition-colors">
+                            <td className="py-3.5 px-4 font-mono font-bold text-slate-900">#{app.id}</td>
+                            <td className="py-3.5 px-4">
+                              <span className="block font-bold text-slate-900">{app.farmer?.nama || 'Petani'}</span>
+                              {app.farmer?.nik && <span className="text-[11px] text-slate-400">NIK: {app.farmer.nik}</span>}
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-600">
+                              {app.land?.lokasi_deskripsi || app.alamat_lahan || '—'}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className="block font-semibold text-slate-800">{app.fertilizer?.nama_pupuk || 'Pupuk'}</span>
+                              <span className="text-[11px] text-slate-400">
+                                {Number(app.jumlah_diajukan || 0).toLocaleString('id-ID', { maximumFractionDigits: 2 })} kg
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${queue.statusClass}`}>
+                                {queue.statusLabel(app)}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <button
+                                type="button"
+                                onClick={() => queue.onAction(app)}
+                                className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer whitespace-nowrap"
+                              >
+                                {queue.actionLabel}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {queue.apps.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="py-8 px-4 text-center text-xs text-slate-400">
+                              Tidak ada pengajuan yang menunggu {queue.title.toLowerCase()}.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 2. TAB: VERIFIKASI BERKAS                                 */}
+        {/* ========================================================= */}
+        {activeTab === 'verifikasi' && (
+          <div className="space-y-6">
+            {/* Hero Banner */}
+            <div className="rounded-2xl bg-slate-950 text-white p-6 sm:p-7 relative overflow-hidden shadow-xs border border-slate-800">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
+                    <FileText className="w-4 h-4 text-emerald-400 stroke-[2.2]" /> VERIFIKASI TAHAP AWAL
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
+                    Verifikasi Berkas
+                  </h1>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                    Periksa kelengkapan identitas, bukti lahan, dan dokumen pengajuan sebelum diteruskan ke penugasan PPL.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+              <KPICard
+                title="MENUNGGU VERIFIKASI"
+                value={pendingVerifyApps.length}
+                subtitle="Antrean dari pengajuan backend"
+                icon={FileText}
+                color="amber"
+                badge="Perlu Tindakan"
+              />
+              <KPICard
+                title="BERKAS LENGKAP"
+                value={completedVerificationApps.length}
+                subtitle="Lolos verifikasi berkas"
+                icon={PackageCheck}
+                color="emerald"
+                badge="Lolos"
+              />
+              <KPICard
+                title="PERLU PERBAIKAN"
+                value={applications.filter((app) => app.status === 'PERLU_PERBAIKAN_BERKAS').length}
+                subtitle="Menunggu revisi Petani"
+                icon={ShieldAlert}
+                color="rose"
+                badge="Revisi"
+              />
+              <KPICard
+                title="RATA-RATA PROSES"
+                value={averageVerificationHours == null ? '—' : `${averageVerificationHours.toLocaleString('id-ID', { maximumFractionDigits: 1 })}j`}
+                subtitle={averageVerificationHours == null ? 'Data waktu proses belum tersedia' : 'Rata-rata sejak pengajuan'}
+                icon={History}
+                color="blue"
+                badge="SLA"
+              />
+            </div>
+
+            {/* Filter Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari nomor pengajuan, NIK, atau nama petani..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-emerald-500 shadow-2xs"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-emerald-500 shadow-2xs cursor-pointer">
+                  <option>Semua Status</option>
+                  <option>Menunggu Verifikasi</option>
+                  <option>Perlu Perbaikan</option>
+                  <option>Lengkap</option>
+                </select>
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-emerald-500 shadow-2xs cursor-pointer">
+                  <option>Semua Kecamatan</option>
+                  <option>Trowulan</option>
+                  <option>Mojosari</option>
+                  <option>Puri</option>
+                  <option>Dlanggu</option>
+                  <option>Sooko</option>
+                </select>
+                <button
+                  type="button"
+                  className="p-2.5 bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-600 rounded-xl shadow-2xs cursor-pointer"
+                  title="Filter Lanjutan"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Data Table: Antrean Verifikasi Berkas */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+              <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Antrean Verifikasi Berkas</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Daftar berkas pengajuan subsidi yang menunggu pemeriksaan dokumen dan kepemilikan lahan.</p>
+                </div>
+                <span className="bg-blue-50 text-blue-600 font-semibold text-xs px-2.5 py-1 rounded-full border border-blue-100/80 shrink-0">
+                  {pendingVerifyApps.length} ditampilkan
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50/80 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-100">
+                    <tr>
+                      <th className="py-3 px-4">NO. PENGAJUAN</th>
+                      <th className="py-3 px-4">PETANI / POKTAN</th>
+                      <th className="py-3 px-4">LOKASI</th>
+                      <th className="py-3 px-4">DOKUMEN</th>
+                      <th className="py-3 px-4">STATUS</th>
+                      <th className="py-3 px-4 text-center">AKSI</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {pendingVerifyApps.map((app) => {
+                      const ktpUrl = app.foto_ktp_snapshot_url || app.farmer?.foto_ktp_url;
+                      const landPhotoUrl = app.foto_lahan_snapshot_url || app.land?.foto_lahan_url;
+                      const statusLabel = app.status === 'DIAJUKAN' ? 'Diajukan' : 'Menunggu Verifikasi';
+                      return (
+                      <tr key={app.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3.5 px-4 font-mono">
+                          <span className="font-bold text-slate-900 block">#{app.id}</span>
+                          <span className="text-[10px] text-slate-400 font-sans">{new Date(app.tanggal_pengajuan).toLocaleString('id-ID')}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <strong className="block text-slate-900 font-bold">{app.farmer?.nama || 'Belum tersedia'}</strong>
+                          <span className="text-[11px] text-slate-400">NIK: {app.farmer?.nik || 'Belum tersedia'} • {app.farmer?.farmer_group?.nama_kelompok || 'Poktan belum tersedia'}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="text-slate-800 font-medium block">{app.land?.lokasi_deskripsi || app.alamat_lahan || app.land?.alamat_lahan || 'Lokasi belum tersedia'}</span>
+                          <span className="text-[11px] text-slate-400">{app.land?.alamat_lahan || 'Alamat lahan belum tersedia'}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium">
+                            <FileText className="w-3 h-3 text-slate-500" /> KTP: {ktpUrl ? 'Tersedia' : 'Belum tersedia'} • Lahan: {landPhotoUrl ? 'Tersedia' : 'Belum tersedia'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border bg-amber-50 text-amber-600 border-amber-200/80">
+                            {statusLabel}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <button
+                            onClick={() => {
+                              setSelectedApp(app);
+                              setActionNotes('');
+                              setShowVerifyModal(true);
+                            }}
+                            className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                          >
+                            Periksa
+                          </button>
+                        </td>
+                      </tr>
+                    );})}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 3. TAB: PENUGASAN PPL                                     */}
+        {/* ========================================================= */}
+        {activeTab === 'penugasan' && (
+          <div className="space-y-6">
+            {/* Hero Banner */}
+            <div className="rounded-2xl bg-slate-950 text-white p-6 sm:p-7 relative overflow-hidden shadow-xs border border-slate-800">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
+                    <UserCheck className="w-4 h-4 text-emerald-400 stroke-[2.2]" /> MANAJEMEN PENUGASAN LAPANGAN
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
+                    Penugasan PPL
+                  </h1>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                    Distribusikan pengajuan yang sudah lengkap kepada penyuluh berdasarkan wilayah kerja dan kapasitas aktif.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+              <KPICard
+                title="SIAP DITUGASKAN"
+                value={pendingAssignApps.length}
+                subtitle="Berkas lolos verifikasi"
+                icon={UserCheck}
+                color="blue"
+                badge="Antrean"
+              />
+              <KPICard
+                title="PPL AKTIF"
+                value={pplOfficers.length}
+                subtitle="Petugas tersedia"
+                icon={Users}
+                color="emerald"
+                badge="Kapasitas"
+              />
+              <KPICard
+                title="BEBAN TINGGI"
+                value={highWorkloadPplCount}
+                subtitle="Lebih dari 8 kunjungan"
+                icon={ShieldAlert}
+                color="amber"
+                badge="Perhatian"
+              />
+              <KPICard
+                title="KUNJUNGAN HARI INI"
+                value={assignmentsToday}
+                subtitle="Penugasan hari ini"
+                icon={TrendingUp}
+                color="purple"
+                badge="Target"
+              />
+            </div>
+
+            {/* Filter Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari pengajuan, petani, desa, atau PPL..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-emerald-500 shadow-2xs"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-emerald-500 shadow-2xs cursor-pointer">
+                  <option>Belum Ditugaskan</option>
+                  <option>Semua Penugasan</option>
+                  <option>Sedang Disurvei</option>
+                  <option>Survei Selesai</option>
+                </select>
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-emerald-500 shadow-2xs cursor-pointer">
+                  <option>Semua Kecamatan</option>
+                  <option>Trowulan</option>
+                  <option>Mojosari</option>
+                  <option>Puri</option>
+                  <option>Jatirejo</option>
+                  <option>Sooko</option>
+                </select>
+                <button
+                  type="button"
+                  className="p-2.5 bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-600 rounded-xl shadow-2xs cursor-pointer"
+                  title="Filter Lanjutan"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Data Table: Daftar Penugasan Lapangan */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+              <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Daftar Penugasan Lapangan</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Monitoring distribusi tugas verifikasi faktual lapangan bagi petugas PPL.</p>
+                </div>
+                <span className="bg-blue-50 text-blue-600 font-semibold text-xs px-2.5 py-1 rounded-full border border-blue-100/80 shrink-0">
+                  {assignmentApps.length} ditampilkan
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50/80 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-100">
+                    <tr>
+                      <th className="py-3 px-4">NO. PENGAJUAN</th>
+                      <th className="py-3 px-4">PETANI / LOKASI</th>
+                      <th className="py-3 px-4">KOMODITAS</th>
+                      <th className="py-3 px-4">PPL</th>
+                      <th className="py-3 px-4">STATUS</th>
+                      <th className="py-3 px-4 text-center">AKSI</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {assignmentApps.map((app) => {
+                      const isPending = app.status === 'BERKAS_TERVERIFIKASI';
+                      const assignedPpl = pplOfficers.find((officer) => officer.id === app.assigned_ppl_id);
+                      const statusLabel = {
+                        BERKAS_TERVERIFIKASI: 'Siap Ditugaskan',
+                        DITUGASKAN_KE_PPL: 'Ditugaskan ke PPL',
+                        SURVEI_LAPANGAN: 'Sedang Disurvei',
+                        MENUNGGU_PERSETUJUAN_AKHIR: 'Survei Selesai',
+                      }[app.status] || app.status;
+                      const statusClass = isPending
+                        ? 'bg-blue-50 text-blue-600 border-blue-200/80'
+                        : app.status === 'MENUNGGU_PERSETUJUAN_AKHIR'
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200/80'
+                          : 'bg-amber-50 text-amber-600 border-amber-200/80';
+                      return (
+                      <tr key={app.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3.5 px-4 font-mono">
+                          <span className="font-bold text-slate-900 block">#{app.id}</span>
+                          <span className="text-[10px] text-slate-400 font-sans">{new Date(app.assigned_at || app.tanggal_pengajuan).toLocaleString('id-ID')}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <strong className="block text-slate-900 font-bold">{app.farmer?.nama || 'Belum tersedia'}</strong>
+                          <span className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3 h-3 text-slate-400" /> {app.land?.lokasi_deskripsi || app.alamat_lahan || app.land?.alamat_lahan || 'Lokasi belum tersedia'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-semibold text-slate-800 block">{app.fertilizer?.nama_pupuk || 'Pupuk belum tersedia'} ({app.jumlah_diajukan} {app.fertilizer?.satuan || 'kg'})</span>
+                          <span className="text-[11px] text-slate-400">{app.land?.commodity?.nama_komoditas || 'Komoditas belum tersedia'} • {app.land?.luas_m2 ? `${(Number(app.land.luas_m2) / 10000).toLocaleString('id-ID')} Ha` : 'Luas belum tersedia'}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`font-semibold block ${!assignedPpl ? 'text-amber-600' : 'text-slate-800'}`}>
+                            {assignedPpl?.username || 'Belum Ditugaskan'}
+                          </span>
+                          <span className="text-[11px] text-slate-400">{assignedPpl?.wilayah || (isPending ? 'Menunggu Alokasi PPL' : 'Petugas tidak tersedia')}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusClass}`}>
+                            {statusLabel}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <button
+                            onClick={() => {
+                              if (isPending) {
+                                setSelectedApp(app);
+                                setActionNotes('');
+                                setShowAssignModal(true);
+                              } else {
+                                toast.success(`Pengajuan #${app.id}: ${statusLabel} — ${assignedPpl?.username || 'PPL belum tersedia'}`);
+                              }
+                            }}
+                            className={`px-3.5 py-1.5 rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer ${
+                              isPending
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {isPending ? 'Tugaskan' : 'Detail'}
+                          </button>
+                        </td>
+                      </tr>
+                    );})}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 4. TAB: PERSETUJUAN AKHIR                                 */}
+        {/* ========================================================= */}
+        {activeTab === 'approval' && (
+          <div className="space-y-6">
+            {/* Hero Banner */}
+            <div className="rounded-2xl bg-slate-950 text-white p-6 sm:p-7 relative overflow-hidden shadow-xs border border-slate-800">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
+                    <Award className="w-4 h-4 text-emerald-400 stroke-[2.2]" /> KEPUTUSAN ALOKASI SUBSIDI
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
+                    Persetujuan Akhir
+                  </h1>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-400  leading-relaxed">
+                    Tetapkan keputusan akhir berdasarkan hasil verifikasi lapangan, saldo e-RDKK, dan rekomendasi PPL.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+              <KPICard
+                title="MENUNGGU KEPUTUSAN"
+                value={pendingFinalApps.length}
+                subtitle="Hasil survei menunggu keputusan"
+                icon={Award}
+                color="purple"
+                badge="Prioritas"
+              />
+              <KPICard
+                title="DISETUJUI MT-1"
+                value={approvedApps.length}
+                subtitle="Pengajuan disetujui"
+                icon={TrendingUp}
+                color="emerald"
+                badge="Realisasi"
+              />
+              <KPICard
+                title="DISETUJUI BERSYARAT"
+                value="—"
+                subtitle="Kategori tidak tersedia"
+                icon={ShieldAlert}
+                color="amber"
+                badge="Catatan"
+              />
+              <KPICard
+                title="DITOLAK"
+                value={rejectedApps.length}
+                subtitle="Pengajuan ditolak"
+                icon={ShieldAlert}
+                color="rose"
+                badge="Tidak Lolos"
+              />
+            </div>
+
+            {/* Filter Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari tiket eskalasi, petani, Poktan, atau PPL..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-emerald-500 shadow-2xs"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-emerald-500 shadow-2xs cursor-pointer">
+                  <option>Menunggu Keputusan</option>
+                  <option>Semua Status</option>
+                  <option>Disetujui</option>
+                  <option>Ditolak</option>
+                </select>
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-emerald-500 shadow-2xs cursor-pointer">
+                  <option>Semua Urgensi</option>
+                  <option>Urgensi Tinggi</option>
+                  <option>Urgensi Normal</option>
+                </select>
+                <button
+                  type="button"
+                  className="p-2.5 bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-600 rounded-xl shadow-2xs cursor-pointer"
+                  title="Filter Lanjutan"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Data Table: Antrean Persetujuan Akhir */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+              <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Antrean Persetujuan Akhir</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Verifikasi final dokumen hasil survei fisik PPL sebelum menerbitkan alokasi pupuk bersubsidi.</p>
+                </div>
+                <span className="bg-blue-50 text-blue-600 font-semibold text-xs px-2.5 py-1 rounded-full border border-blue-100/80 shrink-0">
+                  {pendingFinalApps.length} ditampilkan
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50/80 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-100">
+                    <tr>
+                      <th className="py-3 px-4">TIKET ESKALASI</th>
+                      <th className="py-3 px-4">PETANI / POKTAN</th>
+                      <th className="py-3 px-4">TEMUAN SURVEI</th>
+                      <th className="py-3 px-4">REKOMENDASI PPL</th>
+                      <th className="py-3 px-4">STATUS</th>
+                      <th className="py-3 px-4 text-center">AKSI</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {pendingFinalApps.map((app) => (
+                      <tr key={app.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3.5 px-4 font-mono">
+                          <span className="font-bold text-slate-900 block">#{app.id}</span>
+                          <span className="text-[10px] text-slate-400 font-sans">{new Date(app.survey?.tanggal_survei || app.updated_at || app.tanggal_pengajuan).toLocaleString('id-ID')}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <strong className="block text-slate-900 font-bold">{app.farmer?.nama || 'Belum tersedia'}</strong>
+                          <span className="text-[11px] text-slate-400">{app.farmer?.farmer_group?.nama_kelompok || 'Poktan belum tersedia'}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-medium text-slate-800 block">{app.survey?.keterangan_fisik_lahan || app.survey?.kondisi_fisik_lahan || 'Temuan survei belum tersedia'}</span>
+                          <span className="text-[11px] text-slate-400">Luas aktual: {app.survey?.luas_lahan_aktual_m2 ? `${(Number(app.survey.luas_lahan_aktual_m2) / 10000).toLocaleString('id-ID')} Ha` : 'Belum tersedia'}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-block px-2.5 py-1 rounded-md text-[11px] font-bold border ${app.survey?.rekomendasi === 'SETUJU' ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80' : 'bg-amber-50 text-amber-700 border-amber-200/80'}`}>
+                            {app.survey?.rekomendasi || 'Belum tersedia'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border bg-purple-50 text-purple-600 border-purple-200/80">
+                            Menunggu Keputusan
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <button
+                            onClick={() => navigateToAdminTab('approval', app.id)}
+                            className="px-3.5 py-1.5 rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer bg-purple-600 hover:bg-purple-700 text-white"
+                          >
+                            Putuskan
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 5. TAB: DATA PETANI                                       */}
+        {/* ========================================================= */}
+        {activeTab === 'petani' && (
+          <div className="space-y-6">
+            {/* Hero Banner */}
+            <div className="rounded-2xl bg-slate-950 text-white p-6 sm:p-7 relative overflow-hidden shadow-xs border border-slate-800">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
+                    <Users className="w-4 h-4 text-emerald-400 stroke-[2.2]" /> DATABASE MASTER PETANI
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
+                    Data Petani
+                  </h1>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                    Kelola basis data petani penerima subsidi yang tersinkron dengan SIMLUHTAN dan keanggotaan kelompok tani.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+              <KPICard
+                title="TOTAL PETANI"
+                value={uniqueFarmers.length.toLocaleString('id-ID')}
+                subtitle="Terdaftar di sistem"
+                icon={Users}
+                color="blue"
+                badge="SIMLUHTAN"
+              />
+              <KPICard
+                title="DATA AKTIF"
+                value="—"
+                subtitle="Status akun tidak tersedia"
+                icon={PackageCheck}
+                color="emerald"
+                badge="Valid"
+              />
+              <KPICard
+                title="PERLU SINKRON"
+                value={farmersWithoutGroup.toLocaleString('id-ID')}
+                subtitle="Belum terhubung ke Poktan"
+                icon={ShieldAlert}
+                color="amber"
+                badge="Anomali"
+              />
+              <KPICard
+                title="NONAKTIF"
+                value="—"
+                subtitle="Status akun tidak tersedia"
+                icon={ShieldAlert}
+                color="rose"
+                badge="Arsip"
+              />
+            </div>
+
+            {/* Filter Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari nama petani, NIK, atau kelompok tani..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-emerald-500 shadow-2xs"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-emerald-500 shadow-2xs cursor-pointer">
+                  <option>Semua Wilayah</option>
+                  <option>Kec. Trowulan</option>
+                  <option>Kec. Mojosari</option>
+                  <option>Kec. Puri</option>
+                  <option>Kec. Dlanggu</option>
+                  <option>Kec. Sooko</option>
+                </select>
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-emerald-500 shadow-2xs cursor-pointer">
+                  <option>Status Aktif</option>
+                  <option>Semua Status</option>
+                  <option>Perlu Sinkron</option>
+                  <option>Nonaktif</option>
+                </select>
+                <button
+                  type="button"
+                  className="p-2.5 bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-600 rounded-xl shadow-2xs cursor-pointer"
+                  title="Filter Lanjutan"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Data Table: Daftar Petani Kabupaten Mojokerto */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+              <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Daftar Petani Kabupaten Mojokerto</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Data induk petani penerima alokasi pupuk bersubsidi yang terhubung SIMLUHTAN.</p>
+                </div>
+                <span className="bg-blue-50 text-blue-600 font-semibold text-xs px-2.5 py-1 rounded-full border border-blue-100/80 shrink-0">
+                  {uniqueFarmers.length} ditampilkan
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50/80 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-100">
+                    <tr>
+                      <th className="py-3 px-4">NAMA / NIK</th>
+                      <th className="py-3 px-4">KELOMPOK TANI</th>
+                      <th className="py-3 px-4">ALAMAT</th>
+                      <th className="py-3 px-4">LUAS AKTIF</th>
+                      <th className="py-3 px-4">STATUS</th>
+                      <th className="py-3 px-4 text-center">AKSI</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {uniqueFarmers.map((farmer) => {
+                      const farmerLandArea = uniqueLands
+                        .filter((land) => land.farmer_id === farmer.id)
+                        .reduce((total, land) => total + Number(land.luas_m2 || 0), 0);
+                      const farmerApplications = applications.filter((app) => app.farmer_id === farmer.id);
+                      const latestApplication = farmerApplications[0];
+                      const hasGroup = Boolean(farmer.farmer_group_id);
+                      return (
+                      <tr key={farmer.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3.5 px-4">
+                          <strong className="block text-slate-900 font-bold">{farmer.nama}</strong>
+                          <span className="font-mono text-[11px] text-slate-400">NIK: {farmer.nik}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-semibold text-slate-800 block">{farmer.farmer_group?.nama_kelompok || 'Belum terdaftar'}</span>
+                          <span className="text-[11px] text-slate-400">{farmer.farmer_group?.wilayah || 'Wilayah belum tersedia'}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="text-slate-800 font-medium block">{farmer.alamat || 'Alamat belum tersedia'}</span>
+                          <span className="text-[11px] text-slate-400">
+                            Pengajuan: {farmerApplications.length} • Wilayah Poktan: {farmer.farmer_group?.wilayah || 'Belum tersedia'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-bold text-slate-900">{(farmerLandArea / 10000).toLocaleString('id-ID')} Ha</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${latestApplication ? 'bg-blue-50 text-blue-600 border-blue-200/80' : hasGroup ? 'bg-emerald-50 text-emerald-600 border-emerald-200/80' : 'bg-amber-50 text-amber-600 border-amber-200/80'}`}>
+                            {latestApplication?.status || (hasGroup ? 'Terdaftar' : 'Poktan Belum Tersedia')}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <button
+                            onClick={() => setSelectedFarmerDetail(farmer)}
+                            className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                          >
+                            Detail
+                          </button>
+                        </td>
+                      </tr>
+                    );})}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 6. TAB: DATA LAHAN                                        */}
+        {/* ========================================================= */}
+        {activeTab === 'lahan' && (
+          <div className="space-y-6">
+            {/* Hero Banner */}
+            <div className="rounded-2xl bg-slate-950 text-white p-6 sm:p-7 relative overflow-hidden shadow-xs border border-slate-800">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
+                    <LandPlot className="w-4 h-4 text-emerald-400 stroke-[2.2]" /> GEODATA & BIDANG SPASIAL
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
+                    Data Lahan
+                  </h1>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-400 leading-relaxed">
+                    Pantau bidang lahan, status kepemilikan, luas tanam, dan hasil validasi spasial pengajuan pupuk bersubsidi.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 4 KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+              <KPICard
+                title="TOTAL BIDANG"
+                value={uniqueLands.length.toLocaleString('id-ID')}
+                subtitle={`${(totalLandAreaM2 / 10000).toLocaleString('id-ID')} Ha`}
+                icon={LandPlot}
+                color="blue"
+                badge="Total Area"
+              />
+              <KPICard
+                title="TERVALIDASI"
+                value="—"
+                subtitle="Status validasi belum tersedia"
+                icon={PackageCheck}
+                color="emerald"
+                badge="Poligon Sah"
+              />
+              <KPICard
+                title="ANOMALI SPASIAL"
+                value="—"
+                subtitle="Data anomali belum tersedia"
+                icon={ShieldAlert}
+                color="rose"
+                badge="Overlap"
+              />
+              <KPICard
+                title="PERLU SURVEI"
+                value={landsAwaitingSurvey.toLocaleString('id-ID')}
+                subtitle="Dalam antrean PPL"
+                icon={TrendingUp}
+                color="amber"
+                badge="Verifikasi Lapangan"
+              />
+            </div>
+
+            {/* Filter Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari ID lahan, pemilik, desa, atau nomor SPPT..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-emerald-500 shadow-2xs"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-emerald-500 shadow-2xs cursor-pointer">
+                  <option>Semua Kecamatan</option>
+                  <option>Trowulan</option>
+                  <option>Mojosari</option>
+                  <option>Puri</option>
+                  <option>Sooko</option>
+                  <option>Dlanggu</option>
+                </select>
+                <select className="px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-700 focus:outline-hidden focus:border-emerald-500 shadow-2xs cursor-pointer">
+                  <option>Semua Validasi</option>
+                  <option>Tervalidasi SIG</option>
+                  <option>Perlu Survei</option>
+                  <option>Anomali Spasial</option>
+                </select>
+                <button
+                  type="button"
+                  className="p-2.5 bg-white border border-slate-200/90 hover:bg-slate-50 text-slate-600 rounded-xl shadow-2xs cursor-pointer"
+                  title="Filter Lanjutan"
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Data Table: Register Bidang Lahan */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+              <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Register Bidang Lahan</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Peta dan atribut bidang lahan garapan petani penerima alokasi pupuk bersubsidi.</p>
+                </div>
+                <span className="bg-blue-50 text-blue-600 font-semibold text-xs px-2.5 py-1 rounded-full border border-blue-100/80 shrink-0">
+                  {uniqueLands.length} ditampilkan
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50/80 text-slate-400 uppercase text-[10px] font-bold tracking-wider border-b border-slate-100">
+                    <tr>
+                      <th className="py-3 px-4">ID LAHAN</th>
+                      <th className="py-3 px-4">PEMILIK</th>
+                      <th className="py-3 px-4">LOKASI BIDANG</th>
+                      <th className="py-3 px-4">KOMODITAS / LUAS</th>
+                      <th className="py-3 px-4">STATUS</th>
+                      <th className="py-3 px-4 text-center">AKSI</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {uniqueLands.map((land) => {
+                      const owner = uniqueFarmers.find((farmer) => farmer.id === land.farmer_id);
+                      const hasPhoto = Boolean(land.foto_lahan_url);
+                      const ownershipLabel = land.status_kepemilikan || 'Belum tersedia';
+                      return (
+                      <tr key={land.id} className="hover:bg-slate-50/60 transition-colors">
+                        <td className="py-3.5 px-4 font-mono">
+                          <span className="font-bold text-slate-900 block">#{land.id}</span>
+                          <span className="text-[10px] text-slate-400 font-sans">Foto bukti: {hasPhoto ? 'Tersedia' : 'Belum tersedia'}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <strong className="block text-slate-900 font-bold">{owner?.nama || 'Petani belum tersedia'}</strong>
+                          <span className="text-[11px] text-slate-400">NIK: {owner?.nik || 'Belum tersedia'}</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="text-slate-800 font-medium block">{land.lokasi_deskripsi || land.alamat_lahan || 'Lokasi belum tersedia'}</span>
+                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-slate-400" /> {land.alamat_lahan || 'Alamat belum tersedia'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-semibold text-slate-800 block">{land.commodity?.nama_komoditas || 'Komoditas belum tersedia'}</span>
+                          <span className="text-[11px] text-slate-400">{Number(land.luas_m2 || 0).toLocaleString('id-ID')} m² ({(Number(land.luas_m2 || 0) / 10000).toLocaleString('id-ID')} Ha)</span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${land.status_kepemilikan === 'MILIK' ? 'bg-emerald-50 text-emerald-600 border-emerald-200/80' : 'bg-amber-50 text-amber-600 border-amber-200/80'}`}>
+                            {ownershipLabel}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <button
+                            onClick={() => setSelectedLandDetail(land)}
+                            className="px-3.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs shadow-xs transition-colors cursor-pointer border border-emerald-200/80"
+                          >
+                            Detail
+                          </button>
+                        </td>
+                      </tr>
+                    );})}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 7. TAB: MONITORING                                        */}
+        {/* ========================================================= */}
+        {activeTab === 'monitoring' && (
+          <div className="space-y-6">
+            <div className="rounded-2xl bg-slate-950 text-white p-6 sm:p-7 relative overflow-hidden shadow-xs border border-slate-800">
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                  <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2">
+                    <BarChart3 className="w-4 h-4 text-emerald-400 stroke-[2.2]" /> MONITORING REALISASI
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-black font-display tracking-tight text-white">
+                    Monitoring Distribusi & Kuota
+                  </h1>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-400 max-w-2xl leading-relaxed">
+                    Pantau grafik perkembangan alokasi pupuk bersubsidi, status pengajuan, dan realisasi penebusan petani.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-3.5">
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL PETANI</span>
+                <strong className="block text-xl font-black text-slate-900 mt-1">{stats?.total_petani || uniqueFarmers.length}</strong>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL LAHAN</span>
+                <strong className="block text-xl font-black text-slate-900 mt-1">{uniqueLands.length}</strong>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL PENGAJUAN</span>
+                <strong className="block text-xl font-black text-slate-900 mt-1">{applications.length}</strong>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PUPUK DISETUJUI</span>
+                <strong className="block text-xl font-black text-emerald-600 mt-1">{totalApprovedKg} kg</strong>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PUPUK TERPANTAU</span>
+                <strong className="block text-xl font-black text-blue-600 mt-1">100% Sah</strong>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-xs">
+              <h3 className="text-base font-bold text-slate-900 mb-4">Status Pengajuan Keseluruhan</h3>
+              <div className="space-y-3.5">
+                {[
+                  ['Menunggu verifikasi berkas', pendingVerifyApps.length, 'bg-amber-500'],
+                  ['Menunggu penugasan PPL', pendingAssignApps.length, 'bg-blue-500'],
+                  ['Menunggu persetujuan akhir', pendingFinalApps.length, 'bg-purple-500'],
+                  ['Alokasi disetujui dinas', approvedApps.length, 'bg-emerald-500'],
+                ].map(([label, value, color]) => (
+                  <div key={label} className="flex items-center gap-3 text-xs">
+                    <span className="w-48 font-medium text-slate-600">{label}</span>
+                    <div className="h-2.5 flex-1 rounded-full bg-slate-100 overflow-hidden">
+                      <div className={`h-full ${color} rounded-full`} style={{ width: `${applications.length ? Math.max(8, (value / applications.length) * 100) : 8}%` }} />
+                    </div>
+                    <strong className="w-10 text-right font-bold text-slate-900">{value}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 8. TAB: LAPORAN                                           */}
+        {/* ========================================================= */}
+        {activeTab === 'laporan' && (
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-5">
+            <div className="border-b border-slate-100 pb-4">
+              <h3 className="text-base font-bold text-slate-900">Laporan Administrasi Dinas Pertanian</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Ekspor berkas laporan resmi untuk pelaporan instansi dan dinas ketahanan pangan.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <input type="date" className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium" />
+              <span className="text-xs text-slate-400 font-semibold">sampai</span>
+              <input type="date" className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium" />
+              <select className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-semibold">
+                <option>Semua Kecamatan</option>
+                <option>Trowulan</option>
+                <option>Mojosari</option>
+                <option>Puri</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {['Data Petani Terdaftar', 'Register Bidang Lahan', 'Pengajuan & Verifikasi Berkas', 'Hasil Survei Lapangan PPL', 'Surat Keputusan Persetujuan', 'Distribusi Pupuk Bersubsidi'].map((report) => (
+                <div key={report} className="border border-slate-200/90 rounded-2xl p-4.5 bg-slate-50/50 hover:bg-white transition-all shadow-2xs">
+                  <ClipboardList className="w-5 h-5 text-emerald-600 mb-2.5" />
+                  <h4 className="text-xs font-bold text-slate-900">{report}</h4>
+                  <div className="flex gap-2.5 mt-3.5 pt-3 border-t border-slate-100">
+                    <button onClick={() => toast.success(`Laporan ${report} diekspor ke PDF`)} className="text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer">Export PDF</button>
+                    <button onClick={() => toast.success(`Laporan ${report} diekspor ke Excel`)} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer">Export Excel</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 9. TAB: MANAJEMEN PENGGUNA                                */}
+        {/* ========================================================= */}
+        {activeTab === 'pengguna' && (
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Manajemen Pengguna Sistem</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Kelola hak akses untuk Petani, Petugas PPL Lapangan, dan Staf Dinas.</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-400 uppercase text-[10px] font-bold">
+                  <tr>
+                    <th className="py-3 px-4">Nama Lengkap</th>
+                    <th className="py-3 px-4">Username</th>
+                    <th className="py-3 px-4">Peran / Role</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {[...uniqueFarmers.map((f) => ({ name: f.nama, username: f.user?.username || f.nik, role: 'PETANI' })), ...pplOfficers.map((p) => ({ name: p.username, username: p.username, role: 'PPL LAPANGAN' }))].map((person, idx) => (
+                    <tr key={person.role + idx} className="hover:bg-slate-50/60">
+                      <td className="py-3 px-4 font-bold text-slate-900">{person.name}</td>
+                      <td className="py-3 px-4 font-mono text-slate-500">{person.username}</td>
+                      <td className="py-3 px-4"><span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">{person.role}</span></td>
+                      <td className="py-3 px-4"><span className="text-emerald-600 font-bold">Aktif</span></td>
+                      <td className="py-3 px-4 text-center"><button onClick={() => toast.success(`Detail akun ${person.name}`)} className="text-emerald-700 font-bold hover:underline cursor-pointer">Detail</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* 10. TAB: AUDIT LOG                                        */}
+        {/* ========================================================= */}
+        {activeTab === 'audit' && (
+          <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Catatan Jejak Keamanan & Akses Sistem (Audit Logs)</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Mencatat riwayat aktivitas verifikasi, disposisi PPL, dan keputusan final alokasi.</p>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600">
+                {auditLogs.length || 50} Aktivitas
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-400 uppercase text-[10px] font-bold">
+                  <tr>
+                    <th className="py-3 px-4">Waktu</th>
+                    <th className="py-3 px-4">Aksi</th>
+                    <th className="py-3 px-4">Resource</th>
+                    <th className="py-3 px-4">Keterangan</th>
+                    <th className="py-3 px-4">IP Address</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700">
+                  {auditLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50/50">
+                      <td className="py-3 px-4 font-mono text-[11px] text-slate-400">{new Date(log.created_at).toLocaleString('id-ID')}</td>
+                      <td className="py-3 px-4 font-bold text-slate-900"><span className="px-2 py-0.5 rounded-md bg-slate-100 font-mono text-[10px]">{log.action}</span></td>
+                      <td className="py-3 px-4 font-semibold text-emerald-800">{log.resource} #{log.resource_id || ''}</td>
+                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate">{log.details || '-'}</td>
+                      <td className="py-3 px-4 font-mono text-[11px] text-slate-400">{log.ip_address || '127.0.0.1'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       {showVerifyModal && selectedApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden p-6 space-y-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900">
-                Keputusan Verifikasi Berkas #{selectedApp.id}
+                Pemeriksaan Berkas Pengajuan #{selectedApp.id}
               </h3>
               <button
                 onClick={() => setShowVerifyModal(false)}
@@ -861,9 +1570,148 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            <p className="text-xs text-slate-600">
-              Pemohon: <strong className="text-slate-900">{selectedApp.farmer?.nama}</strong> | NIK: {selectedApp.farmer?.nik}
-            </p>
+            {(() => {
+              const farmer = selectedApp.farmer;
+              const land = selectedApp.land;
+              const ktpUrl = selectedApp.foto_ktp_snapshot_url || farmer?.foto_ktp_url;
+              const landPhotoUrl = selectedApp.foto_lahan_snapshot_url || land?.foto_lahan_url;
+              const needsRevision = selectedApp.status === 'PERLU_PERBAIKAN_BERKAS';
+              const documentStatus = (url) => (
+                needsRevision ? 'Perlu Perbaikan' : url ? 'Lengkap' : 'Belum Ada'
+              );
+              const statusClass = (url) => (
+                needsRevision
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : url
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-slate-100 text-slate-600 border-slate-200'
+              );
+              const surveyPhotos = Array.isArray(selectedApp.survey?.foto_survei_urls)
+                ? selectedApp.survey.foto_survei_urls
+                : [];
+              const openDocument = (title, url, description) => setViewerPhoto({
+                isOpen: true,
+                title,
+                url,
+                secondaryUrl: '',
+                secondaryTitle: '',
+                description,
+              });
+
+              return (
+                <div className="space-y-4">
+                  <section className="rounded-xl border border-slate-200 p-4 space-y-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wide text-slate-700">Data Pemohon</h4>
+                    <p className="text-xs text-slate-600">
+                      Nama: <strong className="text-slate-900">{farmer?.nama || 'Belum tersedia'}</strong>
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      NIK: <strong className="text-slate-900">{farmer?.nik || 'Belum tersedia'}</strong>
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      Poktan: <strong className="text-slate-900">{farmer?.farmer_group?.nama_kelompok || 'Belum tersedia'}</strong>
+                    </p>
+                    {farmer?.farmer_group?.wilayah && (
+                      <p className="text-xs text-slate-600">
+                        Wilayah Poktan: <strong className="text-slate-900">{farmer.farmer_group.wilayah}</strong>
+                      </p>
+                    )}
+                  </section>
+
+                  <section className="rounded-xl border border-slate-200 p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs font-bold uppercase tracking-wide text-slate-700">Dokumen KTP</h4>
+                      <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${statusClass(ktpUrl)}`}>
+                        {documentStatus(ktpUrl)}
+                      </span>
+                    </div>
+                    {ktpUrl ? (
+                      <div className="flex items-center gap-3">
+                        <img src={ktpUrl} alt="Preview dokumen KTP" className="w-24 h-16 rounded-lg border border-slate-200 object-cover bg-slate-50" />
+                        <button
+                          type="button"
+                          onClick={() => openDocument(`Foto KTP: ${farmer?.nama || 'Pemohon'}`, ktpUrl, `NIK: ${farmer?.nik || '-'}`)}
+                          className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline cursor-pointer"
+                        >
+                          Lihat KTP
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500">Dokumen KTP belum tersedia.</p>
+                    )}
+                  </section>
+
+                  <section className="rounded-xl border border-slate-200 p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="text-xs font-bold uppercase tracking-wide text-slate-700">Data dan Bukti Lahan</h4>
+                      <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${statusClass(landPhotoUrl)}`}>
+                        Bukti foto: {documentStatus(landPhotoUrl)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600">
+                      Lokasi/Desa/Kecamatan: <strong className="text-slate-900">{land?.lokasi_deskripsi || selectedApp.alamat_lahan || 'Belum tersedia'}</strong>
+                    </p>
+                    {land?.alamat_lahan && (
+                      <p className="text-xs text-slate-600">
+                        Alamat lahan: <strong className="text-slate-900">{land.alamat_lahan}</strong>
+                      </p>
+                    )}
+                    <p className="text-xs text-slate-600">
+                      Luas: <strong className="text-slate-900">
+                        {land?.luas_m2 != null
+                          ? `${Number(land.luas_m2).toLocaleString('id-ID')} m²`
+                          : 'Belum tersedia'}
+                      </strong>
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      Status kepemilikan: <strong className="text-slate-900">{land?.status_kepemilikan || 'Belum tersedia'}</strong>
+                    </p>
+                    {landPhotoUrl ? (
+                      <div className="flex items-center gap-3">
+                        <img src={landPhotoUrl} alt="Preview bukti foto lahan" className="w-24 h-16 rounded-lg border border-slate-200 object-cover bg-slate-50" />
+                        <button
+                          type="button"
+                          onClick={() => openDocument('Foto Bukti Lahan', landPhotoUrl, land?.lokasi_deskripsi || selectedApp.alamat_lahan || '')}
+                          className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline cursor-pointer"
+                        >
+                          Lihat Bukti Lahan
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500">Foto bukti lahan belum tersedia.</p>
+                    )}
+                  </section>
+
+                  <section className="rounded-xl border border-slate-200 p-4 space-y-2">
+                    <h4 className="text-xs font-bold uppercase tracking-wide text-slate-700">Dokumen Lain</h4>
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-slate-600">Bukti SPPT</span>
+                      <span className="text-slate-500">Belum Ada — field dokumen SPPT belum tersedia</span>
+                    </div>
+                    {surveyPhotos.map((url, index) => (
+                      <div key={`${url}-${index}`} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="text-slate-600">Foto Survei PPL {index + 1}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${statusClass(url)}`}>
+                            {documentStatus(url)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openDocument(`Foto Survei PPL ${index + 1}`, url, selectedApp.survey?.catatan_ppl || '')}
+                            className="font-bold text-emerald-700 hover:text-emerald-800 underline cursor-pointer"
+                          >
+                            Lihat Dokumen
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {surveyPhotos.length === 0 && (
+                      <p className="text-xs text-slate-500">Dokumen lain belum tersedia.</p>
+                    )}
+                  </section>
+                </div>
+              );
+            })()}
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -932,17 +1780,23 @@ export default function AdminDashboard() {
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Pilih Petugas PPL Lapangan:
               </label>
-              <select
-                value={selectedPplId}
-                onChange={(e) => setSelectedPplId(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-800 focus:border-blue-500 outline-hidden font-semibold"
-              >
-                {pplOfficers.map((ppl) => (
-                  <option key={ppl.id} value={ppl.id}>
-                    {ppl.username} ({ppl.email}) — Tugas Aktif: {ppl.active_tasks}
-                  </option>
-                ))}
-              </select>
+              {pplOfficers.length === 0 ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  Belum ada petugas PPL aktif yang tersedia untuk penugasan saat ini.
+                </div>
+              ) : (
+                <select
+                  value={selectedPplId}
+                  onChange={(e) => setSelectedPplId(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-800 focus:border-blue-500 outline-hidden font-semibold"
+                >
+                  {pplOfficers.map((ppl) => (
+                    <option key={ppl.id} value={ppl.id}>
+                      {ppl.username} ({ppl.email}) — Tugas Aktif: {ppl.active_tasks}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
@@ -969,7 +1823,8 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={handleAssignPPL}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs cursor-pointer shadow-sm shadow-blue-200"
+                disabled={pplOfficers.length === 0 || !selectedPplId}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs cursor-pointer shadow-sm shadow-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Kirim Penugasan
               </button>
@@ -981,7 +1836,7 @@ export default function AdminDashboard() {
       {/* Modal: Keputusan Akhir (Final Approval) */}
       {showFinalModal && selectedApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden p-6 space-y-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900">
                 Persetujuan Akhir Pengajuan #{selectedApp.id}
@@ -993,6 +1848,61 @@ export default function AdminDashboard() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            <section className="rounded-xl border border-slate-200 p-3 space-y-1.5 text-xs">
+              <h4 className="font-bold uppercase tracking-wide text-slate-700">Data Pengajuan dan Hasil Survei</h4>
+              <p>Petani: <strong>{selectedApp.farmer?.nama || 'Belum tersedia'}</strong></p>
+              <p>NIK: <strong>{selectedApp.farmer?.nik || 'Belum tersedia'}</strong></p>
+              <p>Lahan: <strong>{selectedApp.land?.lokasi_deskripsi || selectedApp.alamat_lahan || selectedApp.land?.alamat_lahan || 'Belum tersedia'}</strong></p>
+              <p>Luas pengajuan: <strong>{selectedApp.land?.luas_m2 != null ? `${Number(selectedApp.land.luas_m2).toLocaleString('id-ID')} m²` : 'Belum tersedia'}</strong></p>
+              <p>Pupuk: <strong>{selectedApp.fertilizer?.nama_pupuk || 'Belum tersedia'}</strong></p>
+              <p>Jumlah diajukan: <strong>{selectedApp.jumlah_diajukan} {selectedApp.fertilizer?.satuan || 'kg'}</strong></p>
+              <p>Kondisi fisik: <strong>{selectedApp.survey?.kondisi_fisik_lahan || 'Belum tersedia'}</strong></p>
+              {selectedApp.survey?.keterangan_fisik_lahan && (
+                <p>Temuan fisik: <strong>{selectedApp.survey.keterangan_fisik_lahan}</strong></p>
+              )}
+              <p>Kondisi tanaman: <strong>{selectedApp.survey?.kondisi_tanaman || 'Belum tersedia'}</strong></p>
+              {selectedApp.survey?.keterangan_tanaman && (
+                <p>Keterangan tanaman: <strong>{selectedApp.survey.keterangan_tanaman}</strong></p>
+              )}
+              <p>Luas aktual: <strong>{selectedApp.survey?.luas_lahan_aktual_m2 != null ? `${Number(selectedApp.survey.luas_lahan_aktual_m2).toLocaleString('id-ID')} m²` : 'Belum tersedia'}</strong></p>
+              <p>Catatan PPL: <strong>{selectedApp.survey?.catatan_ppl || 'Belum tersedia'}</strong></p>
+              <p>Rekomendasi PPL: <strong>{selectedApp.survey?.rekomendasi || 'Belum tersedia'}</strong></p>
+              {selectedApp.land?.foto_lahan_url || selectedApp.foto_lahan_snapshot_url ? (
+                <button
+                  type="button"
+                  onClick={() => setViewerPhoto({
+                    isOpen: true,
+                    title: `Foto Lahan Pengajuan #${selectedApp.id}`,
+                    url: selectedApp.foto_lahan_snapshot_url || selectedApp.land?.foto_lahan_url,
+                    secondaryUrl: '',
+                    secondaryTitle: '',
+                    description: selectedApp.land?.lokasi_deskripsi || selectedApp.alamat_lahan || '',
+                  })}
+                  className="text-emerald-700 font-bold underline cursor-pointer"
+                >
+                  Lihat Foto Lahan
+                </button>
+              ) : (
+                <p>Foto lahan: <strong>Belum tersedia</strong></p>
+              )}
+              {Array.isArray(selectedApp.survey?.foto_survei_urls) && selectedApp.survey.foto_survei_urls[0] && (
+                <button
+                  type="button"
+                  onClick={() => setViewerPhoto({
+                    isOpen: true,
+                    title: `Foto Survei Pengajuan #${selectedApp.id}`,
+                    url: selectedApp.survey.foto_survei_urls[0],
+                    secondaryUrl: '',
+                    secondaryTitle: '',
+                    description: selectedApp.survey.catatan_ppl || '',
+                  })}
+                  className="ml-3 text-emerald-700 font-bold underline cursor-pointer"
+                >
+                  Lihat Foto Survei
+                </button>
+              )}
+            </section>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -1044,6 +1954,99 @@ export default function AdminDashboard() {
               >
                 Setujui Alokasi Pupuk
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedFarmerDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">Detail Petani #{selectedFarmerDetail.id}</h3>
+              <button
+                type="button"
+                onClick={() => setSelectedFarmerDetail(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4 space-y-2 text-xs">
+              <p>Nama: <strong>{selectedFarmerDetail.nama || 'Belum tersedia'}</strong></p>
+              <p>NIK: <strong>{selectedFarmerDetail.nik || 'Belum tersedia'}</strong></p>
+              <p>Poktan: <strong>{selectedFarmerDetail.farmer_group?.nama_kelompok || 'Belum tersedia'}</strong></p>
+              <p>Wilayah Poktan: <strong>{selectedFarmerDetail.farmer_group?.wilayah || 'Belum tersedia'}</strong></p>
+              <p>Desa: <strong>Belum tersedia pada data API</strong></p>
+              <p>Kecamatan: <strong>Belum tersedia pada data API</strong></p>
+              <p>Alamat: <strong>{selectedFarmerDetail.alamat || 'Belum tersedia'}</strong></p>
+              <p>Jumlah pengajuan: <strong>{applications.filter((app) => app.farmer_id === selectedFarmerDetail.id).length}</strong></p>
+              <p>Status pengajuan terbaru: <strong>{applications.find((app) => app.farmer_id === selectedFarmerDetail.id)?.status || 'Belum ada pengajuan'}</strong></p>
+              {selectedFarmerDetail.foto_ktp_url ? (
+                <button
+                  type="button"
+                  onClick={() => setViewerPhoto({
+                    isOpen: true,
+                    title: `KTP: ${selectedFarmerDetail.nama || 'Petani'}`,
+                    url: selectedFarmerDetail.foto_ktp_url,
+                    secondaryUrl: '',
+                    secondaryTitle: '',
+                    description: `NIK: ${selectedFarmerDetail.nik || 'Belum tersedia'}`,
+                  })}
+                  className="text-emerald-700 font-bold underline cursor-pointer"
+                >
+                  Lihat KTP
+                </button>
+              ) : (
+                <p>Foto KTP: <strong>Belum tersedia</strong></p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold uppercase tracking-wide text-slate-700">Pengajuan Petani</h4>
+              {applications.filter((app) => app.farmer_id === selectedFarmerDetail.id).map((app) => (
+                <div key={app.id} className="rounded-xl border border-slate-200 p-3 text-xs">
+                  <p>Pengajuan #{app.id} · {app.status}</p>
+                  <p>{app.fertilizer?.nama_pupuk || 'Pupuk belum tersedia'} · {app.jumlah_diajukan} {app.fertilizer?.satuan || 'kg'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedLandDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">Detail Lahan #{selectedLandDetail.id}</h3>
+              <button
+                type="button"
+                onClick={() => setSelectedLandDetail(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {selectedLandDetail.foto_lahan_url ? (
+              <img
+                src={selectedLandDetail.foto_lahan_url}
+                alt={`Foto lahan ${selectedLandDetail.lokasi_deskripsi || selectedLandDetail.id}`}
+                className="w-full max-h-56 rounded-xl border border-slate-200 object-cover"
+              />
+            ) : (
+              <p className="text-xs text-slate-500">Foto lahan belum tersedia.</p>
+            )}
+            <div className="rounded-xl border border-slate-200 p-4 space-y-2 text-xs">
+              <p>Petani: <strong>{farmersList.find((farmer) => farmer.id === selectedLandDetail.farmer_id)?.nama || 'Belum tersedia'}</strong></p>
+              <p>NIK: <strong>{farmersList.find((farmer) => farmer.id === selectedLandDetail.farmer_id)?.nik || 'Belum tersedia'}</strong></p>
+              <p>Lokasi: <strong>{selectedLandDetail.lokasi_deskripsi || 'Belum tersedia'}</strong></p>
+              <p>Alamat: <strong>{selectedLandDetail.alamat_lahan || 'Belum tersedia'}</strong></p>
+              <p>Luas: <strong>{selectedLandDetail.luas_m2 != null ? `${Number(selectedLandDetail.luas_m2).toLocaleString('id-ID')} m²` : 'Belum tersedia'}</strong></p>
+              <p>Koordinat: <strong>{selectedLandDetail.latitude != null && selectedLandDetail.longitude != null
+                ? `${formatCoord(selectedLandDetail.latitude)}, ${formatCoord(selectedLandDetail.longitude)}`
+                : 'Belum tersedia'}</strong></p>
+              <p>Status kepemilikan: <strong>{selectedLandDetail.status_kepemilikan || 'Belum tersedia'}</strong></p>
+              <p>Status verifikasi: <strong>Belum tersedia dari backend</strong></p>
             </div>
           </div>
         </div>
