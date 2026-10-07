@@ -1,0 +1,107 @@
+# ==============================================================
+# E-Pupuk Kabupaten Mojokerto — Docker Compose DEVELOPMENT
+# Auto reload: backend (uvicorn --reload) + frontend (vite HMR)
+# Gunakan: docker compose -f docker-compose.dev.yml up
+# ==============================================================
+
+services:
+
+  # ─── MySQL Database ────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: epupuk-mysql-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_epupuk_2026
+      MYSQL_DATABASE: epupuk
+      MYSQL_USER: epupuk_user
+      MYSQL_PASSWORD: epupuk_pass
+    volumes:
+      - epupuk_mysql_dev_data:/var/lib/mysql
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - epupuk-dev-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "epupuk_user", "-pepupuk_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # ─── phpMyAdmin ────────────────────────────────────────────
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: epupuk-phpmyadmin-dev
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: epupuk_user
+      PMA_PASSWORD: epupuk_pass
+      MYSQL_ROOT_PASSWORD: root_epupuk_2026
+      UPLOAD_LIMIT: 64M
+      PMA_ARBITRARY: 0
+    ports:
+      - "8080:80"    # http://localhost:8080
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - epupuk-dev-net
+
+  # ─── Backend (FastAPI + auto-reload) ──────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: epupuk-backend-dev
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app          # Bind mount → perubahan .py langsung terbaca
+      - /app/.venv              # Exclude .venv
+      - epupuk_uploads_dev:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - epupuk-dev-net
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ─── Frontend (Vite dev server + HMR) ─────────────────────
+  frontend:
+    image: node:20-alpine
+    container_name: epupuk-frontend-dev
+    working_dir: /app
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - epupuk-dev-net
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_BACKEND_URL=http://backend:8000
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - backend
+
+# ─── Volumes ────────────────────────────────────────────────
+volumes:
+  epupuk_mysql_dev_data:
+    driver: local
+  epupuk_uploads_dev:
+    driver: local
+
+# ─── Networks ───────────────────────────────────────────────
+networks:
+  epupuk-dev-net:
+    driver: bridge

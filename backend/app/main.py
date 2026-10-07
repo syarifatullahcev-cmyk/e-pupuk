@@ -1,7 +1,12 @@
+import time
+import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 from app.core.config import settings
+from app.core.database import engine, Base
 from app.routers import (
     auth,
     farmers,
@@ -13,10 +18,35 @@ from app.routers import (
     files
 )
 
+logger = logging.getLogger("uvicorn.error")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup: tunggu MySQL siap lalu buat semua tabel."""
+    max_retries = 10
+    for attempt in range(1, max_retries + 1):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            logger.info("✅ Koneksi database berhasil.")
+            break
+        except Exception as e:
+            logger.warning(f"⏳ Menunggu database... ({attempt}/{max_retries}): {e}")
+            time.sleep(3)
+    else:
+        logger.error("❌ Gagal terhubung ke database setelah beberapa percobaan.")
+
+    # Import semua model agar Base.metadata mengenali tabel
+    import app.models.models  # noqa: F401
+    Base.metadata.create_all(bind=engine)
+    logger.info("✅ Tabel database siap.")
+    yield
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Sistem Verifikasi & Distribusi Pupuk Bersubsidi Kabupaten Mojokerto",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS Middleware
@@ -49,3 +79,4 @@ def root():
 @app.get("/api/health")
 def health_check():
     return {"status": "ok", "service": "epupuk-backend"}
+

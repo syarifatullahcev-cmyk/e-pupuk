@@ -1,0 +1,105 @@
+# ==============================================================
+# E-Pupuk Kabupaten Mojokerto — Docker Compose PRODUCTION
+# Services: mysql + backend (FastAPI) + frontend (Nginx) + phpmyadmin
+# ==============================================================
+
+services:
+
+  # ─── MySQL Database ────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: epupuk-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_epupuk_2026
+      MYSQL_DATABASE: epupuk
+      MYSQL_USER: epupuk_user
+      MYSQL_PASSWORD: epupuk_pass
+    volumes:
+      - epupuk_mysql_data:/var/lib/mysql        # Persist data MySQL
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro  # Auto-init schema
+    ports:
+      - "3306:3306"    # Akses langsung MySQL (opsional)
+    networks:
+      - epupuk-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "epupuk_user", "-pepupuk_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # ─── phpMyAdmin ────────────────────────────────────────────
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    container_name: epupuk-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db                      # Nama service MySQL
+      PMA_PORT: 3306
+      PMA_USER: epupuk_user
+      PMA_PASSWORD: epupuk_pass
+      MYSQL_ROOT_PASSWORD: root_epupuk_2026
+      # Upload limit untuk import file SQL besar
+      UPLOAD_LIMIT: 64M
+      PMA_ARBITRARY: 0                  # Matikan input server manual
+    ports:
+      - "8080:80"    # Akses phpMyAdmin di http://localhost:8080
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - epupuk-net
+
+  # ─── Backend (FastAPI) ─────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: epupuk-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    volumes:
+      - epupuk_uploads:/app/uploads     # Persist file uploads
+    ports:
+      - "8000:8000"    # Akses API langsung (opsional)
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - epupuk-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ─── Frontend (React + Nginx) ──────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: epupuk-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"        # Akses aplikasi di http://localhost
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - epupuk-net
+
+# ─── Volumes ────────────────────────────────────────────────
+volumes:
+  epupuk_mysql_data:
+    driver: local
+  epupuk_uploads:
+    driver: local
+
+# ─── Networks ───────────────────────────────────────────────
+networks:
+  epupuk-net:
+    driver: bridge
