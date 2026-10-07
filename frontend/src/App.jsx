@@ -96,11 +96,11 @@ export default function App() {
         {/* Kiosk Scanner Route */}
         <Route path="/kiosk-scanner" element={<QRScannerKiosk />} />
 
-        {/* Petani Dashboard Route */}
+        {/* Petani Dashboard Route — hanya PETANI */}
         <Route
           path="/petani"
           element={
-            <ProtectedRoute allowedRoles={['PETANI', 'ADMIN']}>
+            <ProtectedRoute allowedRoles={['PETANI']}>
               <DashboardLayout>
                 <PetaniDashboard />
               </DashboardLayout>
@@ -108,7 +108,7 @@ export default function App() {
           }
         />
 
-        {/* Admin Dashboard Route */}
+        {/* Admin Dashboard Route — hanya ADMIN */}
         <Route
           path="/admin/*"
           element={
@@ -120,11 +120,11 @@ export default function App() {
           }
         />
 
-        {/* PPL Dashboard Route */}
+        {/* PPL Dashboard Route — hanya PPL */}
         <Route
           path="/ppl"
           element={
-            <ProtectedRoute allowedRoles={['PPL', 'ADMIN']}>
+            <ProtectedRoute allowedRoles={['PPL']}>
               <DashboardLayout>
                 <PPLDashboard />
               </DashboardLayout>

@@ -122,6 +122,13 @@ export default function Login() {
 
   const currentConfig = PORTAL_CONFIG[activePortal] || PORTAL_CONFIG.petani;
 
+  // Mapping portal ke role yang diizinkan
+  const PORTAL_ROLE_MAP = {
+    petani: 'PETANI',
+    admin: 'ADMIN',
+    ppl: 'PPL',
+  };
+
   const handleLogin = async (e) => {
     e?.preventDefault();
     if (!username || !password) {
@@ -135,13 +142,24 @@ export default function Login() {
     setLoading(false);
 
     if (res.success) {
-      if (res.user.role === 'ADMIN') {
-        navigate('/admin');
-      } else if (res.user.role === 'PPL') {
-        navigate('/ppl');
-      } else {
-        navigate('/petani');
+      const expectedRole = PORTAL_ROLE_MAP[activePortal];
+
+      // Cek apakah role user sesuai dengan portal yang dipilih
+      if (res.user.role !== expectedRole) {
+        // Logout otomatis agar token tidak tersimpan
+        const { logout } = useAuthStore.getState();
+        await logout();
+        setError(
+          `Akun ini bukan akun ${currentConfig.label}. ` +
+          `Silakan pilih portal yang sesuai dengan peran Anda.`
+        );
+        return;
       }
+
+      // Role cocok — arahkan ke dashboard
+      if (res.user.role === 'ADMIN') navigate('/admin');
+      else if (res.user.role === 'PPL') navigate('/ppl');
+      else navigate('/petani');
     } else {
       setError(res.error);
     }
@@ -157,13 +175,21 @@ export default function Login() {
     setLoading(false);
 
     if (res.success) {
-      if (res.user.role === 'ADMIN') {
-        navigate('/admin');
-      } else if (res.user.role === 'PPL') {
-        navigate('/ppl');
-      } else {
-        navigate('/petani');
+      const expectedRole = PORTAL_ROLE_MAP[activePortal];
+
+      if (res.user.role !== expectedRole) {
+        const { logout } = useAuthStore.getState();
+        await logout();
+        setError(
+          `Akun ini bukan akun ${currentConfig.label}. ` +
+          `Silakan pilih portal yang sesuai dengan peran Anda.`
+        );
+        return;
       }
+
+      if (res.user.role === 'ADMIN') navigate('/admin');
+      else if (res.user.role === 'PPL') navigate('/ppl');
+      else navigate('/petani');
     } else {
       setError(res.error);
     }
