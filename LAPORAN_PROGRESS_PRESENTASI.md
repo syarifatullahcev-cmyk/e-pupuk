@@ -22,7 +22,7 @@
 
 Proyek **E-PUPUK** telah mencapai tahapan **70.0% (Core Workflow Complete)**. Seluruh fungsionalitas inti (*Minimum Viable Product*) dari hulu ke hilir telah terhubung secara nyata: mulai dari pendaftaran petani berbasis NIK 16 digit, pengajuan subsidi dengan batas kuota standar, verifikasi berkas administratif admin, disposisi dan survei lapangan oleh PPL, hingga penerbitan dan validasi QR Code penebusan pupuk di kios penyalur.
 
-Sisa **30.0%** dialokasikan secara rasional dan objektif untuk tahapan non-fungsional krusial: pembuatan *automated testing suite* (Pytest), ekspor laporan rekapitulasi (PDF/Excel), penanganan *edge cases*, optimasi *offline mode* (PWA) di lahan pertanian, serta implementasi *deployment pipeline* ke server publik.
+Sisa **30.0%** dialokasikan secara rasional dan objektif untuk tahapan krusial berikutnya: penyelesaian **Aplikasi Mobile (Flutter)** untuk Petani & Petugas PPL di lapangan, pembuatan *automated testing suite* (Pytest), ekspor laporan rekapitulasi dinas (PDF/Excel), serta implementasi *deployment pipeline* ke server publik.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -63,11 +63,11 @@ flowchart TD
     M5 --> Gateway{"Evaluasi Kesiapan<br/>Sistem (Gate 70%)"}
 
     subgraph Tertunda ["⏳ TAHAP PENYELESAIAN (SISA: 30.0%)"]
-        Gateway --> P1["6. Testing Otomatis Pytest & Jest<br/><b>(Bobot Sisa: 12.5%)</b>"]
-        Gateway --> P2["7. Ekspor Dokumen Cetak PDF & Excel<br/><b>(Bobot Sisa: 7.5%)</b>"]
-        Gateway --> P3["8. PWA Offline Mode Survei Lapangan PPL<br/><b>(Bobot Sisa: 4.0%)</b>"]
-        Gateway --> P4["9. Deployment Staging VPS & Domain Publik<br/><b>(Bobot Sisa: 3.5%)</b>"]
-        Gateway --> P5["10. Gateway Notifikasi WhatsApp / SMS<br/><b>(Bobot Sisa: 2.5%)</b>"]
+        Gateway --> P1["6. Testing Otomatis Pytest & Jest<br/><b>(Bobot Sisa: 10.0%)</b>"]
+        Gateway --> P2["7. Aplikasi Mobile Flutter (Petani & PPL)<br/><b>(Bobot Sisa: 9.0%)</b>"]
+        Gateway --> P3["8. Ekspor Dokumen Cetak PDF & Excel<br/><b>(Bobot Sisa: 6.0%)</b>"]
+        Gateway --> P4["9. Deployment Staging VPS & Domain Publik<br/><b>(Bobot Sisa: 3.0%)</b>"]
+        Gateway --> P5["10. Gateway Notifikasi WhatsApp / SMS<br/><b>(Bobot Sisa: 2.0%)</b>"]
     end
 
     classDef doneNode fill:#ecfdf5,stroke:#059669,stroke-width:2px,color:#065f46;
@@ -171,11 +171,11 @@ Sisa 30% difokuskan pada penyempurnaan kualitas teknis, otomasi pelaporan, dan k
 ```mermaid
 flowchart TD
     subgraph Sisa_Pekerjaan ["Fokus Penyelesaian Sisa Pekerjaan (30.0%)"]
-        R1["🧪 Automated Unit & Integration Testing (Pytest) — 12.5%"]
-        R2["📄 Modul Ekspor Laporan Rekapitulasi (PDF & Excel) — 7.5%"]
-        R3["📶 Offline Mode & Sinkronisasi Survei PPL (PWA) — 4.0%"]
-        R4["☁️ Deployment Staging ke Cloud VPS & Domain Publik — 3.5%"]
-        R5["💬 Integrasi Gateway Notifikasi WhatsApp / SMS — 2.5%"]
+        R1["🧪 Automated Unit & Integration Testing (Pytest) — 10.0%"]
+        R2["📱 Aplikasi Mobile Flutter (Petani & PPL Lapangan) — 9.0%"]
+        R3["📄 Modul Ekspor Laporan Rekapitulasi (PDF & Excel) — 6.0%"]
+        R4["☁️ Deployment Staging ke Cloud VPS & Domain Publik — 3.0%"]
+        R5["💬 Integrasi Gateway Notifikasi WhatsApp / SMS — 2.0%"]
     end
 ```
 
@@ -183,11 +183,11 @@ flowchart TD
 
 | No | Modul / Pekerjaan Tertunda | Kontribusi Sisa | Alasan Teknis Belum Selesai | Target Selesai |
 | :-: | :--- | :---: | :--- | :-: |
-| **1** | **Automated Testing Suite (Pytest)** | **12.5%** | Belum tersedianya skrip pengujian unit dan integrasi otomatis (`tests/test_auth.py`, `tests/test_applications.py`). Saat ini pengujian masih dilakukan secara manual melalui antarmuka web dan Swagger UI. | Pekan Ke-7 |
-| **2** | **Ekspor Laporan Dinas (PDF & Excel)** | **7.5%** | Rekapitulasi data penerima pupuk baru dapat dilihat pada tabel monitor web, belum bisa diekspor langsung menjadi file format PDF resmi (ReportLab) dan lembar kerja Excel (OpenPyXL) untuk arsip bulanan dinas. | Pekan Ke-7 |
-| **3** | **Dukungan Offline Survei Lapangan (PWA)** | **4.0%** | Fitur penyimpanan draf survei lapangan di *Local Storage/IndexedDB* saat petugas PPL berada di area sawah pelosok tanpa jaringan internet, untuk kemudian disinkronkan saat ada sinyal. | Pekan Ke-8 |
-| **4** | **Deployment Server Publik (Cloud VPS)** | **3.5%** | Konfigurasi Docker Compose saat ini masih berjalan pada jaringan lokal (`localhost`). Diperlukan konfigurasi domain resmi, reverse proxy Nginx publik, dan sertifikat SSL Let's Encrypt. | Pekan Ke-8 |
-| **5** | **Integrasi WhatsApp Notification Gateway** | **2.5%** | Notifikasi persetujuan subsidi masih berbasis in-app (*database notification*). Rencana penambahan webhook WhatsApp API agar petani langsung menerima pesan saat pupuk siap diambil. | Pekan Ke-8 |
+| **1** | **Automated Testing Suite (Pytest)** | **10.0%** | Belum tersedianya skrip pengujian unit dan integrasi otomatis (`tests/test_auth.py`, `tests/test_applications.py`). Saat ini pengujian masih dilakukan secara manual melalui antarmuka web dan Swagger UI. | Pekan Ke-7 |
+| **2** | **Aplikasi Mobile Flutter (Petani & PPL)** | **9.0%** | Aplikasi Flutter di folder `mobile/` baru menyelesaikan tahap inisiasi (*Login, Register, Dashboard awal*). Fitur lanjutan seperti pengajuan subsidi mobile, kamera scanner QR karung di Android, dan form survei lapangan PPL di HP belum selesai penuh. | Pekan Ke-8 |
+| **3** | **Ekspor Laporan Dinas (PDF & Excel)** | **6.0%** | Rekapitulasi data penerima pupuk baru dapat dilihat pada tabel monitor web, belum bisa diekspor langsung menjadi file format PDF resmi (ReportLab) dan lembar kerja Excel (OpenPyXL) untuk arsip bulanan dinas. | Pekan Ke-8 |
+| **4** | **Deployment Server Publik (Cloud VPS)** | **3.0%** | Konfigurasi Docker Compose saat ini masih berjalan pada jaringan lokal (`localhost`). Diperlukan konfigurasi domain resmi, reverse proxy Nginx publik, dan sertifikat SSL Let's Encrypt. | Pekan Ke-8 |
+| **5** | **Integrasi WhatsApp Notification Gateway** | **2.0%** | Notifikasi persetujuan subsidi masih berbasis in-app (*database notification*). Rencana penambahan webhook WhatsApp API agar petani langsung menerima pesan saat pupuk siap diambil. | Pekan Ke-8 |
 
 ---
 
@@ -221,4 +221,4 @@ docker ps
 
 ## 🎯 Argumen Kunci Saat Presentasi di Depan Dosen
 
-> *"Sistem E-PUPUK saat ini berada di capaian **70%**. Kami sengaja tidak mengklaim 90-100% karena kami membedakan secara tegas antara **fitur alur bisnis yang sudah selesai** dengan **kesiapan produksi penuh**. Alur bisnis utama dari registrasi petani hingga pemindaian voucher di kios sudah 100% berfungsi dan terintegrasi di Docker. Namun, sisa 30% kami dedikasikan untuk standar rekayasa perangkat lunak yang baik: penyusunan automated test suite Pytest, ekspor dokumen rekapitulasi dinas, penanganan kondisi offline PPL di sawah, serta deployment ke server cloud publik."*
+> *"Sistem E-PUPUK saat ini berada di capaian **70%**. Kami sengaja tidak mengklaim 90-100% karena kami membedakan secara tegas antara **fitur web utama yang sudah selesai** dengan **kesiapan seluruh platform**. Alur bisnis utama versi Web dari registrasi petani hingga pemindaian voucher di kios sudah 100% berfungsi dan terintegrasi di Docker. Namun, sisa 30% difokuskan pada: **penyelesaian aplikasi mobile (Flutter) untuk petani & PPL**, penyusunan automated test suite Pytest, ekspor dokumen rekapitulasi dinas, serta deployment ke server cloud publik."*

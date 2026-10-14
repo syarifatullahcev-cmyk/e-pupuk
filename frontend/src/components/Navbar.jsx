@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
-  BookOpen, Bell, LogOut, Check,
+  Sprout, Bell, LogOut, Check,
   ShieldCheck, Tractor, Briefcase
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -93,8 +93,8 @@ export default function Navbar() {
         {/* Brand */}
         <div className="flex items-center gap-3">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-emerald-700 flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition-transform shrink-0">
-              <BookOpen className="w-5 h-5 stroke-[2.2]" />
+            <div className="w-9 h-9 rounded-xl bg-[#009b69] flex items-center justify-center text-white shadow-md shadow-emerald-700/20 group-hover:scale-105 transition-transform shrink-0">
+              <Sprout className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
