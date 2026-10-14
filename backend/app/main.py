@@ -78,5 +78,16 @@ def root():
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "service": "epupuk-backend"}
+    db_status = "connected"
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = f"disconnected: {str(e)}"
+
+    return {
+        "status": "ok" if db_status == "connected" else "degraded",
+        "service": "epupuk-backend",
+        "database": db_status
+    }
 

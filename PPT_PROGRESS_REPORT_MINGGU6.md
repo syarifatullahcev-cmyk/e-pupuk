@@ -58,9 +58,10 @@ Politeknik Elektronika Negeri Surabaya
 ### MINGGU 6 — CURRENT
 - **Fokus Utama: Modul User Register & Database Petani**
 - Implementasi API backend pendaftaran akun petani (`POST /api/auth/register`)
-- Relasi tabel database `users` dan `farmers` pada SQLite
+- Relasi tabel database `users` dan `farmers`
 - Integrasi halaman registrasi riil di frontend (`Register.jsx`)
 - Fitur unggah foto KTP fisik pada profil petani
+- **4 Perbaikan Detail Teknis (Polishing UX & Keandalan Backend)**
 
 ### MINGGU 7
 - Penyempurnaan fitur lanjutan dan persiapan kontainerisasi Docker
@@ -73,22 +74,18 @@ Politeknik Elektronika Negeri Surabaya
 ### Progress Utama:
 
 **1. API Register Petani Baru (`POST /api/auth/register`)**
-- Membuat endpoint khusus pendaftaran akun petani
-- Validasi ketat format **NIK wajib 16 digit angka**
-- Validasi panjang kata sandi minimal **6 karakter**
+- Validasi ketat format **NIK wajib 16 digit angka** dan password minimal **6 karakter**
 - Pengecekan anti-duplikasi: Username dan NIK tidak boleh ganda
 
 **2. Keamanan & Hashing Password**
-- Menerapkan enkripsi kata sandi menggunakan **Bcrypt** (`get_password_hash`)
-- Password mentah tidak pernah tersimpan di database
+- Enkripsi kata sandi menggunakan **Bcrypt** (`get_password_hash`)
 
 **3. Struktur Database User & Petani**
-- Menyimpan akun login ke tabel `users` (Role: `PETANI`)
-- Menyimpan profil identitas ke tabel `farmers` (Relasi 1:1)
-- Otomatis membuat notifikasi sambutan selamat datang di tabel `notifications`
+- Relasi 1:1 antara akun login (`users`) dan profil kependudukan (`farmers`)
+- Otomatis membuat record notifikasi sambutan selamat datang
 
 **4. Endpoint Update Foto KTP (`PUT /api/farmers/{id}`)**
-- Menambahkan dukungan atribut `foto_ktp_url` pada skema update petani agar berkas KTP fisik dapat tersimpan ke database
+- Mendukung penyimpanan path foto KTP fisik (`foto_ktp_url`) ke database
 
 ---
 
@@ -98,67 +95,77 @@ Politeknik Elektronika Negeri Surabaya
 ### Progress Utama:
 
 **1. Halaman Registrasi Terintegrasi (`Register.jsx`)**
-- Mengubah form registrasi dari simulasi mockup (`setTimeout`) menjadi pemanggilan API riil
-- Menghubungkan form input dengan service `authApi.register()`
-- Validasi kesamaan kata sandi dan konfirmasi kata sandi di sisi klien
-- Pembatasan input NIK maksimal 16 digit
+- Mengubah form registrasi dari mockup (`setTimeout`) menjadi koneksi API riil
+- Validasi kesamaan kata sandi dan pembatasan NIK 16 digit
 
 **2. Handling Respon & Feedback Pengguna**
-- Menampilkan pesan error dinamis langsung dari backend jika data tidak valid (misal: *"NIK ini sudah terdaftar"* atau *"Username sudah digunakan"*)
-- Notifikasi toast sukses dan redirect otomatis ke halaman login petani
+- Menampilkan pesan error dinamis langsung dari backend via toast notification
+- Redirect otomatis ke portal login petani pasca pendaftaran sukses
 
 **3. Fitur Unggah Foto KTP di Profil (`PetaniDashboard.jsx`)**
-- Menambahkan komponen interaktif `FileUploadZone` pada tab **Profil Petani**
-- Petani baru yang belum memiliki foto KTP dapat langsung memilih file foto KTP asli
-- File otomatis terunggah ke backend `/api/files/upload` dan tersimpan ke profil petani
-- Menyediakan tombol **"Ubah Foto"** dan pratinjau foto KTP resolusi penuh
+- Komponen interaktif `FileUploadZone` pada tab **Profil Petani**
+- Petani dapat mengunggah dan memperbarui foto KTP asli kapan saja dengan modal pratinjau
 
 ---
 
 <!-- SLIDE 5 -->
-## KENDALA BACKEND
+## 4 PERBAIKAN DETAIL SISTEM (POLISHING NYATA)
 
-### Kendala:
-- Sebelumnya backend belum memiliki endpoint pendaftaran akun petani (`POST /register`), baru tersedia login saja.
-- Data kredensial login (`users`) dan data identitas fisik petani (`farmers`) berada pada tabel terpisah sehingga rawan inkonsistensi jika proses insert gagal di tengah jalan.
-- Perlu memastikan validasi NIK benar-benar 16 digit angka dan unik agar tidak ada petani yang terdaftar ganda.
-- Skema update petani sebelumnya belum mendukung penyimpanan path foto KTP (`foto_ktp_url`).
+Berikut 4 perbaikan teknis yang telah diterapkan langsung ke codebase:
 
-### Keputusan:
-- Membangun endpoint `POST /api/auth/register` dengan transaksi ganda (simpan ke `users` lalu flush ID ke `farmers`).
-- Menerapkan validasi ketat NIK 16 digit angka dan hashing Bcrypt pada kata sandi sebelum disimpan ke database SQLite.
-- Menambahkan atribut `foto_ktp_url: Optional[str] = None` pada skema `FarmerUpdate` di `schemas.py`.
+**1. [Frontend] Password Visibility Toggle (Show / Hide Password)**
+- Menambahkan tombol interaktif `Eye` & `EyeOff` pada form **Login** dan **Register** untuk mencegah salah ketik kata sandi petani.
+
+**2. [Frontend] Sanitasi Real-time Input NIK & Nomor HP**
+- Filter otomatis `e.target.value.replace(/\D/g, '')` pada `Register.jsx`, memastikan hanya angka yang dapat diketik pada kolom NIK (max 16 digit) dan No. HP.
+
+**3. [Backend] Case-Insensitive & Trimmed Username Resolution**
+- Pembersihan spasi liar (`.strip()`) dan pencarian username *case-insensitive* (`func.lower`) pada login dan registrasi untuk mencegah gagal login akibat autocorrect smartphone.
+
+**4. [Backend] Deep Health Check & Live Database Ping (`/api/health`)**
+- Endpoint `/api/health` kini mengeksekusi query aktif `SELECT 1` ke database engine untuk memantau status konektivitas live (`connected` / `degraded`).
 
 ---
 
 <!-- SLIDE 6 -->
-## KENDALA FRONTEND
+## KENDALA BACKEND & SOLUSI
 
 ### Kendala:
-- Tombol "Buat Akun" pada halaman register sebelumnya hanya bersifat simulasi waktu (`setTimeout`) tanpa benar-benar mengirim data ke server.
-- Belum ada integrasi service API auth register di file `services/api.js`.
-- Petani yang baru mendaftar tidak memiliki fasilitas untuk mengunggah foto KTP di halaman profilnya, hanya menampilkan gambar statis placeholder.
-- Validasi pesan error dari backend belum terhubung dengan baik ke tampilan toast frontend.
+- Data login (`users`) dan identitas fisik (`farmers`) terpisah sehingga rawan inkonsistensi data jika salah satu gagal.
+- Keyboard smartphone sering otomatis mengkapitalkan huruf awal username sehingga gagal login.
+- Healthcheck endpoint bawaan belum memverifikasi ketersediaan koneksi database riil.
 
-### Keputusan:
-- Menghubungkan form `Register.jsx` langsung ke backend menggunakan `authApi.register()`.
-- Menambahkan fungsi `register` pada objek `authApi` di `api.js`.
-- Mengintegrasikan komponen `FileUploadZone` interaktif pada kartu profil petani di `PetaniDashboard.jsx`, sehingga petani dapat mengunggah dan mengubah foto KTP kapan saja.
-- Menangkap pesan error spesifik dari backend (`err.response.data.detail`) dan menampilkannya langsung melalui notifikasi toast.
+### Solusi & Keputusan:
+- Menggunakan transaksi bertingkat (`db.flush()`) untuk memastikan integritas user dan profil petani.
+- Menerapkan fungsi normalisasi `func.lower()` pada pencarian username di `auth.py`.
+- Mengintegrasikan blok `try-except` eksekusi `engine.connect()` pada endpoint `/api/health`.
 
 ---
 
 <!-- SLIDE 7 -->
+## KENDALA FRONTEND & SOLUSI
+
+### Kendala:
+- Form registrasi rawan menerima karakter huruf atau spasi tidak sengaja pada kolom NIK 16 digit.
+- Pengguna tidak dapat melihat kembali kata sandi yang diketikkan sebelum menekan tombol submit.
+- Berkas KTP sebelumnya belum memiliki fasilitas unggah mandiri pasca registrasi.
+
+### Solusi & Keputusan:
+- Menambahkan regex filter otomatis pada handler `handleChange` di `Register.jsx`.
+- Mengimplementasikan state toggle visibility kata sandi menggunakan icon `Eye` / `EyeOff` dari Lucide React.
+- Mengintegrasikan zona unggah interaktif `FileUploadZone` yang terhubung ke endpoint `/api/files/upload`.
+
+---
+
+<!-- SLIDE 8 -->
 ## RENCANA PROGRESS MINGGU KE-7
 
 ### FRONTEND
-- Mengintegrasikan alur pengajuan kuota pupuk subsidi bagi akun petani yang sudah terdaftar
-- Menyempurnakan form pendaftaran data lahan milik petani (input luas m² dan titik koordinat GPS)
-- Menyempurnakan responsive tampilan form dan dashboard petani
+- Mengintegrasikan alur pengajuan kuota pupuk subsidi bagi akun petani terdaftar
+- Menyempurnakan form pendaftaran data lahan (luas m² dan titik koordinat GPS Leaflet)
 
 ### BACKEND
-- Menghubungkan akun petani terdaftar dengan kuota alokasi pupuk bersubsidi
-- Optimalisasi endpoint manajemen lahan milik petani
+- Menghubungkan akun petani dengan validasi batas kuota pupuk subsidi
 - Mempersiapkan konfigurasi kontainerisasi Docker (`Dockerfile` dan `docker-compose.yml`)
 
 ### TARGET
@@ -174,7 +181,7 @@ Sistem E-PUPUK Siap Digunakan
 
 ---
 
-<!-- SLIDE 8 -->
+<!-- SLIDE 9 -->
 <!-- _class: lead -->
 # TERIMA KASIH
 ### ATAS KESEMPATANNYA
