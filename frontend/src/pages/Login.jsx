@@ -9,7 +9,9 @@ import {
   Briefcase, 
   ArrowRight, 
   Building2, 
-  ArrowLeft
+  ArrowLeft,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -103,6 +105,7 @@ export default function Login() {
   const [activePortal, setActivePortal] = useState('petani');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -312,13 +315,22 @@ export default function Login() {
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Masukkan kata sandi"
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#f8fafc] border border-slate-200/80 focus:bg-white focus:border-[#059669] focus:ring-2 focus:ring-[#059669]/20 rounded-xl text-slate-900 text-xs placeholder:text-slate-400 outline-none transition-all"
+                      className="w-full pl-10 pr-10 py-2.5 bg-[#f8fafc] border border-slate-200/80 focus:bg-white focus:border-[#059669] focus:ring-2 focus:ring-[#059669]/20 rounded-xl text-slate-900 text-xs placeholder:text-slate-400 outline-none transition-all"
                       required
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer focus:outline-none transition-colors"
+                      tabIndex={-1}
+                      title={showPassword ? "Sembunyikan kata sandi" : "Lihat kata sandi"}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 
