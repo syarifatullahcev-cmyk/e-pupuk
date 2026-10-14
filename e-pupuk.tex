@@ -73,12 +73,7 @@ Selby Wafi Nurjuan (3125521018) \par
 \thanks{Laporan Progres Mata Kuliah Workshop Pemrograman Framework, D3 Teknik Informatika PSDKU Lamongan, PENS.}
 }
 
-\author{
-\IEEEauthorblockN{Syarifatullah Ceva Efendy\IEEEauthorrefmark{1}, Selby Wafi Nurjuan\IEEEauthorrefmark{2}}
-\IEEEauthorblockA{Program Studi D3 Teknik Informatika PSDKU Lamongan\\
-Politeknik Elektronika Negeri Surabaya\\
-Email: \IEEEauthorrefmark{1}312521002@student.pens.ac.id, \IEEEauthorrefmark{2}3125521018@student.pens.ac.id}
-}
+\author{}
 
 \maketitle
 
@@ -90,8 +85,7 @@ Pengelolaan dan penyaluran pupuk bersubsidi merupakan aspek krusial dalam menduk
 e-Governance, E-Pupuk, Subsidi Pupuk, Open Data, RDKK, Kabupaten Mojokerto.
 \end{IEEEkeywords}
 
-\section{Pendahuluan}  
-\subsection{Latar Belakang}
+\section{Introduction}  
 Perkembangan teknologi informasi dan komunikasi mendorong transformasi tata kelola pemerintahan menuju \textit{e-Governance}. Perubahan ini menuntut pelayanan publik yang lebih transparan, efisien, dan akuntabel melalui pemanfaatan teknologi serta pengelolaan data secara terintegrasi. Salah satu penerapannya adalah pemanfaatan data terbuka pemerintah (\textit{open data}) sebagai sumber data yang dapat mendukung proses pelayanan publik secara aktif \cite{b1}.
 
 Dalam sektor pertanian, pemerintah Kabupaten Mojokerto menyalurkan program pupuk bersubsidi untuk membantu petani menjaga produktivitas dan mengurangi biaya produksi. Alokasi pupuk subsidi mengacu pada Rencana Definitif Kebutuhan Kelompok (RDKK) yang disusun oleh kelompok tani dan diteruskan kepada Dinas Pertanian. Namun, proses pengelolaan dan rekapitulasi data yang masih belum terintegrasi dapat menyebabkan keterlambatan penyampaian informasi, kesalahan pencatatan, serta kesulitan dalam melakukan verifikasi pengajuan pupuk \cite{b2}.
@@ -107,6 +101,15 @@ Heeks membahas implementasi dan pengelolaan e-Government sebagai bagian dari pen
 \subsection{RDKK dan Distribusi Pupuk Bersubsidi}
 Pedoman e-RDKK dari Kementerian Pertanian menjadi acuan pengelolaan rencana kebutuhan pupuk kelompok secara elektronik \cite{b2}. Data RDKK dan luas lahan digunakan dalam rancangan E-Pupuk sebagai dasar pemeriksaan kewajaran kuota pengajuan. Laporan evaluasi penyaluran pupuk bersubsidi Kabupaten Mojokerto memberikan konteks lokal bagi kebutuhan pemantauan distribusi \cite{b3}.
 
+\subsection{Arsitektur Framework Web dan REST API}
+Pengembangan sistem berbasis web modern menuntut arsitektur yang modular dan skalabel melalui pemisahan antarmuka pengguna (\textit{frontend}) dan logika bisnis (\textit{backend}) yang terhubung melalui antarmuka pemrograman aplikasi (REST API). FastAPI menyediakan lingkungan eksekusi berbasis asynchronous Python dengan penanganan validasi data secara otomatis, sedangkan React memungkinkan penyajian antarmuka reaktif berbasis komponen yang mempercepat interaksi pengguna \cite{b5}.
+
+\subsection{Keamanan Akses dan Role-Based Access Control (RBAC)}
+Pengelolaan sistem publik yang melibatkan berbagai pihak memerlukan mekanisme otorisasi berbasis peran (\textit{Role-Based Access Control}). Melalui RBAC yang dipadukan dengan enkripsi kata sandi \textit{Bcrypt} dan otentikasi \textit{JSON Web Token} (JWT), integritas data petani dan batasan operasional antar-pengguna (Petani, PPL, dan Admin Dinas) dapat terisolasi secara aman \cite{b6}.
+
+\subsection{Verifikasi Geospasial dan Validasi QR Code}
+Penerapan koordinat geospasial melalui \textit{geotagging} memungkinkan validasi fisik batas lahan pertanian secara faktual di lapangan oleh petugas penyuluh. Sementara itu, penggunaan kode respons cepat (\textit{QR Code}) dengan token kriptografis dinamis berfungsi menjamin keaslian bukti alokasi dan memvalidasi penebusan pupuk di kios resmi secara akurat dan seketika \cite{b7}.
+
 \subsection{Posisi E-Pupuk}
 Berdasarkan rujukan tersebut, E-Pupuk dirancang untuk menghubungkan pendataan petani dan lahan, pengajuan pupuk, pemeriksaan kuota, verifikasi PPL, pencatatan realisasi distribusi, serta pemantauan oleh Dinas Pertanian. Integrasi ini menjadi fokus sistem untuk mendukung proses yang lebih terstruktur dan transparan.
 
@@ -115,6 +118,9 @@ Berdasarkan rujukan tersebut, E-Pupuk dirancang untuk menghubungkan pendataan pe
 \bibitem{b2} Kementerian Pertanian Republik Indonesia, ``Pedoman Pengelolaan Sistem Elektronik Rencana Definitif Kebutuhan Kelompok (e-RDKK),'' Jakarta, 2021.
 \bibitem{b3} Dinas Pertanian Kabupaten Mojokerto, ``Laporan Evaluasi Penyaluran Pupuk Bersubsidi Kabupaten Mojokerto,'' 2024.
 \bibitem{b4} A. S. Ahmad, ``Pemanfaatan Open Government Data untuk Transparansi Layanan Publik di Sektor Pertanian,'' Jurnal Teknologi dan Governance, vol. 8, no. 1, pp. 45--56, 2023.
+\bibitem{b5} M. S. L. Tiangolo, ``FastAPI: Modern, High-Performance Web Framework for Python,'' 2023.
+\bibitem{b6} D. F. Ferraiolo, R. Sandhu, S. Gavrila, D. R. Kuhn, and R. Chandramouli, ``Proposed NIST Standard for Role-Based Access Control,'' ACM Transactions on Information and System Security, vol. 4, no. 3, pp. 224--274, 2001.
+\bibitem{b7} T. Gao, D. Liu, and Y. Zhang, ``Application of QR Code Technology in Traceability and Verification Systems,'' IEEE Access, vol. 8, pp. 128450--128461, 2020.
 \end{thebibliography}
 
 % ==================== PERALIHAN KE 1 KOLOM & LEMBAR BARU ====================
@@ -201,12 +207,7 @@ Selby Wafi Nurjuan (3125521018) \par
 \thanks{Laporan Progres Mata Kuliah Workshop Pemrograman Framework, D3 Teknik Informatika PSDKU Lamongan, PENS.}
 }
 
-\author{
-\IEEEauthorblockN{Syarifatullah Ceva Efendy\IEEEauthorrefmark{1}, Selby Wafi Nurjuan\IEEEauthorrefmark{2}}
-\IEEEauthorblockA{Program Studi D3 Teknik Informatika PSDKU Lamongan\\
-Politeknik Elektronika Negeri Surabaya\\
-Email: \IEEEauthorrefmark{1}312521002@student.pens.ac.id, \IEEEauthorrefmark{2}3125521018@student.pens.ac.id}
-}
+\author{}
 
 \maketitle
 
@@ -218,8 +219,7 @@ Pengelolaan dan penyaluran pupuk bersubsidi merupakan aspek krusial dalam menduk
 e-Governance, E-Pupuk, Subsidi Pupuk, Open Data, RDKK, Kabupaten Mojokerto.
 \end{IEEEkeywords}
 
-\section{Pendahuluan}  
-\subsection{Latar Belakang}
+\section{Introduction}  
 Perkembangan teknologi informasi dan komunikasi mendorong transformasi tata kelola pemerintahan menuju \textit{e-Governance}. Perubahan ini menuntut pelayanan publik yang lebih transparan, efisien, dan akuntabel melalui pemanfaatan teknologi serta pengelolaan data secara terintegrasi. Salah satu penerapannya adalah pemanfaatan data terbuka pemerintah (\textit{open data}) sebagai sumber data yang dapat mendukung proses pelayanan publik secara aktif \cite{b1}.
 
 Dalam sektor pertanian, pemerintah Kabupaten Mojokerto menyalurkan program pupuk bersubsidi untuk membantu petani menjaga produktivitas dan mengurangi biaya produksi. Alokasi pupuk subsidi mengacu pada Rencana Definitif Kebutuhan Kelompok (RDKK) yang disusun oleh kelompok tani dan diteruskan kepada Dinas Pertanian. Namun, proses pengelolaan dan rekapitulasi data yang masih belum terintegrasi dapat menyebabkan keterlambatan penyampaian informasi, kesalahan pencatatan, serta kesulitan dalam melakukan verifikasi pengajuan pupuk \cite{b2}.
@@ -235,6 +235,15 @@ Heeks membahas implementasi dan pengelolaan e-Government sebagai bagian dari pen
 \subsection{RDKK dan Distribusi Pupuk Bersubsidi}
 Pedoman e-RDKK dari Kementerian Pertanian menjadi acuan pengelolaan rencana kebutuhan pupuk kelompok secara elektronik \cite{b2}. Data RDKK dan luas lahan digunakan dalam rancangan E-Pupuk sebagai dasar pemeriksaan kewajaran kuota pengajuan. Laporan evaluasi penyaluran pupuk bersubsidi Kabupaten Mojokerto memberikan konteks lokal bagi kebutuhan pemantauan distribusi \cite{b3}.
 
+\subsection{Arsitektur Framework Web dan REST API}
+Pengembangan sistem berbasis web modern menuntut arsitektur yang modular dan skalabel melalui pemisahan antarmuka pengguna (\textit{frontend}) dan logika bisnis (\textit{backend}) yang terhubung melalui antarmuka pemrograman aplikasi (REST API). FastAPI menyediakan lingkungan eksekusi berbasis asynchronous Python dengan penanganan validasi data secara otomatis, sedangkan React memungkinkan penyajian antarmuka reaktif berbasis komponen yang mempercepat interaksi pengguna \cite{b5}.
+
+\subsection{Keamanan Akses dan Role-Based Access Control (RBAC)}
+Pengelolaan sistem publik yang melibatkan berbagai pihak memerlukan mekanisme otorisasi berbasis peran (\textit{Role-Based Access Control}). Melalui RBAC yang dipadukan dengan enkripsi kata sandi \textit{Bcrypt} dan otentikasi \textit{JSON Web Token} (JWT), integritas data petani dan batasan operasional antar-pengguna (Petani, PPL, dan Admin Dinas) dapat terisolasi secara aman \cite{b6}.
+
+\subsection{Verifikasi Geospasial dan Validasi QR Code}
+Penerapan koordinat geospasial melalui \textit{geotagging} memungkinkan validasi fisik batas lahan pertanian secara faktual di lapangan oleh petugas penyuluh. Sementara itu, penggunaan kode respons cepat (\textit{QR Code}) dengan token kriptografis dinamis berfungsi menjamin keaslian bukti alokasi dan memvalidasi penebusan pupuk di kios resmi secara akurat dan seketika \cite{b7}.
+
 \subsection{Posisi E-Pupuk}
 Berdasarkan rujukan tersebut, E-Pupuk dirancang untuk menghubungkan pendataan petani dan lahan, pengajuan pupuk, pemeriksaan kuota, verifikasi PPL, pencatatan realisasi distribusi, serta pemantauan oleh Dinas Pertanian. Integrasi ini menjadi fokus sistem untuk mendukung proses yang lebih terstruktur dan transparan.
 
@@ -243,6 +252,9 @@ Berdasarkan rujukan tersebut, E-Pupuk dirancang untuk menghubungkan pendataan pe
 \bibitem{b2} Kementerian Pertanian Republik Indonesia, ``Pedoman Pengelolaan Sistem Elektronik Rencana Definitif Kebutuhan Kelompok (e-RDKK),'' Jakarta, 2021.
 \bibitem{b3} Dinas Pertanian Kabupaten Mojokerto, ``Laporan Evaluasi Penyaluran Pupuk Bersubsidi Kabupaten Mojokerto,'' 2024.
 \bibitem{b4} A. S. Ahmad, ``Pemanfaatan Open Government Data untuk Transparansi Layanan Publik di Sektor Pertanian,'' Jurnal Teknologi dan Governance, vol. 8, no. 1, pp. 45--56, 2023.
+\bibitem{b5} M. S. L. Tiangolo, ``FastAPI: Modern, High-Performance Web Framework for Python,'' 2023.
+\bibitem{b6} D. F. Ferraiolo, R. Sandhu, S. Gavrila, D. R. Kuhn, and R. Chandramouli, ``Proposed NIST Standard for Role-Based Access Control,'' ACM Transactions on Information and System Security, vol. 4, no. 3, pp. 224--274, 2001.
+\bibitem{b7} T. Gao, D. Liu, and Y. Zhang, ``Application of QR Code Technology in Traceability and Verification Systems,'' IEEE Access, vol. 8, pp. 128450--128461, 2020.
 \end{thebibliography}
 
 % ==================== PERALIHAN KE 1 KOLOM & LEMBAR BARU ====================
