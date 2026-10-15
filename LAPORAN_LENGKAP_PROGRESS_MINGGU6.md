@@ -43,104 +43,87 @@ Sisa **30.0%** dialokasikan secara objektif untuk pengujian otomatis (Pytest), f
 
 ---
 
-## 2. BEDAH FAKTUAL BACKEND API & DATABASE
+## 2. BEDAH FAKTUAL BACKEND API & DATABASE (Selby Wafi Nurjuan)
 
 ### 🗄️ A. Skema Database Relasional (`backend/schema.sql` - 13 Tabel Utama)
 Struktur database telah diuji dan berjalan di kontainer MySQL 8.0:
 1. **`users`**: Manajemen autentikasi multi-peran (`id`, `username`, `email`, `password_hash`, `role: PETANI|PPL|ADMIN`, `is_active`, `created_at`).
 2. **`farmer_groups`**: Master data Kelompok Tani (Poktan) se-Kabupaten Mojokerto (`id`, `nama_kelompok`, `ketua_id`, `wilayah`, `created_at`).
-3. **`farmers`**: Profil data kependudukan petani (`id`, `user_id`, `nik` [16 digit unik], `nama`, `kontak`, `alamat`, `foto_ktp_url`, `farmer_group_id`).
-4. **`commodities`**: Katalog komoditas pertanian Mojokerto (`id`, `nama_komoditas`, `standar_kebutuhan_kg_per_ha`).
+3. **`farmers`**: Profil kependudukan petani (`id`, `user_id`, `nik` [16 digit unik], `nama`, `kontak`, `alamat`, `foto_ktp_url`, `farmer_group_id`).
+4. **`commodities`**: Master komoditas pertanian (`id`, `nama_komoditas`, `standar_kebutuhan_kg_per_ha`).
 5. **`fertilizers`**: Katalog pupuk bersubsidi resmi pemerintah (`id`, `nama_pupuk: Urea / NPK Phonska`, `satuan: kg`).
-6. **`lands`**: Data petak sawah petani terdaftar (`id`, `farmer_id`, `lokasi_deskripsi`, `alamat_lahan`, `latitude`, `longitude`, `luas_m2`, `commodity_id`, `status_kepemilikan: MILIK|GARAP|SEWA`, `foto_lahan_url`).
-7. **`applications`**: Berkas permohonan subsidi (`id`, `farmer_id`, `land_id`, `fertilizer_id`, `jumlah_diajukan`, `kuota_maksimal`, `status`, `catatan_admin_berkas`, `catatan_penugasan`, `catatan_final_admin`, `admin_verifier_id`, `assigned_ppl_id`, `final_approver_id`).
-8. **`field_surveys`**: Berita acara hasil survei lapangan faktual PPL (`id`, `application_id`, `ppl_id`, `kondisi_fisik_lahan: BAIK|CUKUP|TIDAK_LAYAK`, `kondisi_tanaman: SESUAI|TIDAK_SESUAI`, `luas_lahan_aktual_m2`, `foto_survei_urls`, `rekomendasi: SETUJU|TOLAK`).
-9. **`fertilizer_batches`**: Manajemen stok dan lot kedaluwarsa karung pupuk (`id`, `batch_code`, `fertilizer_id`, `production_date`, `expired_date`, `stok_kg`).
-10. **`distributions`**: Alokasi penerbitan voucher kupon digital (`id`, `application_id`, `batch_id`, `jumlah_disalurkan`, `status_penyaluran: MENUNGGU_PENGAMBILAN|SELESAI|BATAL`, `qr_code_hash`, `tanggal_penyaluran`).
-11. **`qr_scans`**: Riwayat transaksi pemindaian kupon di kios resmi (`id`, `distribution_id`, `scanner_user_id`, `scan_timestamp`, `latitude`, `longitude`, `validation_status: VALID|EXPIRED|ALREADY_CLAIMED|INVALID`).
-12. **`notifications`**: Layanan notifikasi in-app untuk pembaruan status berkas petani (`id`, `user_id`, `judul`, `pesan`, `tipe: INFO|WARNING|SUCCESS|DANGER`, `is_read`).
-13. **`audit_logs`**: Rekam jejak audit keamanan akses data KTP dan approval (`id`, `user_id`, `action`, `resource`, `resource_id`, `details`, `ip_address`).
+6. **`lands`**: Data petak sawah petani terdaftar (`id`, `farmer_id`, `lokasi_deskripsi`, `latitude`, `longitude`, `luas_m2`, `commodity_id`, `status_kepemilikan: MILIK|GARAP|SEWA`, `foto_lahan_url`).
+7. **`applications`**: Berkas pengajuan subsidi (`id`, `farmer_id`, `land_id`, `fertilizer_id`, `jumlah_diajukan`, `kuota_maksimal`, `status`, `catatan_admin_berkas`, `catatan_penugasan`, `catatan_final_admin`).
+8. **`field_surveys`**: Berita acara hasil survei faktual PPL (`id`, `application_id`, `ppl_id`, `kondisi_fisik_lahan`, `kondisi_tanaman`, `luas_lahan_aktual_m2`, `foto_survei_urls`, `rekomendasi`).
+9. **`fertilizer_batches`**: Lot produksi dan masa berlaku stok pupuk (`id`, `batch_code`, `fertilizer_id`, `production_date`, `expired_date`, `stok_kg`).
+10. **`distributions`**: Alokasi kupon digital resmi (`id`, `application_id`, `batch_id`, `jumlah_disalurkan`, `status_penyaluran`, `qr_code_hash`, `tanggal_penyaluran`).
+11. **`qr_scans`**: Transaksi pemindaian kupon di kios & verifikasi pembukaan karung pupuk (`id`, `distribution_id`, `scanner_user_id`, `scan_timestamp`, `latitude`, `longitude`, `validation_status`).
+12. **`notifications`**: Layanan notifikasi in-app perkembangan status berkas (`id`, `user_id`, `judul`, `pesan`, `tipe`, `is_read`).
+13. **`audit_logs`**: Rekam jejak audit keamanan akses data KTP & approval dinas (`id`, `user_id`, `action`, `resource`, `resource_id`, `ip_address`).
 
 ### ⚙️ B. Implementasi 8 Router API (`backend/app/routers/`)
-1. **`auth.py`**:
-   - Registrasi mandiri petani dengan validasi NIK 16 digit anti-duplikasi.
-   - Enkripsi kata sandi menggunakan `passlib[bcrypt]` (salt 12 rounds).
-   - Login multi-role menghasilkan stateless **JWT Token (HS256)** masa berlaku 24 jam.
-2. **`farmers.py`**:
-   - Endpoint `GET /api/farmers/me` untuk profil data petani, NIK, dan kelompok tani.
-3. **`lands.py`**:
-   - CRUD data petak sawah: input luas ($m^2$), status kepemilikan, dan titik koordinat GPS sawah.
-4. **`applications.py`**:
-   - Pengajuan alokasi kuota pupuk dan validasi batas kuota musim tanam berjalan.
-   - Engine transisi status berkas dari `DIAJUKAN` hingga `DISETUJUI`.
-   - Ringkasan statistik dashboard (`/stats/petani`).
-5. **`admin.py`**:
-   - Meja kerja verifikasi berkas: `/api/admin/applications/queue`.
-   - Disposisi penugasan PPL: `/api/admin/applications/{id}/assign-ppl`.
-   - Final approval persetujuan penerbitan pupuk: `/api/admin/applications/{id}/approve`.
-6. **`ppl.py`**:
-   - Pengambilan daftar tugas survei lapangan: `/api/ppl/tasks`.
-   - Submit berita acara evaluasi tanaman & geotagging koordinat: `/api/ppl/applications/{id}/submit-survey`.
-7. **`distributions.py`**:
-   - Penerbitan voucher QR penebusan pupuk di kios.
-   - Validasi Geofencing GPS pembukaan sak pupuk di sawah (`/api/distributions/scan-qr`) berbasis formula **Haversine** radius toleransi 50–100 meter.
-   - Audit riwayat pembukaan karung pupuk: `/api/distributions/scans/my`.
-8. **`files.py`**:
-   - Upload dokumen foto e-KTP dan foto lahan sawah dengan validasi ekstensi MIME (JPG/PNG) dan batas ukuran maksimal 5MB.
+Backend dibangun berbasis FastAPI dengan keamanan standar industri:
+* **`auth.py`**: Registrasi mandiri petani dengan validasi NIK 16 digit anti-duplikasi, enkripsi kata sandi menggunakan `passlib[bcrypt]` (salt 12 rounds), dan login multi-role menghasilkan stateless JWT Token (HS256) dengan masa berlaku 24 jam.
+* **`farmers.py`**: Endpoint `GET /api/farmers/me` untuk profil data petani, validasi identitas NIK, dan asosiasi keanggotaan Kelompok Tani (Poktan).
+* **`lands.py`**: CRUD data petak sawah: input luas ($m^2$), status kepemilikan (Milik/Garap/Sewa), dan penentuan titik koordinat GPS sawah.
+* **`applications.py`**: Pengajuan alokasi kuota pupuk, validasi batas kuota musim tanam berjalan (RDKK), engine transisi status berkas dari `DIAJUKAN` hingga `DISETUJUI`, serta ringkasan statistik dashboard (`/stats/petani`).
+* **`admin.py`**: Meja kerja dinas untuk verifikasi berkas (`/api/admin/applications/queue`), disposisi penugasan PPL (`/api/admin/applications/{id}/assign-ppl`), dan final approval persetujuan penerbitan pupuk (`/api/admin/applications/{id}/approve`).
+* **`ppl.py`**: Pengambilan antrean tugas survei lapangan (`/api/ppl/tasks`) dan pengiriman berita acara evaluasi tanaman & geotagging koordinat sawah (`/api/ppl/applications/{id}/submit-survey`).
+* **`distributions.py`**: Penerbitan voucher QR penebusan pupuk di kios, validasi Geofencing GPS pembukaan sak pupuk di sawah (`/api/distributions/scan-qr`) berbasis formula Haversine dengan radius toleransi 50–100 meter, dan audit riwayat pembukaan karung pupuk (`/api/distributions/scans/my`).
+* **`files.py`**: Upload dokumen foto e-KTP dan foto lahan sawah dengan validasi ekstensi MIME (JPG/PNG) dan batas ukuran maksimal 5MB.
 
 ---
 
-## 3. BEDAH FAKTUAL FRONTEND WEB
+## 3. BEDAH FAKTUAL FRONTEND WEB (Syarifatullah Ceva Efendy)
 
 ### ⚛️ A. Arsitektur & Teknologi Frontend
-- **Framework**: React 19 + Vite 6 + Tailwind CSS 3.4.
-- **Routing**: React Router DOM v7 dengan implementasi `<ProtectedRoute />` role guard.
-- **Ikon**: Lucide Icons.
-- **Komunikasi Data**: Axios Client dengan interceptor token JWT otomatis.
+* **Core Framework**: React 19 + Vite 6 + Tailwind CSS 3.4.
+* **Routing & Proteksi**: React Router DOM v7 dengan implementasi `<ProtectedRoute />` role guard (isolasi ketat agar Petani tidak bisa mengakses meja Admin, dan sebaliknya).
+* **Visual & Ikon**: Lucide Icons & Tailwind Modern UI Theme.
+* **Komunikasi Data**: Axios Client dengan interceptor injeksi token JWT otomatis.
 
-### 💻 B. 7 Halaman Web Terintegrasi Penuh (`frontend/src/pages/`):
-
+### 💻 B. 7 Halaman Web Terintegrasi Penuh (`frontend/src/pages/`)
 1. **`Landing.jsx` (26 KB)**:
    - Portal informasi publik pelayanan digital pupuk bersubsidi Kabupaten Mojokerto.
-   - Penjelasan 4 alur mudah pengajuan subsidi dan peta kontak Balai Penyuluhan Pertanian (BPP).
+   - Penjelasan 4 alur mudah pengajuan subsidi dan peta kontak Balai Penyuluhan Pertanian (BPP) kecamatan.
 2. **`Register.jsx` (17 KB)**:
-   - Form pendaftaran petani: Validasi regex NIK 16 digit, pemilihan Poktan wilayah setempat, dan upload foto e-KTP.
+   - Formulir pendaftaran mandiri petani: Validasi regex NIK 16 digit, pemilihan Kelompok Tani (Poktan) wilayah setempat, dan upload dokumen foto e-KTP.
 3. **`Login.jsx` (18 KB)**:
-   - Autentikasi multi-peran dengan proteksi isolasi (mencegah akun Petani membuka meja Admin, dan sebaliknya).
-4. **`PetaniDashboard.jsx` (147 KB - Sangat Lengkap)**:
-   - **4 KPI Cards**: Sisa Kuota Urea, Sisa Kuota NPK, Pengajuan Aktif, dan Pupuk Digunakan.
+   - Autentikasi multi-peran dengan proteksi isolasi (Petani, PPL, Admin, dan Kios Penyalur).
+4. **`PetaniDashboard.jsx` (147 KB - Modul Utama Petani)**:
+   - **4 KPI Cards**: Sisa Kuota Urea (kg), Sisa Kuota NPK (kg), Pengajuan Aktif, dan Pupuk Digunakan.
    - **8 Tab Navigasi Terpadu**:
-     1. `Dashboard`: Ringkasan kuota terpakai + kartu pengajuan aktif dengan Stepper 6 tahapan.
-     2. `Profil Saya`: Informasi KTP, Poktan, dan status keanggotaan.
-     3. `Data Lahan`: Galeri lahan pertanian + modal pendaftaran lahan baru.
-     4. `Pengajuan Subsidi`: Formulir pemilihan lahan, jenis pupuk, dan jumlah tonase pengajuan.
-     5. `Status Pengajuan`: 6-stage connected progress stepper status pengajuan live.
-     6. `Kuota Pupuk`: Grafik persentase jatah kuota musim tanam berjalan.
-     7. `Pembukaan Pupuk`: Scanner kamera karung pupuk fisik berbasis validasi GPS sawah.
-     8. `Riwayat Pembukaan`: Tabel rekapitulasi audit log karung pupuk yang telah dibuka di sawah.
-   - **Modal Voucher QR Digital**: Menampilkan tiket QR resmi ber-hash unik untuk dibawa ke kios penyalur.
+     1. *Dashboard*: Ringkasan kuota terpakai + kartu pengajuan aktif dengan Stepper 6 tahapan visual.
+     2. *Profil Saya*: Data identitas KTP, nomor kontak, dan nama Kelompok Tani (Poktan).
+     3. *Data Lahan*: Galeri daftar petak sawah + modal input pendaftaran petak lahan baru.
+     4. *Pengajuan Subsidi*: Formulir permohonan dengan pemilihan petak sawah, jenis pupuk, dan tonase pengajuan.
+     5. *Status Pengajuan*: 6-stage connected progress stepper status pengajuan live.
+     6. *Kuota Pupuk*: Grafik dan persentase jatah kuota musim tanam berjalan.
+     7. *Pembukaan Pupuk*: Scanner kamera karung pupuk fisik berbasis validasi GPS geofencing sawah.
+     8. *Riwayat Pembukaan*: Tabel audit log karung pupuk yang telah dibuka dan diverifikasi di sawah.
+   - **Modal Voucher QR Digital**: Menampilkan tiket QR resmi ber-hash kriptografis unik untuk dibawa ke kios penyalur.
 5. **`AdminDashboard.jsx` (113 KB - Meja Kerja Dinas)**:
    - Tabulasi antrean status berkas: *Semua, Verifikasi Berkas, Penugasan PPL, Final Approval*.
-   - Filter cerdas berdasarkan kelompok tani se-Mojokerto dan jenis pupuk.
-   - Modal audit dokumen: Preview foto KTP, foto lahan, dan riwayat kuota petani.
+   - Filter cerdas berdasarkan kelompok tani se-Mojokerto dan jenis pupuk subsidi.
+   - Modal audit dokumen: Preview foto KTP, foto lahan sawah, dan riwayat sisa kuota petani.
    - Disposisi tugas survei ke petugas PPL kecamatan setempat.
    - Tombol keputusan: *Setujui Berkas*, *Minta Perbaikan Dokumen*, dan *Tolak Pengajuan*.
 6. **`PPLDashboard.jsx` (23 KB - Meja Petugas Lapangan)**:
-   - Daftar antrean tugas survei lahan sawah dari dinas.
+   - Daftar antrean tugas survei lapangan sawah dari dinas.
    - Formulir evaluasi teknis: kondisi fisik tanah, kesesuaian tanaman, luas aktual sawah ($m^2$), dan upload foto bukti lapangan.
 7. **`QRScannerKiosk.jsx` (7 KB - Meja Pengecer Kios)**:
-   - Kamera scanner HTML5 untuk memindai voucher QR petani.
-   - Pengecekan real-time status alokasi dan pencatatan transaksi penebusan pupuk resmi.
+   - Kamera scanner HTML5 untuk memindai voucher QR kuota pupuk petani secara real-time.
+   - Pengecekan status alokasi dan pencatatan transaksi penebusan pupuk resmi.
 
 ---
 
-## 4. BEDAH FAKTUAL MOBILE APPLICATION FLUTTER
+## 4. BEDAH FAKTUAL MOBILE APPLICATION FLUTTER (Syarifatullah Ceva Efendy)
 
 ### 📱 A. Arsitektur Kode Flutter (`mobile/lib/`)
 Aplikasi mobile dibangun dengan **Flutter 3.x (Dart 3)** menggunakan pola *Clean Architecture*:
-```text
+```
 mobile/lib/
-├── config/api_config.dart          # Endpoint URL & konfigurasi warna sistem
+├── config/api_config.dart          # Endpoint URL & konfigurasi palet warna sistem
 ├── models/
 │   ├── auth_model.dart             # Model autentikasi & token JWT
 │   ├── subsidy_models.dart         # FarmerProfile, Land, Application, Distribution, ScanHistory
@@ -156,31 +139,31 @@ mobile/lib/
     │   └── riwayat_pengajuan_screen.dart  # Riwayat permohonan & tiket QR digital
     └── ppl/
         ├── ppl_dashboard_screen.dart      # Task survei lapangan PPL di HP
-        └── satellite_measure_screen.dart  # Pengukuran luas sawah dengan citra satelit GPS!
+        └── satellite_measure_screen.dart  # Pengukuran luas sawah dengan citra satelit GPS
 ```
 
 ### 🎨 B. Keselarasan Fitur Mobile Petani 100% dengan Web
 1. **Custom AppBar Mojokerto**:
-   - Logo kecambah hijau `#009B69`, brand `E-PUPUK KAB. MOJOKERTO`, lonceng notifikasi ber-badge angka merah (`1`), inisial avatar, dan tombol logout.
+   - Logo kecambah hijau `#009B69`, brand *E-PUPUK KAB. MOJOKERTO*, lonceng notifikasi ber-badge angka merah (`1`), inisial avatar profil, dan tombol logout.
 2. **Top Banner Dark Emerald (`#064E3B`)**:
-   - Chip badge resmi: `PORTAL PETANI & KELOMPOK TANI KABUPATEN MOJOKERTO`.
+   - Chip badge resmi: *PORTAL PETANI & KELOMPOK TANI KABUPATEN MOJOKERTO* dengan greeting dinamis.
 3. **8 Tab Pill Navigation Horizontal (Persis Web)**:
-   - `Dashboard`, `Profil Saya`, `Data Lahan`, `Pengajuan Subsidi`, `Status Pengajuan`, `Kuota Pupuk`, `Pembukaan Pupuk` *(Special: border emerald halus & dot hijau bulat)*, dan `Riwayat Pembukaan`.
+   - Tab navigasi geser: *Dashboard, Profil Saya, Data Lahan, Pengajuan Subsidi, Status Pengajuan, Kuota Pupuk, Pembukaan Pupuk* (Special: border emerald halus `#34D399` & dot hijau bulat), dan *Riwayat Pembukaan*.
 4. **4 Kartu KPI Ringkasan**:
    - Menampilkan angka sisa kuota Urea (kg), sisa kuota NPK (kg), pengajuan aktif, dan pupuk digunakan dalam grid responsif.
 5. **6-Stage Horizontal Connected Progress Stepper**:
    - Jalur garis horizontal kontinu tebal 2.5px (Hijau `#009B69` untuk selesai/aktif, Abu-abu `#E2E8F0` untuk pending).
    - Checkpoint node lingkaran (26x26px):
-     - **Tahap Selesai (1–4)**: Lingkaran hijau penuh dengan ikon centang putih (`✓`).
-     - **Tahap Aktif (Tahap 5 - Persetujuan Admin)**: Lingkaran **Biru Cerah (`#2563EB`)** dengan ikon medali pita (*Award*) dan cincin cahaya biru muda (*glow ring*).
-     - **Tahap Pending (Tahap 6 - Penggunaan Pupuk)**: Lingkaran putih border abu-abu dengan ikon kotak/karung pupuk.
+     - **Tahap Selesai (1–4)**: Lingkaran hijau penuh dengan ikon centang putih (✓).
+     - **Tahap Aktif (Tahap 5 - Persetujuan Admin)**: Lingkaran Biru Cerah (`#2563EB`) dengan ikon medali pita (*Award*) dan cincin cahaya biru muda (*soft glow ring*).
+     - **Tahap Pending (Tahap 6 - Penggunaan Pupuk)**: Lingkaran putih border abu-abu dengan ikon kotak karung pupuk.
    - Dibungkus `LayoutBuilder` horizontal scroll (`minWidth: 560px`) sehingga garis tetap panjang, lebar, dan proporsional persis di web tanpa gepeng di layar HP.
 6. **Modul Pembukaan Pupuk & Riwayat Scan**:
    - Alur 4 tahap pembukaan pupuk fisik di petak sawah.
-   - Dialog kamera scanner dengan batas toleransi radius geofencing GPS 50 meter.
+   - Dialog kamera scanner dengan batas toleransi radius geofencing GPS 50–100 meter.
    - Tab riwayat pembukaan dengan rincian waktu dan badge status *GPS Valid*.
 7. **Fitur Unggulan Petugas PPL (`satellite_measure_screen.dart`)**:
-   - Pengukuran luas petak sawah langsung di lapangan menggunakan **citra satelit ArcGIS** dan kalkulasi poligon polyline GPS.
+   - Pengukuran luas petak sawah langsung di lapangan menggunakan citra satelit ArcGIS dan kalkulasi poligon polyline GPS.
 8. **Bebas Error Overflow (Zero-Overflow Layout)**:
    - Mengatasi error *RenderFlex overflow 132 pixels* pada AppBar dan KPI Cards dengan penerapan `Expanded`, `Flexible`, dan `TextOverflow.ellipsis`.
 
