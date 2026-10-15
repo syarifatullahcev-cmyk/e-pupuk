@@ -32,37 +32,49 @@
 
 ---
 
-### SLIDE 4: PENCAPAIAN BACKEND (SELBY WAFI)
-* **Framework**: FastAPI (Python 3.12) + SQLAlchemy + MySQL 8.0.
-* **Autentikasi Aman**: Hash password Bcrypt + Token JWT (HS256) 24 jam.
-* **13 Tabel Database**: `users`, `farmers`, `lands`, `applications`, `surveys`, `distributions`, dll.
-* **Fitur Utama**:
-  * Engine status berkas (12 tahapan dari `DIAJUKAN` s.d `TERSALURKAN`).
-  * Formula Haversine untuk validasi jarak pembukaan karung pupuk di petak sawah.
-  * Validasi upload foto KTP dan lahan sawah (maksimal 5MB).
+### SLIDE 4: PENCAPAIAN BACKEND & DATABASE (SELBY WAFI)
+* **Stack**: FastAPI (Python 3.12) + SQLAlchemy ORM + MySQL 8.0.
+* **Keamanan Data**: Enkripsi Passlib[bcrypt] (salt 12 rounds) + Stateless JWT (HS256) 24 jam.
+* **13 Tabel Relasional**: `users`, `farmer_groups`, `farmers`, `commodities`, `fertilizers`, `lands`, `applications`, `field_surveys`, `fertilizer_batches`, `distributions`, `qr_scans`, `notifications`, `audit_logs`.
+* **Implementasi 8 Router API RESTful**:
+  * `auth.py`: Registrasi mandiri NIK 16 digit anti-duplikasi & login multi-peran.
+  * `farmers.py`: Endpoint profil data petani (`/api/farmers/me`) & keanggotaan Poktan.
+  * `lands.py`: CRUD data petak sawah: luas ($m^2$), status kepemilikan, dan koordinat GPS.
+  * `applications.py`: Pengajuan kuota pupuk, validasi RDKK, engine status (`DIAJUKAN` $\rightarrow$ `DISETUJUI`), & ringkasan statistik (`/stats/petani`).
+  * `admin.py`: Meja verifikasi berkas (`/queue`), disposisi penugasan PPL (`/assign-ppl`), & approval final (`/approve`).
+  * `ppl.py`: Antrean tugas survei (`/tasks`) & submit berita acara evaluasi tanaman (`/submit-survey`).
+  * `distributions.py`: Penerbitan voucher QR, validasi Geofencing GPS formula Haversine (radius toleransi 50–100m) saat buka sak pupuk, riwayat audit (`/scans/my`).
+  * `files.py`: Upload foto e-KTP & foto lahan sawah (validasi MIME JPG/PNG, maks. 5MB).
 
 ---
 
 ### SLIDE 5: PENCAPAIAN FRONTEND WEB (CEVA EFENDY)
-* **Stack**: React 19, Vite, Tailwind CSS, Lucide Icons.
-* **Strict Role Guard**: Akses portal terisolasi ketat (Admin, Petani, PPL, Kios).
-* **Fitur per Portal**:
-  * **Petani**: 4 Kartu KPI, 8 Tab Navigasi, pengajuan subsidi, voucher QR modal.
-  * **Admin Dinas**: Meja audit berkas, filter kelompok tani Mojokerto, disposisi PPL, approval.
-  * **Petugas PPL**: Antrean tugas survei & form evaluasi fisik tanaman.
-  * **Kios Resmi**: Kamera scanner HTML5 untuk penebusan pupuk instan.
+* **Stack**: React 19 + Vite 6 + Tailwind CSS 3.4 + Lucide Icons + Axios Interceptor.
+* **Strict Role Guard**: Akses portal terisolasi ketat via `<ProtectedRoute />` (Admin, Petani, PPL, Kios).
+* **7 Halaman Web Terintegrasi Penuh**:
+  * `Landing.jsx`: Portal edukasi publik pelayanan subsidi Kabupaten Mojokerto & peta BPP.
+  * `Register.jsx`: Form pendaftaran NIK 16 digit, integrasi Poktan, & upload e-KTP.
+  * `Login.jsx`: Gerbang login multi-peran dengan proteksi isolasi portal otomatis.
+  * `PetaniDashboard.jsx` (147 KB): 4 KPI Cards, 8 Tab Navigasi, 6-Stage Stepper visual, & Modal Voucher QR ber-hash unik.
+  * `AdminDashboard.jsx` (113 KB): Meja verifikasi berkas, filter Poktan se-Mojokerto, modal audit dokumen KTP/Lahan, disposisi PPL, & tombol approval.
+  * `PPLDashboard.jsx` (23 KB): Antrean tugas survei, formulir evaluasi teknis tanah/tanaman, luas aktual sawah ($m^2$), & upload bukti foto.
+  * `QRScannerKiosk.jsx` (7 KB): Kamera scanner HTML5 untuk verifikasi alokasi & transaksi penebusan pupuk di kios.
 
 ---
 
 ### SLIDE 6: PENCAPAIAN MOBILE FLUTTER (CEVA EFENDY)
-* **Stack**: Flutter 3.x (Dart 3), Clean Architecture.
-* **Desain 100% Selaras Web**:
-  * AppBar resmi Mojokerto & Banner Dark Emerald `#064E3B`.
-  * **8 Tab Navigasi**: Dashboard, Profil, Lahan, Pengajuan, Status, Kuota, Pembukaan Pupuk, Riwayat.
-  * **6-Stage Connected Stepper**: Garis hijau horizontal tebal 2.5px, lingkaran centang, & node biru medali penghargaan (*Award Ribbon*).
-  * **Pembukaan Pupuk**: Dialog kamera scanner QR dengan radius GPS geofencing sawah.
-  * **Satelit Ukur Lahan PPL**: Pengukuran luas sawah dengan citra satelit ArcGIS & GPS.
-  * **Bebas Overflow**: Layout responsif bebas error *RenderFlex overflow*.
+* **Stack**: Flutter 3.x (Dart 3) dengan pola **Clean Architecture** (`config/`, `models/`, `services/`, `screens/`).
+* **Sinergi 100% Selaras Web**:
+  * Custom AppBar Mojokerto (Logo kecambah `#009B69`, brand resmi, badge notifikasi `1`, avatar, logout).
+  * Banner Dark Emerald (`#064E3B`) dengan chip resmi Kabupaten Mojokerto.
+  * 8 Tab Pill Navigation Horizontal & 4 Kartu KPI kuota responsif.
+* **6-Stage Connected Progress Stepper**:
+  * Garis hijau horizontal tebal 2.5px (selesai/aktif) dan abu-abu (pending), lingkaran centang, & node biru Ribbon Award.
+  * Horizontal scroll responsif (`minWidth: 560px`) bebas gepeng di layar HP.
+* **Fitur Unggulan Lapangan (GPS & Satelit)**:
+  * **Geofencing Buka Pupuk**: Validasi Haversine radius 100m ke sawah + simulator interaktif `[✓ Di Sawah (18m)]` vs `[✕ Luar (850m)]`.
+  * **Satelit Ukur Lahan PPL**: Pengukuran luas sawah dengan citra satelit ArcGIS & polyline GPS.
+  * **Zero-Overflow Layout**: Tuntas bebas error *RenderFlex overflow 132 pixels*.
 
 ---
 
