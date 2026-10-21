@@ -107,6 +107,11 @@ class Land(Base):
     commodity_id = Column(Integer, ForeignKey("commodities.id", ondelete="SET NULL"), nullable=True)
     status_kepemilikan = Column(SQLEnum("MILIK", "GARAP", "SEWA"), default="MILIK")
     foto_lahan_url = Column(String(500), nullable=True)
+    dokumen_sertifikat_url = Column(String(500), nullable=True)
+    polygon_coords = Column(Text, nullable=True)  # JSON string of [[lat, lng], ...]
+    luas_verifikasi_m2 = Column(Numeric(12, 2), nullable=True)  # Luas hasil pengukuran poligon PPL
+    status_verifikasi = Column(String(30), default="BELUM_DIVERIFIKASI")  # BELUM_DIVERIFIKASI, TERVERIFIKASI, PERLU_SURVEI_ULANG, DITOLAK
+    catatan_verifikasi = Column(Text, nullable=True)
     tanggal_registrasi = Column(Date, server_default=func.current_date())
 
     # Relationships
@@ -183,6 +188,7 @@ class FieldSurvey(Base):
     kondisi_tanaman = Column(SQLEnum("SESUAI", "TIDAK_SESUAI"), nullable=False)
     keterangan_tanaman = Column(Text, nullable=True)
     luas_lahan_aktual_m2 = Column(Numeric(12, 2), nullable=True)
+    polygon_coords = Column(Text, nullable=True)  # JSON string of [[lat, lng], ...]
     foto_survei_urls = Column(JSON, nullable=True)
     catatan_ppl = Column(Text, nullable=True)
     rekomendasi = Column(SQLEnum("SETUJU", "TOLAK"), nullable=False)

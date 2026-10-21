@@ -92,6 +92,8 @@ class SubsidyService {
     double? latitude,
     double? longitude,
     String? fotoLahanUrl,
+    String? dokumenSertifikatUrl,
+    dynamic polygonCoords,
   }) async {
     final token = await _getToken();
     if (token == null) {
@@ -114,6 +116,8 @@ class SubsidyService {
           'latitude': latitude ?? -7.531234,
           'longitude': longitude ?? 112.551234,
           'foto_lahan_url': fotoLahanUrl,
+          'dokumen_sertifikat_url': dokumenSertifikatUrl,
+          'polygon_coords': polygonCoords,
         }),
       );
 

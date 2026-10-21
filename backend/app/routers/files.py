@@ -69,3 +69,12 @@ def get_survei_file(filename: str):
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File survei tidak ditemukan")
     return FileResponse(path=str(file_path), filename=filename)
+
+@router.get("/files/sertifikat/{filename}")
+def get_sertifikat_file(filename: str):
+    file_path = settings.SERTIFIKAT_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Dokumen sertifikat tidak ditemukan")
+    ext = Path(filename).suffix.lower()
+    media_type = "application/pdf" if ext == ".pdf" else "image/jpeg"
+    return FileResponse(path=str(file_path), media_type=media_type, filename=filename)

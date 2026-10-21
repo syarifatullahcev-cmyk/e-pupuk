@@ -1,7 +1,8 @@
 from typing import Optional, List, Any
 from datetime import datetime, date
 from decimal import Decimal
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+import json
 
 # --- Auth ---
 class LoginRequest(BaseModel):
@@ -113,10 +114,15 @@ class LandBase(BaseModel):
     luas_m2: Decimal
     commodity_id: Optional[int] = None
     status_kepemilikan: str = "MILIK"
+    foto_lahan_url: Optional[str] = None
+    dokumen_sertifikat_url: Optional[str] = None
+    polygon_coords: Optional[Any] = None
+    luas_verifikasi_m2: Optional[Decimal] = None
+    status_verifikasi: Optional[str] = "BELUM_DIVERIFIKASI"
+    catatan_verifikasi: Optional[str] = None
 
 class LandCreate(LandBase):
     farmer_id: Optional[int] = None
-    foto_lahan_url: Optional[str] = None
 
 class LandUpdate(BaseModel):
     lokasi_deskripsi: Optional[str] = None
@@ -127,13 +133,27 @@ class LandUpdate(BaseModel):
     commodity_id: Optional[int] = None
     status_kepemilikan: Optional[str] = None
     foto_lahan_url: Optional[str] = None
+    dokumen_sertifikat_url: Optional[str] = None
+    polygon_coords: Optional[Any] = None
+    luas_verifikasi_m2: Optional[Decimal] = None
+    status_verifikasi: Optional[str] = None
+    catatan_verifikasi: Optional[str] = None
 
 class LandResponse(LandBase):
     id: int
     farmer_id: int
-    foto_lahan_url: Optional[str] = None
     tanggal_registrasi: Optional[date] = None
     commodity: Optional[CommodityResponse] = None
+
+    @field_validator('polygon_coords', mode='before')
+    @classmethod
+    def parse_polygon_coords(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return v
+        return v
 
     class Config:
         from_attributes = True
@@ -145,6 +165,7 @@ class FieldSurveyCreate(BaseModel):
     kondisi_tanaman: str # SESUAI, TIDAK_SESUAI
     keterangan_tanaman: Optional[str] = None
     luas_lahan_aktual_m2: Optional[Decimal] = None
+    polygon_coords: Optional[Any] = None # List of [lat, lng] or JSON
     catatan_ppl: Optional[str] = None
     rekomendasi: str # SETUJU, TOLAK
     foto_survei_urls: Optional[List[str]] = []
@@ -159,10 +180,21 @@ class FieldSurveyResponse(BaseModel):
     kondisi_tanaman: str
     keterangan_tanaman: Optional[str] = None
     luas_lahan_aktual_m2: Optional[Decimal] = None
+    polygon_coords: Optional[Any] = None
     foto_survei_urls: Optional[Any] = None
     catatan_ppl: Optional[str] = None
     rekomendasi: str
     ppl_nama: Optional[str] = None
+
+    @field_validator('polygon_coords', mode='before')
+    @classmethod
+    def parse_polygon_coords(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return v
+        return v
 
     class Config:
         from_attributes = True

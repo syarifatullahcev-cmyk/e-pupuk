@@ -52,6 +52,11 @@ def create_land(
         raise HTTPException(status_code=400, detail="ID Petani wajib diisi")
 
     land_dict = data.dict(exclude={"farmer_id"})
+    if "polygon_coords" in land_dict and land_dict["polygon_coords"] is not None:
+        if not isinstance(land_dict["polygon_coords"], str):
+            import json
+            land_dict["polygon_coords"] = json.dumps(land_dict["polygon_coords"])
+
     new_land = Land(
         farmer_id=target_farmer_id,
         **land_dict
@@ -77,7 +82,10 @@ def update_land(
         if not farmer or land.farmer_id != farmer.id:
             raise HTTPException(status_code=403, detail="Anda tidak memiliki akses untuk mengubah lahan ini")
 
+    import json
     for key, val in data.dict(exclude_unset=True).items():
+        if key == "polygon_coords" and val is not None and not isinstance(val, str):
+            val = json.dumps(val)
         setattr(land, key, val)
         
     db.commit()

@@ -10,6 +10,7 @@ CATEGORY_DIR_MAP = {
     "ktp": settings.KTP_DIR,
     "lahan": settings.LAHAN_DIR,
     "survei": settings.SURVEI_DIR,
+    "sertifikat": settings.SERTIFIKAT_DIR,
 }
 
 async def save_upload_file(file: UploadFile, category: str) -> str:
@@ -26,7 +27,7 @@ async def save_upload_file(file: UploadFile, category: str) -> str:
     if file.content_type not in settings.ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Format file '{file.content_type}' tidak diizinkan. Gunakan JPG, PNG, atau WEBP."
+            detail=f"Format file '{file.content_type}' tidak diizinkan. Gunakan JPG, PNG, WEBP, atau PDF."
         )
         
     # Read and validate size
@@ -39,8 +40,8 @@ async def save_upload_file(file: UploadFile, category: str) -> str:
         
     # Generate unique filename
     ext = Path(file.filename or "upload.jpg").suffix.lower()
-    if not ext or ext not in [".jpg", ".jpeg", ".png", ".webp"]:
-        ext = ".jpg"
+    if not ext or ext not in [".jpg", ".jpeg", ".png", ".webp", ".pdf"]:
+        ext = ".pdf" if file.content_type == "application/pdf" else ".jpg"
         
     unique_name = f"{category}_{uuid.uuid4().hex[:12]}{ext}"
     file_path = target_dir / unique_name

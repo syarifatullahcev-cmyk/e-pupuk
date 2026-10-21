@@ -17,7 +17,8 @@ class Settings:
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
-    # Database MySQL
+    # Database
+    DB_TYPE: str = os.getenv("DB_TYPE", "sqlite")
     MYSQL_USER: str = os.getenv("MYSQL_USER", "epupuk_user")
     MYSQL_PASSWORD: str = os.getenv("MYSQL_PASSWORD", "epupuk_pass")
     MYSQL_HOST: str = os.getenv("MYSQL_HOST", "db")
@@ -26,19 +27,22 @@ class Settings:
 
     @property
     def DATABASE_URL(self) -> str:
+        if self.DB_TYPE.lower() == "sqlite":
+            db_path = (BACKEND_DIR / "epupuk.db").resolve()
+            return f"sqlite:///{db_path}"
         return (
             f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}"
             f"@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DB}"
             f"?charset=utf8mb4"
         )
 
-    # File uploads
     UPLOAD_PATH: Path = UPLOAD_DIR
     KTP_DIR: Path = UPLOAD_DIR / "ktp"
     LAHAN_DIR: Path = UPLOAD_DIR / "lahan"
     SURVEI_DIR: Path = UPLOAD_DIR / "survei"
+    SERTIFIKAT_DIR: Path = UPLOAD_DIR / "sertifikat"
     MAX_FILE_SIZE_BYTES: int = 5 * 1024 * 1024  # 5MB
-    ALLOWED_MIME_TYPES: list = ["image/jpeg", "image/png", "image/webp"]
+    ALLOWED_MIME_TYPES: list = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
 
 settings = Settings()
 

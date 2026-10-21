@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:latlong2/latlong.dart';
+
 class LandModel {
   final int id;
   final String lokasiDeskripsi;
@@ -7,6 +10,11 @@ class LandModel {
   final double? latitude;
   final double? longitude;
   final String? fotoLahanUrl;
+  final String? dokumenSertifikatUrl;
+  final dynamic polygonCoords;
+  final double? luasVerifikasiM2;
+  final String statusVerifikasi;
+  final String? catatanVerifikasi;
   final String? namaKomoditas;
 
   LandModel({
@@ -18,8 +26,49 @@ class LandModel {
     this.latitude,
     this.longitude,
     this.fotoLahanUrl,
+    this.dokumenSertifikatUrl,
+    this.polygonCoords,
+    this.luasVerifikasiM2,
+    this.statusVerifikasi = 'BELUM_DIVERIFIKASI',
+    this.catatanVerifikasi,
     this.namaKomoditas,
   });
+
+  bool get isTerverifikasi => statusVerifikasi == 'TERVERIFIKASI';
+
+  double? get selisihLuasM2 => luasVerifikasiM2 != null ? (luasVerifikasiM2! - luasM2) : null;
+
+  List<LatLng> get parsedPolygonPoints {
+    if (polygonCoords == null) return [];
+    dynamic raw = polygonCoords;
+    if (raw is String) {
+      try {
+        raw = jsonDecode(raw);
+      } catch (_) {
+        return [];
+      }
+    }
+    if (raw is List) {
+      final List<LatLng> result = [];
+      for (var pt in raw) {
+        if (pt is List && pt.length >= 2) {
+          final lat = double.tryParse('${pt[0]}');
+          final lng = double.tryParse('${pt[1]}');
+          if (lat != null && lng != null) {
+            result.add(LatLng(lat, lng));
+          }
+        } else if (pt is Map) {
+          final lat = double.tryParse('${pt['lat'] ?? pt['latitude']}');
+          final lng = double.tryParse('${pt['lng'] ?? pt['longitude']}');
+          if (lat != null && lng != null) {
+            result.add(LatLng(lat, lng));
+          }
+        }
+      }
+      return result;
+    }
+    return [];
+  }
 
   factory LandModel.fromJson(Map<String, dynamic> json) {
     return LandModel(
@@ -31,6 +80,11 @@ class LandModel {
       latitude: json['latitude'] != null ? double.tryParse('${json['latitude']}') : null,
       longitude: json['longitude'] != null ? double.tryParse('${json['longitude']}') : null,
       fotoLahanUrl: json['foto_lahan_url'],
+      dokumenSertifikatUrl: json['dokumen_sertifikat_url'],
+      polygonCoords: json['polygon_coords'],
+      luasVerifikasiM2: json['luas_verifikasi_m2'] != null ? double.tryParse('${json['luas_verifikasi_m2']}') : null,
+      statusVerifikasi: json['status_verifikasi'] ?? 'BELUM_DIVERIFIKASI',
+      catatanVerifikasi: json['catatan_verifikasi'],
       namaKomoditas: json['commodity']?['nama_komoditas'],
     );
   }
