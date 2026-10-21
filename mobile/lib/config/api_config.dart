@@ -9,7 +9,7 @@ class ApiConfig {
     if (kIsWeb) {
       return 'http://127.0.0.1:8000/api';
     }
-    return 'http://10.0.2.2:8000/api';
+    return 'http://10.253.129.6:8000/api';
   }
 
   // Autentikasi
@@ -27,7 +27,8 @@ class ApiConfig {
   // Pengajuan Subsidi & Kuota
   static String get applicationsUrl => '$baseUrl/applications';
   static String get petaniStatsUrl => '$baseUrl/applications/stats/petani';
-  static String reviseDocsUrl(int appId) => '$baseUrl/applications/$appId/revise-docs';
+  static String reviseDocsUrl(int appId) =>
+      '$baseUrl/applications/$appId/revise-docs';
 
   // Distribusi & QR Code
   static String get myDistributionsUrl => '$baseUrl/distributions/my';
@@ -36,6 +37,8 @@ class ApiConfig {
 
   // PPL Lapangan & Survei
   static String get pplTasksUrl => '$baseUrl/ppl/assigned-tasks';
-  static String pplStartSurveyUrl(int appId) => '$baseUrl/ppl/applications/$appId/start-survey';
-  static String pplSubmitSurveyUrl(int appId) => '$baseUrl/ppl/applications/$appId/submit-survey';
+  static String pplStartSurveyUrl(int appId) =>
+      '$baseUrl/ppl/applications/$appId/start-survey';
+  static String pplSubmitSurveyUrl(int appId) =>
+      '$baseUrl/ppl/applications/$appId/submit-survey';
 }
