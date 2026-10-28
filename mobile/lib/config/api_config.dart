@@ -2,14 +2,28 @@ import 'package:flutter/foundation.dart';
 
 class ApiConfig {
   // Otomatis deteksi platform:
-  // - Di Browser Web / Chrome: http://127.0.0.1:8000/api
+  // - Di Windows / macOS / Linux Desktop & Web: http://127.0.0.1:8000/api
   // - Di Android Emulator: http://10.0.2.2:8000/api
-  // - Di HP Fisik: Ganti dengan IP Wi-Fi laptop Anda (contoh: http://192.168.1.15:8000/api)
+  // - Di HP Fisik Android: Bisa diatur IP lokal
+  static String customBaseUrl = '';
+
   static String get baseUrl {
+    if (customBaseUrl.isNotEmpty) {
+      return customBaseUrl;
+    }
     if (kIsWeb) {
       return 'http://127.0.0.1:8000/api';
     }
-    return 'http://10.253.129.6:8000/api';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'http://10.0.2.2:8000/api';
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+        return 'http://127.0.0.1:8000/api';
+      default:
+        return 'http://127.0.0.1:8000/api';
+    }
   }
 
   // Autentikasi
@@ -18,9 +32,13 @@ class ApiConfig {
   static String get profileUrl => '$baseUrl/auth/me';
 
   // Petani & Lahan
+  static String get farmersUrl => '$baseUrl/farmers';
+  static String farmerDetailUrl(int id) => '$baseUrl/farmers/$id';
+  static String farmerLandsUrl(int farmerId) => '$baseUrl/lands?farmer_id=$farmerId';
   static String get farmerProfileUrl => '$baseUrl/farmers/me';
   static String get farmerMeUrl => '$baseUrl/farmers/me';
   static String get landsUrl => '$baseUrl/lands';
+  static String landDetailUrl(int id) => '$baseUrl/lands/$id';
   static String get fertilizersUrl => '$baseUrl/fertilizers';
   static String get commoditiesUrl => '$baseUrl/commodities';
 

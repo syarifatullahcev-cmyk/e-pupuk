@@ -39,6 +39,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
   List<ApplicationModel> _applications = [];
   List<FertilizerModel> _fertilizers = [];
   List<CommodityModel> _commodities = [];
+  // ignore: unused_field
   List<DistributionModel> _distributions = [];
   List<ScanHistoryModel> _scans = [];
 

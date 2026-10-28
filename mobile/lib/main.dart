@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'config/theme.dart';
 import 'models/user_model.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/petani/petani_dashboard_screen.dart';
@@ -29,18 +30,16 @@ class EPupukApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryGreen = Color(0xFF16A34A);
-
     return MaterialApp(
       title: 'e-Pupuk Mobile',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryGreen,
-          primary: primaryGreen,
+          seedColor: AppTheme.primaryGreen,
+          primary: AppTheme.primaryGreen,
         ),
-        scaffoldBackgroundColor: Colors.white,
+        scaffoldBackgroundColor: AppTheme.background,
         fontFamily: 'sans-serif',
       ),
       home: _getHome(),
