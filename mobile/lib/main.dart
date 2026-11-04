@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'config/theme.dart';
 import 'models/user_model.dart';
-import 'screens/auth/login_screen.dart';
+import 'screens/landing/landing_screen.dart';
 import 'screens/petani/petani_dashboard_screen.dart';
 import 'screens/ppl/ppl_dashboard_screen.dart';
 import 'services/auth_service.dart';
@@ -21,7 +21,7 @@ class EPupukApp extends StatelessWidget {
   const EPupukApp({super.key, this.initialUser});
 
   Widget _getHome() {
-    if (initialUser == null) return const LoginScreen();
+    if (initialUser == null) return const LandingScreen();
     if (initialUser!.role == 'PPL') {
       return PPLDashboardScreen(user: initialUser!);
     }
