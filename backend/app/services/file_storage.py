@@ -11,6 +11,7 @@ CATEGORY_DIR_MAP = {
     "lahan": settings.LAHAN_DIR,
     "survei": settings.SURVEI_DIR,
     "sertifikat": settings.SERTIFIKAT_DIR,
+    "pupuk": settings.PUPUK_DIR,
 }
 
 async def save_upload_file(file: UploadFile, category: str) -> str:

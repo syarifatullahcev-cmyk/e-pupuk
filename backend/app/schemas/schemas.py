@@ -203,10 +203,17 @@ class FieldSurveyResponse(BaseModel):
 class ApplicationCreate(BaseModel):
     land_id: int
     fertilizer_id: int
-    jumlah_diajukan: Decimal
+    jumlah_diajukan: Decimal = Field(gt=0)
     alamat_lahan: Optional[str] = None
     latitude: Optional[Decimal] = None
     longitude: Optional[Decimal] = None
+
+    @field_validator("jumlah_diajukan")
+    @classmethod
+    def validate_bag_multiple(cls, value: Decimal) -> Decimal:
+        if value % Decimal("25") != 0:
+            raise ValueError("Jumlah pengajuan harus kelipatan 25 kg")
+        return value
 
 class ApplicationAdminVerifyRequest(BaseModel):
     action: str # APPROVE, PERBAIKAN, TOLAK
@@ -264,7 +271,7 @@ class DistributionResponse(BaseModel):
     batch_id: Optional[int] = None
     jumlah_disalurkan: Decimal
     status_penyaluran: str
-    qr_code_hash: str
+    qr_code_hash: Optional[str] = None
     tanggal_penyaluran: Optional[datetime] = None
     created_at: datetime
     application: Optional[ApplicationResponse] = None
@@ -274,8 +281,9 @@ class DistributionResponse(BaseModel):
 
 class QRScanRequest(BaseModel):
     qr_token: str
-    latitude: Optional[Decimal] = None
-    longitude: Optional[Decimal] = None
+    latitude: Decimal = Field(ge=-90, le=90)
+    longitude: Decimal = Field(ge=-180, le=180)
+    foto_pupuk_url: str = Field(min_length=1, max_length=500)
 
 class QRScanResponse(BaseModel):
     success: bool

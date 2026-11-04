@@ -81,3 +81,20 @@ def calculate_geodesic_polygon_area(coords: List[List[float]]) -> float:
 
     area_m2 = abs(total * EARTH_RADIUS_METERS * EARTH_RADIUS_METERS / 2.0)
     return round(area_m2, 2)
+
+
+def calculate_distance_meters(
+    latitude_a: float,
+    longitude_a: float,
+    latitude_b: float,
+    longitude_b: float,
+) -> float:
+    lat_a = math.radians(latitude_a)
+    lat_b = math.radians(latitude_b)
+    delta_lat = lat_b - lat_a
+    delta_lon = math.radians(longitude_b - longitude_a)
+    haversine = (
+        math.sin(delta_lat / 2) ** 2
+        + math.cos(lat_a) * math.cos(lat_b) * math.sin(delta_lon / 2) ** 2
+    )
+    return 2 * EARTH_RADIUS_METERS * math.asin(min(1.0, math.sqrt(haversine)))

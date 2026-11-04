@@ -36,7 +36,8 @@ class LandModel {
 
   bool get isTerverifikasi => statusVerifikasi == 'TERVERIFIKASI';
 
-  double? get selisihLuasM2 => luasVerifikasiM2 != null ? (luasVerifikasiM2! - luasM2) : null;
+  double? get selisihLuasM2 =>
+      luasVerifikasiM2 != null ? (luasVerifikasiM2! - luasM2) : null;
 
   List<LatLng> get parsedPolygonPoints {
     if (polygonCoords == null) return [];
@@ -74,15 +75,23 @@ class LandModel {
     return LandModel(
       id: json['id'] ?? 0,
       lokasiDeskripsi: json['lokasi_deskripsi'] ?? 'Lahan Petani',
-      luasM2: (json['luas_m2'] is num) ? (json['luas_m2'] as num).toDouble() : double.tryParse('${json['luas_m2']}') ?? 0.0,
+      luasM2: (json['luas_m2'] is num)
+          ? (json['luas_m2'] as num).toDouble()
+          : double.tryParse('${json['luas_m2']}') ?? 0.0,
       alamatLahan: json['alamat_lahan'] ?? '',
       statusKepemilikan: json['status_kepemilikan'] ?? 'MILIK',
-      latitude: json['latitude'] != null ? double.tryParse('${json['latitude']}') : null,
-      longitude: json['longitude'] != null ? double.tryParse('${json['longitude']}') : null,
+      latitude: json['latitude'] != null
+          ? double.tryParse('${json['latitude']}')
+          : null,
+      longitude: json['longitude'] != null
+          ? double.tryParse('${json['longitude']}')
+          : null,
       fotoLahanUrl: json['foto_lahan_url'],
       dokumenSertifikatUrl: json['dokumen_sertifikat_url'],
       polygonCoords: json['polygon_coords'],
-      luasVerifikasiM2: json['luas_verifikasi_m2'] != null ? double.tryParse('${json['luas_verifikasi_m2']}') : null,
+      luasVerifikasiM2: json['luas_verifikasi_m2'] != null
+          ? double.tryParse('${json['luas_verifikasi_m2']}')
+          : null,
       statusVerifikasi: json['status_verifikasi'] ?? 'BELUM_DIVERIFIKASI',
       catatanVerifikasi: json['catatan_verifikasi'],
       namaKomoditas: json['commodity']?['nama_komoditas'],
@@ -173,7 +182,9 @@ class ApplicationModel {
   factory ApplicationModel.fromJson(Map<String, dynamic> json) {
     final survey = json['survey'];
     String? surveyFoto;
-    if (survey != null && survey['foto_survei_urls'] is List && (survey['foto_survei_urls'] as List).isNotEmpty) {
+    if (survey != null &&
+        survey['foto_survei_urls'] is List &&
+        (survey['foto_survei_urls'] as List).isNotEmpty) {
       surveyFoto = survey['foto_survei_urls'][0];
     }
 
@@ -194,8 +205,11 @@ class ApplicationModel {
       createdAt: json['created_at'] ?? json['tanggal_pengajuan'],
       namaPupuk: json['fertilizer']?['nama_pupuk'],
       satuanPupuk: json['fertilizer']?['satuan'] ?? 'kg',
-      lokasiLahan: json['land']?['lokasi_deskripsi'] ?? json['land']?['alamat_lahan'],
-      luasLahan: json['land']?['luas_m2'] != null ? double.tryParse('${json['land']['luas_m2']}') : null,
+      lokasiLahan:
+          json['land']?['lokasi_deskripsi'] ?? json['land']?['alamat_lahan'],
+      luasLahan: json['land']?['luas_m2'] != null
+          ? double.tryParse('${json['land']['luas_m2']}')
+          : null,
       catatanAdminBerkas: json['catatan_admin_berkas'],
       catatanFinalAdmin: json['catatan_final_admin'],
       surveyKondisiLahan: survey?['kondisi_fisik_lahan'],
@@ -245,10 +259,19 @@ class DistributionModel {
       statusPenyaluran: json['status_penyaluran'] ?? 'MENUNGGU_PENGAMBILAN',
       qrCodeHash: json['qr_code_hash'] ?? '',
       namaPupuk: app['fertilizer']?['nama_pupuk'] ?? 'Pupuk Bersubsidi',
-      namaLahan: land['lokasi_deskripsi'] ?? land['alamat_lahan'] ?? 'Lahan Pertanian',
+      namaLahan:
+          land['lokasi_deskripsi'] ?? land['alamat_lahan'] ?? 'Lahan Pertanian',
       alamatLahan: land['alamat_lahan'],
-      latitude: app['latitude'] != null ? double.tryParse('${app['latitude']}') : (land['latitude'] != null ? double.tryParse('${land['latitude']}') : null),
-      longitude: app['longitude'] != null ? double.tryParse('${app['longitude']}') : (land['longitude'] != null ? double.tryParse('${land['longitude']}') : null),
+      latitude: land['latitude'] != null
+          ? double.tryParse('${land['latitude']}')
+          : (app['latitude'] != null
+              ? double.tryParse('${app['latitude']}')
+              : null),
+      longitude: land['longitude'] != null
+          ? double.tryParse('${land['longitude']}')
+          : (app['longitude'] != null
+              ? double.tryParse('${app['longitude']}')
+              : null),
       tanggalPenyaluran: json['tanggal_penyaluran'],
     );
   }
@@ -282,10 +305,10 @@ class DashboardStatsModel {
       totalLahan: json['total_lahan'] ?? 0,
       kuotaTersediaUrea: (json['kuota_tersedia_urea'] is num)
           ? (json['kuota_tersedia_urea'] as num).toDouble()
-          : double.tryParse('${json['kuota_tersedia_urea']}') ?? 500.0,
+          : double.tryParse('${json['kuota_tersedia_urea']}') ?? 0.0,
       kuotaTersediaNpk: (json['kuota_tersedia_npk'] is num)
           ? (json['kuota_tersedia_npk'] as num).toDouble()
-          : double.tryParse('${json['kuota_tersedia_npk']}') ?? 400.0,
+          : double.tryParse('${json['kuota_tersedia_npk']}') ?? 0.0,
     );
   }
 }
@@ -334,8 +357,9 @@ class ScanHistoryModel {
   final double jumlahKg;
   final String namaLahan;
   final String alamatLahan;
-  final double latitude;
-  final double longitude;
+  final double? latitude;
+  final double? longitude;
+  final String? fotoPupukUrl;
   final String statusPembukaan;
   final String statusValidasi;
 
@@ -350,6 +374,7 @@ class ScanHistoryModel {
     required this.alamatLahan,
     required this.latitude,
     required this.longitude,
+    this.fotoPupukUrl,
     required this.statusPembukaan,
     required this.statusValidasi,
   });
@@ -361,11 +386,18 @@ class ScanHistoryModel {
       waktu: json['waktu'] ?? '-',
       jenisPupuk: json['jenis_pupuk'] ?? 'Pupuk Bersubsidi',
       jumlahPupuk: json['jumlah_pupuk'] ?? '0 kg',
-      jumlahKg: (json['jumlah_kg'] is num) ? (json['jumlah_kg'] as num).toDouble() : double.tryParse('${json['jumlah_kg']}') ?? 0.0,
+      jumlahKg: (json['jumlah_kg'] is num)
+          ? (json['jumlah_kg'] as num).toDouble()
+          : double.tryParse('${json['jumlah_kg']}') ?? 0.0,
       namaLahan: json['nama_lahan'] ?? 'Lahan Pertanian',
       alamatLahan: json['alamat_lahan'] ?? '-',
-      latitude: (json['latitude'] is num) ? (json['latitude'] as num).toDouble() : double.tryParse('${json['latitude']}') ?? -7.531234,
-      longitude: (json['longitude'] is num) ? (json['longitude'] as num).toDouble() : double.tryParse('${json['longitude']}') ?? 112.551234,
+      latitude: (json['latitude'] is num)
+          ? (json['latitude'] as num).toDouble()
+          : double.tryParse('${json['latitude']}'),
+      longitude: (json['longitude'] is num)
+          ? (json['longitude'] as num).toDouble()
+          : double.tryParse('${json['longitude']}'),
+      fotoPupukUrl: json['foto_pupuk_url'],
       statusPembukaan: json['status_pembukaan'] ?? 'Pembukaan Berhasil',
       statusValidasi: json['status_validasi'] ?? 'VALID',
     );

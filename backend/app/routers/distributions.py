@@ -1,9 +1,13 @@
 import datetime
+import json
+from pathlib import Path
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, log_audit_action
+from app.core.config import settings
+from app.core.geo import calculate_distance_meters
 from app.models.models import (
     User, Farmer, Application, ApplicationStatus, Distribution,
     QRScan, Notification
@@ -13,12 +17,66 @@ from app.schemas.schemas import (
 )
 
 router = APIRouter(tags=["Distributions & QR Scanner"])
+GEOFENCE_RADIUS_METERS = 100
+
+
+def _point_in_polygon(latitude: float, longitude: float, raw_polygon: str) -> bool:
+    try:
+        polygon = json.loads(raw_polygon)
+    except (TypeError, json.JSONDecodeError):
+        return False
+    if not isinstance(polygon, list) or len(polygon) < 3:
+        return False
+
+    inside = False
+    previous = polygon[-1]
+    for current in polygon:
+        try:
+            current_lat, current_lon = float(current[0]), float(current[1])
+            previous_lat, previous_lon = float(previous[0]), float(previous[1])
+        except (TypeError, ValueError, IndexError):
+            return False
+        crosses = (current_lat > latitude) != (previous_lat > latitude)
+        if crosses:
+            intersection_lon = (
+                (previous_lon - current_lon)
+                * (latitude - current_lat)
+                / (previous_lat - current_lat)
+                + current_lon
+            )
+            if longitude < intersection_lon:
+                inside = not inside
+        previous = current
+    return inside
+
+
+def _location_matches_land(
+    latitude: float,
+    longitude: float,
+    land: object,
+) -> bool:
+    polygon = getattr(land, "polygon_coords", None)
+    if polygon and _point_in_polygon(latitude, longitude, polygon):
+        return True
+
+    land_latitude = getattr(land, "latitude", None)
+    land_longitude = getattr(land, "longitude", None)
+    if land_latitude is None or land_longitude is None:
+        return False
+    return calculate_distance_meters(
+        latitude,
+        longitude,
+        float(land_latitude),
+        float(land_longitude),
+    ) <= GEOFENCE_RADIUS_METERS
 
 @router.get("/api/distributions/my", response_model=List[DistributionResponse])
 def get_my_distributions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if current_user.role != "PETANI":
+        raise HTTPException(status_code=403, detail="Hanya petani yang dapat melihat QR miliknya")
     farmer = db.query(Farmer).filter(Farmer.user_id == current_user.id).first()
     if not farmer:
         return []
@@ -38,13 +96,42 @@ def scan_and_redeem_qr(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    dist = db.query(Distribution).filter(Distribution.qr_code_hash == data.qr_token.strip()).first()
+    if current_user.role != "PETANI":
+        raise HTTPException(status_code=403, detail="Hanya petani yang dapat memindai QR pupuk")
+
+    photo_path = data.foto_pupuk_url.removeprefix("/files/pupuk/")
+    if (
+        not data.foto_pupuk_url.startswith("/files/pupuk/")
+        or not photo_path
+        or Path(photo_path).name != photo_path
+        or not (settings.PUPUK_DIR / photo_path).is_file()
+    ):
+        raise HTTPException(status_code=400, detail="Foto pupuk wajib diunggah sebelum pemindaian")
+
+    farmer = db.query(Farmer).filter(Farmer.user_id == current_user.id).first()
+    if not farmer:
+        raise HTTPException(status_code=403, detail="Profil petani tidak ditemukan")
+
+    dist = (
+        db.query(Distribution)
+        .options(
+            joinedload(Distribution.application).joinedload(Application.land),
+            joinedload(Distribution.application).joinedload(Application.farmer),
+            joinedload(Distribution.batch),
+        )
+        .filter(Distribution.qr_code_hash == data.qr_token.strip())
+        .with_for_update()
+        .first()
+    )
     if not dist:
         return QRScanResponse(
             success=False,
             status="INVALID",
             message="Kode QR tidak ditemukan atau tidak valid."
         )
+
+    if not dist.application or dist.application.farmer_id != farmer.id:
+        raise HTTPException(status_code=403, detail="QR ini bukan milik pengajuan Anda")
 
     if dist.status_penyaluran == "SELESAI":
         return QRScanResponse(
@@ -54,30 +141,67 @@ def scan_and_redeem_qr(
             distribution=dist
         )
 
-    # Mark as collected
+    if dist.status_penyaluran != "MENUNGGU_PENGAMBILAN":
+        raise HTTPException(status_code=400, detail="QR ini tidak aktif untuk pembukaan pupuk")
+
+    if dist.batch and dist.batch.expired_date < datetime.date.today():
+        return QRScanResponse(
+            success=False,
+            status="EXPIRED",
+            message="Masa berlaku pupuk pada karung ini telah habis.",
+            distribution=dist,
+        )
+
+    land = dist.application.land
+    latitude = float(data.latitude)
+    longitude = float(data.longitude)
+    location_matches = land is not None and _location_matches_land(
+        latitude,
+        longitude,
+        land,
+    )
+    if not location_matches:
+        db.add(QRScan(
+            distribution_id=dist.id,
+            scanner_user_id=current_user.id,
+            latitude=data.latitude,
+            longitude=data.longitude,
+            foto_pupuk_url=data.foto_pupuk_url,
+            validation_status="INVALID",
+        ))
+        db.commit()
+        return QRScanResponse(
+            success=False,
+            status="INVALID",
+            message="Lokasi GPS tidak sesuai dengan lahan terdaftar.",
+            distribution=dist,
+        )
+
     dist.status_penyaluran = "SELESAI"
     dist.tanggal_penyaluran = datetime.datetime.now()
 
-    # Update application status
-    if dist.application:
+    unfinished_bags = db.query(Distribution).filter(
+        Distribution.application_id == dist.application_id,
+        Distribution.status_penyaluran == "MENUNGGU_PENGAMBILAN",
+    ).count()
+    if unfinished_bags == 0:
         dist.application.status = ApplicationStatus.TERSALURKAN
 
-    # Record scan
     scan = QRScan(
         distribution_id=dist.id,
         scanner_user_id=current_user.id,
         latitude=data.latitude,
         longitude=data.longitude,
+        foto_pupuk_url=data.foto_pupuk_url,
         validation_status="VALID"
     )
     db.add(scan)
 
-    # Notify farmer
     if dist.application and dist.application.farmer:
         db.add(Notification(
             user_id=dist.application.farmer.user_id,
             judul="Pembukaan Pupuk di Lahan Berhasil",
-            pesan=f"Validasi lokasi GPS berhasil! Penggunaan pupuk bersubsidi sejumlah {dist.jumlah_disalurkan} kg telah tercatat di lahan terdaftar.",
+            pesan=f"Pembukaan karung {dist.jumlah_disalurkan} kg berhasil divalidasi di lahan terdaftar.",
             tipe="SUCCESS"
         ))
 
@@ -105,6 +229,8 @@ def get_my_scans(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if current_user.role != "PETANI":
+        raise HTTPException(status_code=403, detail="Hanya petani yang dapat melihat riwayat pemindaian")
     farmer = db.query(Farmer).filter(Farmer.user_id == current_user.id).first()
     if not farmer:
         return []
@@ -133,8 +259,9 @@ def get_my_scans(
             "jumlah_kg": float(dist.jumlah_disalurkan) if dist else 0,
             "nama_lahan": (app.land.lokasi_deskripsi or app.land.alamat_lahan) if (app and app.land) else "Lahan Pertanian Terdaftar",
             "alamat_lahan": app.land.alamat_lahan if (app and app.land) else "-",
-            "latitude": float(s.latitude) if s.latitude else (float(app.latitude) if app and app.latitude else -7.531234),
-            "longitude": float(s.longitude) if s.longitude else (float(app.longitude) if app and app.longitude else 112.551234),
+            "latitude": float(s.latitude) if s.latitude is not None else None,
+            "longitude": float(s.longitude) if s.longitude is not None else None,
+            "foto_pupuk_url": s.foto_pupuk_url,
             "status_pembukaan": "Pembukaan Berhasil",
             "status_validasi": s.validation_status or "VALID",
             "verifikasi_lokasi": "Lokasi sesuai dengan lahan terdaftar"
@@ -160,7 +287,8 @@ def mark_notification_read(
         Notification.id == id,
         Notification.user_id == current_user.id
     ).first()
-    if notif:
-        notif.is_read = True
-        db.commit()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notifikasi tidak ditemukan")
+    notif.is_read = True
+    db.commit()
     return {"message": "Notifikasi ditandai dibaca"}

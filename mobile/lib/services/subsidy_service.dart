@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../models/subsidy_models.dart';
@@ -8,6 +10,151 @@ class SubsidyService {
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('jwt_token');
+  }
+
+  static Future<String?> getAccountEmail() async {
+    final token = await _getToken();
+    if (token == null) return null;
+
+    final response = await http.get(
+      Uri.parse(ApiConfig.profileUrl),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Gagal memuat email akun (${response.statusCode}).');
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return data['email'] as String?;
+  }
+
+  static Future<Map<String, dynamic>> uploadImage(
+    XFile image,
+    String category,
+  ) async {
+    final token = await _getToken();
+    if (token == null) {
+      return {'success': false, 'message': 'Sesi login telah berakhir.'};
+    }
+
+    final extension = image.name.split('.').last.toLowerCase();
+    final subtype = switch (extension) {
+      'png' => 'png',
+      'webp' => 'webp',
+      'jpg' || 'jpeg' => 'jpeg',
+      _ => null,
+    };
+    if (subtype == null) {
+      return {
+        'success': false,
+        'message': 'Pilih gambar JPG, PNG, atau WEBP.',
+      };
+    }
+
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiConfig.baseUrl}/files/upload'),
+      )
+        ..headers['Authorization'] = 'Bearer $token'
+        ..fields['category'] = category
+        ..files.add(
+          http.MultipartFile.fromBytes(
+            'file',
+            await image.readAsBytes(),
+            filename: image.name,
+            contentType: MediaType('image', subtype),
+          ),
+        );
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200) {
+        final url = data['url'];
+        if (url is String && url.isNotEmpty) {
+          return {'success': true, 'url': url};
+        }
+        return {
+          'success': false,
+          'message': 'Server tidak mengembalikan URL foto.',
+        };
+      }
+      return {
+        'success': false,
+        'message': data['detail'] ?? 'Gagal mengunggah foto.',
+      };
+    } catch (error) {
+      return {'success': false, 'message': 'Gagal mengunggah foto: $error'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateFarmerPhoto(
+    int farmerId,
+    String photoUrl,
+  ) async {
+    final token = await _getToken();
+    if (token == null) {
+      return {'success': false, 'message': 'Sesi login telah berakhir.'};
+    }
+
+    try {
+      final response = await http.put(
+        Uri.parse(ApiConfig.farmerDetailUrl(farmerId)),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'foto_ktp_url': photoUrl}),
+      );
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data};
+      }
+      return {
+        'success': false,
+        'message': data['detail'] ?? 'Gagal menyimpan foto KTP.',
+      };
+    } catch (error) {
+      return {'success': false, 'message': 'Gagal menyimpan foto KTP: $error'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateLandDocuments({
+    required int landId,
+    required String? fotoLahanUrl,
+    required String? dokumenSertifikatUrl,
+  }) async {
+    final token = await _getToken();
+    if (token == null) {
+      return {'success': false, 'message': 'Sesi login telah berakhir.'};
+    }
+
+    try {
+      final response = await http.put(
+        Uri.parse(ApiConfig.landDetailUrl(landId)),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': '******',
+        },
+        body: jsonEncode({
+          'foto_lahan_url': fotoLahanUrl,
+          'dokumen_sertifikat_url': dokumenSertifikatUrl,
+        }),
+      );
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': data};
+      }
+      return {
+        'success': false,
+        'message': data['detail'] ?? 'Gagal menyimpan dokumen lahan.',
+      };
+    } catch (error) {
+      return {
+        'success': false,
+        'message': 'Gagal menyimpan dokumen lahan: $error',
+      };
+    }
   }
 
   // 1. Ambil Profil Detail Petani (NIK, Poktan, Alamat, Foto KTP)
@@ -113,8 +260,8 @@ class SubsidyService {
           'alamat_lahan': alamatLahan,
           'status_kepemilikan': statusKepemilikan,
           'commodity_id': commodityId,
-          'latitude': latitude ?? -7.531234,
-          'longitude': longitude ?? 112.551234,
+          'latitude': latitude,
+          'longitude': longitude,
           'foto_lahan_url': fotoLahanUrl,
           'dokumen_sertifikat_url': dokumenSertifikatUrl,
           'polygon_coords': polygonCoords,
@@ -123,9 +270,16 @@ class SubsidyService {
 
       final responseData = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return {'success': true, 'message': 'Lahan pertanian berhasil didaftarkan!', 'data': responseData};
+        return {
+          'success': true,
+          'message': 'Lahan pertanian berhasil didaftarkan!',
+          'data': responseData
+        };
       } else {
-        return {'success': false, 'message': responseData['detail'] ?? 'Gagal mendaftarkan lahan.'};
+        return {
+          'success': false,
+          'message': responseData['detail'] ?? 'Gagal mendaftarkan lahan.'
+        };
       }
     } catch (e) {
       return {'success': false, 'message': 'Kesalahan jaringan: $e'};
@@ -305,10 +459,40 @@ class SubsidyService {
   }
 
   // 11. Validasi & Scan QR Karung Pupuk Fisik (Geofencing GPS)
+  static Future<Map<String, dynamic>> uploadPupukPhoto(String imagePath) async {
+    final token = await _getToken();
+    if (token == null) {
+      return {'success': false, 'message': 'Sesi login telah berakhir.'};
+    }
+
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('${ApiConfig.baseUrl}/files/upload'),
+      )
+        ..headers['Authorization'] = 'Bearer $token'
+        ..fields['category'] = 'pupuk'
+        ..files.add(await http.MultipartFile.fromPath('file', imagePath));
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final responseData = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return {'success': true, 'url': responseData['url']};
+      }
+      return {
+        'success': false,
+        'message': responseData['detail'] ?? 'Gagal mengunggah foto karung.',
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Gagal mengunggah foto: $e'};
+    }
+  }
+
   static Future<Map<String, dynamic>> scanQrBag({
     required String qrToken,
     required double latitude,
     required double longitude,
+    required String fotoPupukUrl,
   }) async {
     final token = await _getToken();
     if (token == null) {
@@ -326,6 +510,7 @@ class SubsidyService {
           'qr_token': qrToken.trim(),
           'latitude': latitude,
           'longitude': longitude,
+          'foto_pupuk_url': fotoPupukUrl,
         }),
       );
 
@@ -334,7 +519,8 @@ class SubsidyService {
         return {
           'success': responseData['success'] ?? true,
           'status': responseData['status'] ?? 'VALID',
-          'message': responseData['message'] ?? 'Pembukaan pupuk berhasil dicatat.',
+          'message':
+              responseData['message'] ?? 'Pembukaan pupuk berhasil dicatat.',
           'distribution': responseData['distribution'],
         };
       } else {
@@ -360,23 +546,34 @@ class SubsidyService {
     }
 
     try {
-      final response = await http.post(
-        Uri.parse(ApiConfig.reviseDocsUrl(applicationId)),
+      final queryParameters = <String, String>{};
+      if (fotoKtpUrl != null) {
+        queryParameters['foto_ktp_url'] = fotoKtpUrl;
+      }
+      if (fotoLahanUrl != null) {
+        queryParameters['foto_lahan_url'] = fotoLahanUrl;
+      }
+      final uri = Uri.parse(ApiConfig.reviseDocsUrl(applicationId))
+          .replace(queryParameters: queryParameters);
+      final response = await http.put(
+        uri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'foto_ktp_url': fotoKtpUrl,
-          'foto_lahan_url': fotoLahanUrl,
-        }),
       );
 
       final responseData = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {'success': true, 'message': 'Perbaikan berkas berhasil diunggah!'};
+        return {
+          'success': true,
+          'message': 'Perbaikan berkas berhasil diunggah!'
+        };
       } else {
-        return {'success': false, 'message': responseData['detail'] ?? 'Gagal memperbarui berkas.'};
+        return {
+          'success': false,
+          'message': responseData['detail'] ?? 'Gagal memperbarui berkas.'
+        };
       }
     } catch (e) {
       return {'success': false, 'message': 'Kesalahan jaringan: $e'};

@@ -5,8 +5,9 @@ import {
   Eye, MapPin, Tractor, Plus, SlidersHorizontal,
   RefreshCw, ShieldAlert, Users, LandPlot,
   PackageCheck, BarChart3, ClipboardList, UserCog, Database,
-  Search, LayoutGrid, History, TrendingUp
+  Search, LayoutGrid, History, TrendingUp, QrCode
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { adminApi, applicationsApi, farmersApi, landsApi } from '../services/api';
 import KPICard from '../components/KPICard';
@@ -20,6 +21,7 @@ const ADMIN_TAB_PATHS = {
   verifikasi: '/admin/verifikasi',
   penugasan: '/admin/penugasan',
   approval: '/admin/approval',
+  qr: '/admin/qr',
   petani: '/admin/petani',
   lahan: '/admin/lahan',
   monitoring: '/admin/monitoring',
@@ -36,6 +38,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [applications, setApplications] = useState([]);
+  const [distributions, setDistributions] = useState([]);
   const [pplOfficers, setPplOfficers] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [farmersList, setFarmersList] = useState([]);
@@ -70,13 +73,14 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [sRes, aRes, pRes, lRes, fRes, landRes] = await Promise.all([
+      const [sRes, aRes, pRes, lRes, fRes, landRes, dRes] = await Promise.all([
         adminApi.getStats(),
         applicationsApi.getAll(),
         adminApi.getPplOfficers(),
         adminApi.getAuditLogs(),
         farmersApi.getAll(),
         landsApi.getAll(),
+        adminApi.getDistributions(),
       ]);
 
       const applicationsData = Array.isArray(aRes?.data) ? aRes.data : [];
@@ -84,6 +88,7 @@ export default function AdminDashboard() {
       const auditData = Array.isArray(lRes?.data) ? lRes.data : [];
       const farmerData = Array.isArray(fRes?.data) ? fRes.data : [];
       const landData = Array.isArray(landRes?.data) ? landRes.data : [];
+      const distributionData = Array.isArray(dRes?.data) ? dRes.data : [];
 
       setStats(sRes?.data || {});
       setApplications(applicationsData);
@@ -91,6 +96,7 @@ export default function AdminDashboard() {
       setAuditLogs(auditData);
       setFarmersList(farmerData);
       setLandsList(landData);
+      setDistributions(distributionData);
 
       if (pplData.length > 0) {
         setSelectedPplId(String(pplData[0].id));
@@ -190,6 +196,7 @@ export default function AdminDashboard() {
     { id: 'verifikasi', label: 'Verifikasi Berkas', icon: FileText, count: pendingVerifyApps.length },
     { id: 'penugasan', label: 'Penugasan PPL', icon: UserCheck, count: pendingAssignApps.length },
     { id: 'approval', label: 'Persetujuan Akhir', icon: Award, count: pendingFinalApps.length },
+    { id: 'qr', label: 'QR Karung Pupuk', icon: QrCode },
     { id: 'petani', label: 'Data Petani', icon: Users },
     { id: 'lahan', label: 'Data Lahan', icon: LandPlot },
     { id: 'monitoring', label: 'Monitoring', icon: BarChart3 },
@@ -247,6 +254,11 @@ export default function AdminDashboard() {
       const parsedKg = approvedKg !== '' && approvedKg !== null && approvedKg !== undefined
         ? parseFloat(String(approvedKg).replace(',', '.'))
         : null;
+
+      if (action === 'APPROVE' && (!Number.isFinite(parsedKg) || parsedKg <= 0 || parsedKg % 25 !== 0)) {
+        toast.error('Jumlah persetujuan harus kelipatan 25 kg (satu QR untuk satu karung).', { id: toastId });
+        return;
+      }
 
       await adminApi.finalApprove(selectedApp.id, {
         action,
@@ -325,8 +337,8 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 pb-16">
-      <aside className="hidden lg:flex lg:w-60 shrink-0 flex-col self-start sticky top-24 bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs">
+    <div className={`flex flex-col lg:flex-row gap-6 pb-16 ${activeTab === 'qr' ? 'qr-print-active' : ''}`}>
+      <aside className="qr-print-sidebar hidden lg:flex lg:w-60 shrink-0 flex-col self-start sticky top-24 bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs">
         <div className="px-3 py-2 mb-2 border-b border-slate-100">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">RUANG KERJA</p>
           <p className="text-sm font-black text-slate-900 mt-0.5 mb-1">Admin Dinas</p>
@@ -335,6 +347,7 @@ export default function AdminDashboard() {
           {[
             ['UTAMA', ['dashboard']],
             ['PENGAJUAN', ['verifikasi', 'penugasan', 'approval']],
+            ['DISTRIBUSI', ['qr']],
             ['DATA', ['petani', 'lahan']],
             ['MONITORING', ['monitoring', 'laporan']],
             ['SISTEM', ['pengguna', 'audit']],
@@ -370,7 +383,7 @@ export default function AdminDashboard() {
       </aside>
 
       <div className="min-w-0 flex-1 space-y-6">
-        <div className="lg:hidden">
+        <div className="qr-print-button lg:hidden">
           <label htmlFor="admin-section" className="sr-only">Bagian dashboard admin</label>
           <select id="admin-section" value={activeTab} onChange={(event) => navigateToAdminTab(event.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 outline-hidden focus:border-emerald-500">
             {adminMenu.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
@@ -531,6 +544,54 @@ export default function AdminDashboard() {
                 </section>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'qr' && (
+          <div className="qr-print-content space-y-5">
+            <style>{`
+              @media print {
+                .qr-print-active { display: block !important; padding: 0 !important; }
+                .qr-print-sidebar, .qr-print-button, .qr-print-action { display: none !important; }
+                .qr-print-grid { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+                .qr-print-card { break-inside: avoid; border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
+              }
+            `}</style>
+            <div className="flex flex-col gap-3 rounded-2xl bg-slate-950 p-6 text-white sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-black">QR Karung Pupuk</h1>
+                <p className="mt-1 text-sm text-slate-300">Satu QR unik untuk setiap karung 25 kg yang telah dialokasikan.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="qr-print-action inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-400"
+              >
+                <QrCode className="h-4 w-4" /> Cetak QR Aktif
+              </button>
+            </div>
+            <div className="qr-print-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {distributions.filter((distribution) =>
+                distribution.status_penyaluran === 'MENUNGGU_PENGAMBILAN' && distribution.qr_code_hash
+              ).map((distribution) => (
+                <article key={distribution.id} className="qr-print-card flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <QRCodeSVG value={distribution.qr_code_hash} size={112} level="M" />
+                  <div className="min-w-0">
+                    <p className="font-black text-slate-900">Pengajuan #{distribution.application_id}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-700">{distribution.application?.farmer?.nama || 'Petani'}</p>
+                    <p className="text-xs text-slate-500">{distribution.application?.fertilizer?.nama_pupuk || 'Pupuk'} · 25 kg</p>
+                    <p className="mt-2 break-all font-mono text-[10px] text-slate-400">{distribution.qr_code_hash}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+            {distributions.every((distribution) =>
+              distribution.status_penyaluran !== 'MENUNGGU_PENGAMBILAN' || !distribution.qr_code_hash
+            ) && (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+                Belum ada QR karung yang menunggu penyaluran.
+              </div>
+            )}
           </div>
         )}
 
@@ -1576,11 +1637,18 @@ export default function AdminDashboard() {
               const ktpUrl = selectedApp.foto_ktp_snapshot_url || farmer?.foto_ktp_url;
               const landPhotoUrl = selectedApp.foto_lahan_snapshot_url || land?.foto_lahan_url;
               const needsRevision = selectedApp.status === 'PERLU_PERBAIKAN_BERKAS';
+              const documentsUpdated = selectedApp.catatan_admin_berkas?.includes('diperbarui oleh petani');
               const documentStatus = (url) => (
-                needsRevision ? 'Perlu Perbaikan' : url ? 'Lengkap' : 'Belum Ada'
+                needsRevision
+                  ? 'Perlu Perbaikan'
+                  : documentsUpdated
+                    ? 'Menunggu Tinjau Ulang'
+                    : url
+                      ? 'Lengkap'
+                      : 'Belum Ada'
               );
               const statusClass = (url) => (
-                needsRevision
+                needsRevision || documentsUpdated
                   ? 'bg-amber-50 text-amber-700 border-amber-200'
                   : url
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -1600,6 +1668,11 @@ export default function AdminDashboard() {
 
               return (
                 <div className="space-y-4">
+                  {documentsUpdated && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                      Dokumen diperbarui oleh petani. Periksa foto terbaru sebelum memutuskan verifikasi berkas.
+                    </div>
+                  )}
                   <section className="rounded-xl border border-slate-200 p-4 space-y-2">
                     <h4 className="text-xs font-bold uppercase tracking-wide text-slate-700">Data Pemohon</h4>
                     <p className="text-xs text-slate-600">
@@ -1690,7 +1763,7 @@ export default function AdminDashboard() {
                           <div className="flex items-center justify-between gap-2">
                             <h4 className="text-xs font-bold uppercase tracking-wide text-slate-700">Dokumen Sertifikat Tanah / SPPT PBB</h4>
                             <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${statusClass(sertifikatUrl)}`}>
-                              {sertifikatUrl ? 'Tersedia' : 'Belum Ada'}
+                              {documentStatus(sertifikatUrl)}
                             </span>
                           </div>
                           {sertifikatUrl ? (
@@ -1947,12 +2020,14 @@ export default function AdminDashboard() {
               </label>
               <input
                 type="number"
+                min="25"
+                step="25"
                 value={approvedKg}
                 onChange={(e) => setApprovedKg(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:border-purple-500 outline-hidden"
               />
               <span className="text-[10px] text-slate-400 mt-0.5 block">
-                Permintaan awal: {selectedApp.jumlah_diajukan} kg
+                Permintaan awal: {selectedApp.jumlah_diajukan} kg. Masukkan kelipatan 25 kg; setiap karung memiliki QR unik.
               </span>
             </div>
 

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { 
-  LayoutDashboard, User, Tractor, MapPin, Calendar, FileText, QrCode, 
+  LayoutDashboard, User, Tractor, MapPin, Calendar, FileText,
   AlertTriangle, RefreshCw, Eye, CheckCircle2, ChevronRight,
   ShieldCheck, ArrowUpRight, Sparkles, X, Map, Download, Plus,
   PieChart, History, PlusCircle, LogOut, Check, Layers, PackageCheck,
@@ -10,7 +11,7 @@ import {
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { 
-  applicationsApi, farmersApi, landsApi, distributionsApi 
+  applicationsApi, farmersApi, landsApi, distributionsApi, filesApi
 } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import KPICard from '../components/KPICard';
@@ -67,6 +68,10 @@ export default function PetaniDashboard() {
   const [selectedHistoryDetail, setSelectedHistoryDetail] = useState(null);
   const [selectedApp, setSelectedApp] = useState(null);
   const [isEditingKtp, setIsEditingKtp] = useState(false);
+  const [isEditingLandDocuments, setIsEditingLandDocuments] = useState(false);
+  const [landPhotoDraft, setLandPhotoDraft] = useState('');
+  const [certificateDraft, setCertificateDraft] = useState('');
+  const [isSavingLandDocuments, setIsSavingLandDocuments] = useState(false);
 
   // Lightbox / Photo Viewer Modal
   const [viewerPhoto, setViewerPhoto] = useState({
@@ -84,8 +89,8 @@ export default function PetaniDashboard() {
     fertilizer_id: '',
     jumlah_diajukan: '',
     alamat_lahan: '',
-    latitude: -7.531234,
-    longitude: 112.551234,
+    latitude: null,
+    longitude: null,
   });
 
   // Add Land Form State
@@ -95,9 +100,10 @@ export default function PetaniDashboard() {
     commodity_id: '',
     alamat_lahan: '',
     status_kepemilikan: 'MILIK',
-    latitude: -7.531234,
-    longitude: 112.551234,
+    latitude: null,
+    longitude: null,
     foto_lahan_url: '',
+    dokumen_sertifikat_url: '',
   });
 
   // Revise Documents Form State
@@ -111,7 +117,9 @@ export default function PetaniDashboard() {
   const [pembukaanStep, setPembukaanStep] = useState('select');
   const [selectedAllocation, setSelectedAllocation] = useState(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
-  const [manualInputId, setManualInputId] = useState('');
+  const [pupukPhotoFile, setPupukPhotoFile] = useState(null);
+  const [scannerError, setScannerError] = useState(null);
+  const handleScanBagIdRef = useRef(null);
   const [scannedBag, setScannedBag] = useState(null);
   const [qrValidation, setQrValidation] = useState({
     isScanned: false,
@@ -122,16 +130,9 @@ export default function PetaniDashboard() {
   });
 
   // GPS State
-  const [currentGps, setCurrentGps] = useState({
-    latitude: -7.531234,
-    longitude: 112.551234,
-    accuracy: 12,
-    timestamp: 'Baru saja',
-  });
+  const [currentGps, setCurrentGps] = useState(null);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState(null);
-  const [isSimulatedAtLand, setIsSimulatedAtLand] = useState(true); // default true for demo convenience
-  const [simulatedCustomDistance, setSimulatedCustomDistance] = useState(18); // default 18m
   const [isProcessingOpen, setIsProcessingOpen] = useState(false);
   const [openSuccessState, setOpenSuccessState] = useState(null); // stores final success data
 
@@ -171,8 +172,8 @@ export default function PetaniDashboard() {
             || distribution.application?.land?.alamat_lahan
             || 'Lahan belum tersedia',
           alamat_lahan: distribution.application?.land?.alamat_lahan || 'Alamat lahan belum tersedia',
-          latitude: distribution.application?.latitude,
-          longitude: distribution.application?.longitude,
+          latitude: distribution.application?.land?.latitude ?? distribution.application?.latitude,
+          longitude: distribution.application?.land?.longitude ?? distribution.application?.longitude,
           status: distribution.status_penyaluran,
         })));
 
@@ -181,8 +182,8 @@ export default function PetaniDashboard() {
           ...prev,
           land_id: landsRes.data[0].id,
           alamat_lahan: landsRes.data[0].alamat_lahan,
-          latitude: landsRes.data[0].latitude || -7.531234,
-          longitude: landsRes.data[0].longitude || 112.551234,
+          latitude: landsRes.data[0].latitude ?? null,
+          longitude: landsRes.data[0].longitude ?? null,
         }));
       }
       if (fertsRes.data && fertsRes.data.length > 0) {
@@ -207,6 +208,46 @@ export default function PetaniDashboard() {
     return () => window.removeEventListener('focus', refreshOnFocus);
   }, []);
 
+  useEffect(() => {
+    if (activeNav !== 'pembukaan' || pembukaanStep !== 'scan' || !isScannerActive) return undefined;
+    const element = document.getElementById('petani-qr-reader');
+    if (!element) return undefined;
+    const scanner = new Html5Qrcode('petani-qr-reader');
+    let disposed = false;
+    let hasDecoded = false;
+    scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 240, height: 240 } },
+      (decodedText) => {
+        if (disposed || hasDecoded) return;
+        hasDecoded = true;
+        setIsScannerActive(false);
+        handleScanBagIdRef.current?.(decodedText);
+      },
+      () => {},
+    ).then(() => {
+      if (disposed && scanner.isScanning) {
+        return scanner.stop().then(() => scanner.clear());
+      }
+      return undefined;
+    }).catch((error) => {
+      if (!disposed) {
+        console.error('Unable to start QR camera:', error);
+        setScannerError('Kamera tidak dapat dibuka. Izinkan akses kamera dan coba lagi.');
+        setIsScannerActive(false);
+      }
+    });
+
+    return () => {
+      disposed = true;
+      if (scanner.isScanning) {
+        scanner.stop()
+          .then(() => scanner.clear())
+          .catch((error) => console.error('Unable to stop QR camera:', error));
+      }
+    };
+  }, [activeNav, pembukaanStep, isScannerActive]);
+
   // Handle Geolocation from Browser / Device
   const requestRealGps = () => {
     setGpsLoading(true);
@@ -228,7 +269,6 @@ export default function PetaniDashboard() {
           accuracy: acc,
           timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' WIB',
         });
-        setIsSimulatedAtLand(false);
         setGpsLoading(false);
         toast.success(`GPS Terdeteksi: Lat ${lat}, Lng ${lng} (Akurasi: ±${acc}m)`);
       },
@@ -248,37 +288,41 @@ export default function PetaniDashboard() {
   // Target Land Coordinates (First land or selected application land)
   const targetLand = lands[0] || null;
 
-  const targetLandLat = targetLand?.latitude || null;
-  const targetLandLon = targetLand?.longitude || null;
+  // GPS evidence must be checked against the selected allocation's land.
+  const activeAllocLat = selectedAllocation?.latitude ?? null;
+  const activeAllocLon = selectedAllocation?.longitude ?? null;
+  const hasActiveLandCoordinates = activeAllocLat !== null
+    && activeAllocLon !== null
+    && Number.isFinite(Number(activeAllocLat))
+    && Number.isFinite(Number(activeAllocLon));
 
-  // Use selectedAllocation land coords (or fall back to first land)
-  const activeAllocLat = selectedAllocation?.latitude || targetLandLat;
-  const activeAllocLon = selectedAllocation?.longitude || targetLandLon;
-
-  const realDistanceToAlloc = calculateHaversineMeters(
-    currentGps.latitude, currentGps.longitude,
-    activeAllocLat, activeAllocLon
-  );
-  const displayedDistance = isSimulatedAtLand ? simulatedCustomDistance : realDistanceToAlloc;
-  const isLocationValid = displayedDistance <= 100; // 100m radius threshold
+  const displayedDistance = currentGps && hasActiveLandCoordinates
+    ? calculateHaversineMeters(
+      currentGps.latitude,
+      currentGps.longitude,
+      activeAllocLat,
+      activeAllocLon,
+    )
+    : null;
+  const isLocationValid = Boolean(currentGps);
 
   // Reset pembukaan flow to initial state
   const resetPembukaanFlow = () => {
     setPembukaanStep('select');
     setSelectedAllocation(null);
     setIsScannerActive(false);
-    setManualInputId('');
+    setPupukPhotoFile(null);
+    setCurrentGps(null);
     setScannedBag(null);
     setQrValidation({ isScanned: false, isValidQr: false, isAlreadyUsed: false, isAllocationMatch: true, message: '' });
     setOpenSuccessState(null);
-    setIsSimulatedAtLand(true);
-    setSimulatedCustomDistance(18);
     setGpsError(null);
+    setScannerError(null);
   };
 
   // Handler for Scanning Physical Bag QR Code
-  const handleScanBagId = (bagIdToUse) => {
-    const rawCode = String(bagIdToUse || manualInputId || '').trim();
+  const handleScanBagId = useCallback((bagIdToUse) => {
+    const rawCode = String(bagIdToUse || '').trim();
     if (!rawCode) {
       toast.error('Masukkan atau pindai ID QR Pupuk pada karung.');
       return;
@@ -319,7 +363,11 @@ export default function PetaniDashboard() {
     setIsScannerActive(false);
     setPembukaanStep('result');
     toast.success(`QR Pupuk ${rawCode} Berhasil Dipindai!`);
-  };
+  }, [selectedAllocation]);
+
+  useEffect(() => {
+    handleScanBagIdRef.current = handleScanBagId;
+  }, [handleScanBagId]);
 
   // Confirm Pembukaan Pupuk Handler
   const handleConfirmPembukaanPupuk = async () => {
@@ -328,27 +376,48 @@ export default function PetaniDashboard() {
       return;
     }
 
-    if (!isLocationValid) {
-      toast.error(`Pembukaan Ditolak: Anda berada ${displayedDistance} meter dari titik lahan.`);
+    if (!currentGps) {
+      toast.error('Ambil lokasi GPS perangkat sebelum melanjutkan.');
+      return;
+    }
+
+    if (!hasActiveLandCoordinates) {
+      toast.error('Koordinat lahan pada alokasi ini belum tersedia.');
+      return;
+    }
+
+    if (!pupukPhotoFile) {
+      toast.error('Foto karung yang sudah dibuka wajib diunggah.');
       return;
     }
 
     setIsProcessingOpen(true);
     const toastId = toast.loading('Memvalidasi & mengonfirmasi pembukaan karung pupuk...');
 
-    const latToUse = isSimulatedAtLand ? activeAllocLat : currentGps.latitude;
-    const lngToUse = isSimulatedAtLand ? activeAllocLon : currentGps.longitude;
+    const latToUse = currentGps.latitude;
+    const lngToUse = currentGps.longitude;
 
     try {
+      const photoResponse = await filesApi.upload(pupukPhotoFile, 'pupuk');
+      const photoUrl = photoResponse.data?.url;
+      if (typeof photoUrl !== 'string' || !photoUrl.startsWith('/files/pupuk/')) {
+        throw new Error('Server tidak mengembalikan lokasi foto pupuk yang valid.');
+      }
       // Send scan data to backend
       const scanRes = await distributionsApi.scanQr({
         qr_token: scannedBag.idPupuk,
         latitude: latToUse,
         longitude: lngToUse,
+        foto_pupuk_url: photoUrl,
       });
       if (!scanRes.data?.success) {
         const message = scanRes.data?.message || 'QR pupuk tidak dapat divalidasi oleh server.';
-        setQrValidation((current) => ({ ...current, isValidQr: false, message }));
+        setQrValidation((current) => ({
+          ...current,
+          isValidQr: false,
+          isAlreadyUsed: scanRes.data?.status === 'ALREADY_CLAIMED',
+          message,
+        }));
         toast.error(message, { id: toastId });
         return;
       }
@@ -377,6 +446,7 @@ export default function PetaniDashboard() {
       };
       setOpenSuccessState({ ...successData, petani: farmer?.nama || user?.nama || 'Petani' });
       setPembukaanStep('success');
+      setPupukPhotoFile(null);
       await fetchData();
 
       toast.success(
@@ -384,7 +454,10 @@ export default function PetaniDashboard() {
         { id: toastId, duration: 6000 }
       );
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Gagal memproses pembukaan pupuk.', { id: toastId });
+      toast.error(
+        err.response?.data?.detail || err.message || 'Gagal memproses pembukaan pupuk.',
+        { id: toastId },
+      );
     } finally {
       setIsProcessingOpen(false);
     }
@@ -425,8 +498,8 @@ export default function PetaniDashboard() {
         ...prev,
         land_id: selectedLandId,
         alamat_lahan: selectedLand.alamat_lahan,
-        latitude: selectedLand.latitude || -7.531234,
-        longitude: selectedLand.longitude || 112.551234,
+        latitude: selectedLand.latitude ?? null,
+        longitude: selectedLand.longitude ?? null,
       }));
     }
   };
@@ -437,13 +510,38 @@ export default function PetaniDashboard() {
       toast.error('Harap lengkapi semua kolom yang wajib diisi.');
       return;
     }
+    const selectedLand = lands.find((land) => land.id === Number(formData.land_id));
+    if (!farmer?.foto_ktp_url) {
+      toast.error('Unggah foto KTP pada menu Profil sebelum mengirim pengajuan.');
+      setActiveNav('profil');
+      return;
+    }
+    if (!selectedLand?.foto_lahan_url) {
+      toast.error('Unggah foto lahan pada data lahan sebelum mengirim pengajuan.');
+      setActiveNav('lahan');
+      return;
+    }
+    if (
+      formData.latitude == null || formData.longitude == null
+      || String(formData.latitude).trim() === '' || String(formData.longitude).trim() === ''
+      || !Number.isFinite(Number(formData.latitude))
+      || !Number.isFinite(Number(formData.longitude))
+    ) {
+      toast.error('Titik koordinat GPS lahan wajib ditentukan sebelum mengirim pengajuan.');
+      return;
+    }
+    const requestedKg = Number(formData.jumlah_diajukan);
+    if (!Number.isInteger(requestedKg) || requestedKg < 25 || requestedKg % 25 !== 0) {
+      toast.error('Jumlah pengajuan harus kelipatan 25 kg.');
+      return;
+    }
 
     const toastId = toast.loading('Mengirim pengajuan subsidi...');
     try {
       await applicationsApi.create({
         land_id: parseInt(formData.land_id),
         fertilizer_id: parseInt(formData.fertilizer_id),
-        jumlah_diajukan: parseFloat(formData.jumlah_diajukan),
+        jumlah_diajukan: requestedKg,
         alamat_lahan: formData.alamat_lahan,
         latitude: formData.latitude,
         longitude: formData.longitude,
@@ -463,6 +561,20 @@ export default function PetaniDashboard() {
       toast.error('Harap lengkapi data lahan.');
       return;
     }
+    if (!landFormData.foto_lahan_url) {
+      toast.error('Unggah foto kondisi lahan sebelum menyimpan data lahan.');
+      return;
+    }
+    if (
+      !landFormData.commodity_id
+      || landFormData.latitude == null || landFormData.longitude == null
+      || String(landFormData.latitude).trim() === '' || String(landFormData.longitude).trim() === ''
+      || !Number.isFinite(Number(landFormData.latitude))
+      || !Number.isFinite(Number(landFormData.longitude))
+    ) {
+      toast.error('Pilih komoditas dan tentukan titik koordinat GPS lahan.');
+      return;
+    }
 
     const toastId = toast.loading('Menyimpan data lahan baru...');
     try {
@@ -470,17 +582,38 @@ export default function PetaniDashboard() {
         lokasi_deskripsi: landFormData.lokasi_deskripsi,
         luas_m2: parseFloat(landFormData.luas_m2),
         alamat_lahan: landFormData.alamat_lahan,
-        commodity_id: landFormData.commodity_id ? parseInt(landFormData.commodity_id) : (commodities[0]?.id || 1),
+        commodity_id: parseInt(landFormData.commodity_id),
         status_kepemilikan: landFormData.status_kepemilikan,
         latitude: landFormData.latitude,
         longitude: landFormData.longitude,
         foto_lahan_url: landFormData.foto_lahan_url,
+        dokumen_sertifikat_url: landFormData.dokumen_sertifikat_url || null,
       });
       setShowAddLandModal(false);
       await fetchData();
       toast.success('Lahan pertanian berhasil didaftarkan!', { id: toastId });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Gagal mendaftarkan lahan.', { id: toastId });
+    }
+  };
+
+  const handleSaveLandDocuments = async () => {
+    if (!selectedLandDetail || isSavingLandDocuments) return;
+    setIsSavingLandDocuments(true);
+    const toastId = toast.loading('Menyimpan perubahan dokumen lahan...');
+    try {
+      const response = await landsApi.update(selectedLandDetail.id, {
+        foto_lahan_url: landPhotoDraft || null,
+        dokumen_sertifikat_url: certificateDraft || null,
+      });
+      setSelectedLandDetail(response.data);
+      setIsEditingLandDocuments(false);
+      await fetchData();
+      toast.success('Dokumen lahan diperbarui. Pengajuan yang menunggu akan ditinjau ulang Admin.', { id: toastId });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Gagal memperbarui dokumen lahan.', { id: toastId });
+    } finally {
+      setIsSavingLandDocuments(false);
     }
   };
 
@@ -860,6 +993,7 @@ export default function PetaniDashboard() {
                           const res = await farmersApi.update(farmer.id, { foto_ktp_url: url });
                           setFarmer(res.data);
                           setIsEditingKtp(false);
+                          await fetchData();
                           toast.success('Foto KTP berhasil disimpan ke profil!', { id: toastId });
                         } catch (err) {
                           toast.error(err.response?.data?.detail || 'Gagal menyimpan foto KTP.', { id: toastId });
@@ -967,7 +1101,20 @@ export default function PetaniDashboard() {
                 </p>
               </div>
               <button
-                onClick={() => setShowAddLandModal(true)}
+                onClick={() => {
+                  setLandFormData({
+                    lokasi_deskripsi: '',
+                    luas_m2: '',
+                    commodity_id: commodities[0]?.id || '',
+                    alamat_lahan: '',
+                    status_kepemilikan: 'MILIK',
+                    latitude: null,
+                    longitude: null,
+                    foto_lahan_url: '',
+                    dokumen_sertifikat_url: '',
+                  });
+                  setShowAddLandModal(true);
+                }}
                 className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm shadow-emerald-200 cursor-pointer self-start sm:self-auto"
               >
                 <Plus className="w-4 h-4" />
@@ -1028,7 +1175,7 @@ export default function PetaniDashboard() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-400">Status verifikasi:</span>
-                          <span className="font-medium text-slate-700">Belum tersedia</span>
+                          <span className="font-medium text-slate-700">{land.status_verifikasi || 'BELUM_DIVERIFIKASI'}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-400">Kepemilikan:</span>
@@ -1047,7 +1194,12 @@ export default function PetaniDashboard() {
                         {formatCoord(land.latitude)}, {formatCoord(land.longitude)}
                       </span>
                       <button
-                        onClick={() => setSelectedLandDetail(land)}
+                        onClick={() => {
+                          setSelectedLandDetail(land);
+                          setLandPhotoDraft(land.foto_lahan_url || '');
+                          setCertificateDraft(land.dokumen_sertifikat_url || '');
+                          setIsEditingLandDocuments(false);
+                        }}
                         className="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
                       >
                         Lihat Detail
@@ -1125,10 +1277,10 @@ export default function PetaniDashboard() {
                   </label>
                   <input
                     type="number"
-                    min="10"
+                    min="25"
                     max="1000"
-                    step="5"
-                    placeholder="Contoh: 100"
+                    step="25"
+                    placeholder="Contoh: 100 (kelipatan 25 kg)"
                     value={formData.jumlah_diajukan}
                     onChange={(e) => setFormData({ ...formData, jumlah_diajukan: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:border-emerald-500 outline-hidden font-bold"
@@ -1160,7 +1312,7 @@ export default function PetaniDashboard() {
                 <MapPicker
                   latitude={formData.latitude}
                   longitude={formData.longitude}
-                  onChange={(lat, lng) => setFormData({ ...formData, latitude: lat, longitude: lng })}
+                  onChange={(latitude, longitude) => setFormData((data) => ({ ...data, latitude, longitude }))}
                 />
                 <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
                   <span>Latitude: <strong className="font-mono text-slate-800">{formatCoord(formData.latitude)}</strong></span>
@@ -1580,6 +1732,9 @@ export default function PetaniDashboard() {
                           className="p-5 rounded-2xl border-2 border-slate-200 hover:border-emerald-500 bg-white hover:bg-emerald-50/20 transition-all cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-between gap-4 group"
                           onClick={() => {
                             setSelectedAllocation(alloc);
+                            setCurrentGps(null);
+                            setPupukPhotoFile(null);
+                            setScannerError(null);
                             setPembukaanStep('gps');
                             toast.success(`Alokasi ${alloc.jenis_pupuk} (${alloc.jumlah_kg} kg) dipilih.`);
                           }}
@@ -1656,10 +1811,10 @@ export default function PetaniDashboard() {
                       </div>
                       <div>
                         <h3 className="text-base font-black text-slate-900">
-                          Lokasi Anda sedang diverifikasi
+                          Ambil lokasi perangkat
                         </h3>
                         <p className="text-xs text-slate-500 mt-0.5">
-                          GPS HP digunakan untuk memastikan petani benar-benar berada di sekitar titik lahan yang terdaftar.
+                          Lokasi GPS aktual dikirim ke server, yang memvalidasi geofence lahan.
                         </p>
                       </div>
                     </div>
@@ -1677,42 +1832,51 @@ export default function PetaniDashboard() {
                       <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                         <span className="text-slate-400 block text-[10px] font-bold uppercase">GPS HP Petani Real-Time</span>
                         <strong className="text-slate-900 block font-mono">
-                          {currentGps.latitude}, {currentGps.longitude}
+                          {currentGps
+                            ? `${currentGps.latitude}, ${currentGps.longitude}`
+                            : 'Belum diambil'}
                         </strong>
-                        <span className="text-[11px] text-slate-500 block">Akurasi ~{currentGps.accuracy}m</span>
+                        <span className="text-[11px] text-slate-500 block">
+                          {currentGps ? `Akurasi ±${currentGps.accuracy}m` : 'Tekan tombol untuk mengambil GPS'}
+                        </span>
                       </div>
                     </div>
 
                     <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
                       <span className="text-slate-600 font-medium">Jarak dari titik lahan terdaftar:</span>
-                      <span className="font-mono font-black text-sm text-slate-900">{displayedDistance} meter</span>
+                      <span className="font-mono font-black text-sm text-slate-900">
+                        {displayedDistance === null ? 'Belum tersedia' : `${displayedDistance} meter`}
+                      </span>
                     </div>
 
-                    {/* Geofencing Status Message */}
-                    {isLocationValid ? (
+                    {isLocationValid && hasActiveLandCoordinates ? (
                       <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 flex items-start gap-3">
                         <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                         <div className="text-xs space-y-1">
-                          <strong className="font-bold text-emerald-900">✓ Lokasi GPS Valid & Sesuai</strong>
+                          <strong className="font-bold text-emerald-900">✓ Lokasi GPS berhasil diambil</strong>
                           <p className="text-emerald-800">
-                            Anda terdeteksi berada di dalam radius lahan ({displayedDistance} meter). Silakan lanjutkan untuk memindai QR Code pada karung pupuk.
+                            Server akan memvalidasi lokasi terhadap lahan terdaftar saat pembukaan dikonfirmasi.
+                          </p>
+                        </div>
+                      </div>
+                    ) : !isLocationValid ? (
+                      <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="text-xs space-y-1">
+                          <strong className="font-bold text-amber-900">Lokasi GPS belum diambil</strong>
+                          <p className="text-amber-800">
+                            Ambil lokasi perangkat terlebih dahulu. Kesesuaian geofence tetap diperiksa oleh server.
                           </p>
                         </div>
                       </div>
                     ) : (
-                      <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-950 flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                        <div className="text-xs space-y-1">
-                          <strong className="font-bold text-rose-900">Lokasi Tidak Sesuai</strong>
-                          <p className="text-rose-800">
-                            Anda berada di luar area lahan terdaftar ({displayedDistance} meter). Pembukaan pupuk hanya dapat dilakukan di area lahan yang telah diverifikasi.
-                          </p>
-                        </div>
+                      <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-950 text-xs">
+                        Koordinat lahan alokasi belum tersedia. Minta Admin memperbarui lokasi lahan sebelum pemindaian.
                       </div>
                     )}
 
                     {/* Main Action Button */}
-                    {isLocationValid ? (
+                    {isLocationValid && hasActiveLandCoordinates ? (
                       <button
                         onClick={() => {
                           setPembukaanStep('scan');
@@ -1723,57 +1887,26 @@ export default function PetaniDashboard() {
                         <Camera className="w-5 h-5" />
                         <span>[ SCAN QR PADA KARUNG PUPUK ]</span>
                       </button>
-                    ) : (
+                    ) : !isLocationValid ? (
                       <button
                         onClick={requestRealGps}
-                        className="w-full py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-sm shadow-lg shadow-rose-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        disabled={gpsLoading}
+                        className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-black text-sm shadow-lg shadow-emerald-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <RefreshCw className="w-4 h-4" />
-                        <span>[ Coba Lagi ]</span>
+                        <span>{gpsLoading ? 'Mengambil GPS...' : '[ Ambil Lokasi GPS ]'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full py-3.5 rounded-2xl bg-slate-300 text-slate-600 font-black text-sm cursor-not-allowed"
+                      >
+                        Koordinat lahan belum tersedia
                       </button>
                     )}
+                    {gpsError && <p role="alert" className="text-xs text-rose-700">{gpsError}</p>}
 
-                    {/* Simulation Bar */}
-                    <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <span className="text-slate-400 text-[11px] font-medium">Uji Coba Geofencing (Demo):</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsSimulatedAtLand(true);
-                            setSimulatedCustomDistance(18);
-                            toast.success('Mode Simulasi: Di Sawah (18m)');
-                          }}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
-                            isSimulatedAtLand && simulatedCustomDistance === 18 ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          ✓ Di Sawah (18m)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsSimulatedAtLand(true);
-                            setSimulatedCustomDistance(850);
-                            toast.error('Mode Simulasi: Terlalu Jauh (850m)');
-                          }}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
-                            isSimulatedAtLand && simulatedCustomDistance === 850 ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          ✕ Luar Lahan (850m)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={requestRealGps}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
-                            !isSimulatedAtLand ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'
-                          }`}
-                        >
-                          📡 GPS HP Asli
-                        </button>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
@@ -1797,58 +1930,30 @@ export default function PetaniDashboard() {
 
                   {/* Viewfinder UI */}
                   <div className="relative rounded-2xl bg-black border-2 border-emerald-500/50 p-6 text-center space-y-4 overflow-hidden">
-                    <div className="w-52 h-52 mx-auto border-4 border-dashed border-emerald-400 rounded-2xl flex flex-col items-center justify-center p-4 bg-emerald-950/20 relative animate-pulse">
-                      <QrCode className="w-16 h-16 text-emerald-400 opacity-90" />
-                      <span className="text-[11px] font-mono font-bold text-emerald-300 mt-2">KAMERA SCANNER HP</span>
-                    </div>
+                    <div
+                      id="petani-qr-reader"
+                      className="w-full max-w-sm min-h-64 mx-auto overflow-hidden rounded-xl bg-black"
+                    />
+                    {scannerError && (
+                      <p role="alert" className="text-xs text-rose-300">{scannerError}</p>
+                    )}
 
                     <p className="text-xs text-slate-300 font-medium">
                       Arahkan kamera ke QR Code yang terdapat pada karung pupuk.
                     </p>
 
-                    {/* Concept Workflow Indicator */}
-                    <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-center gap-2">
-                      <span>Karung pupuk</span>
-                      <span>↓</span>
-                      <span className="text-emerald-400 font-bold">[ QR CODE ]</span>
-                      <span>↓</span>
-                      <span>Petani scan pakai HP</span>
-                    </div>
-
-                    {/* Scanner controls use the selected backend allocation. */}
-                    <div className="pt-4 border-t border-slate-800/80 space-y-3">
-                      <p className="text-[11px] text-slate-400 font-semibold">
-                        Pindai QR alokasi pupuk:
-                      </p>
-                      <div className="flex flex-wrap items-center justify-center gap-2">
-                        {selectedAllocation?.qr_token && (
-                          <button
-                            type="button"
-                            onClick={() => handleScanBagId(selectedAllocation.qr_token)}
-                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs cursor-pointer shadow-sm"
-                          >
-                            📷 Scan {selectedAllocation.jenis_pupuk} {selectedAllocation.jumlah_kg}kg
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 max-w-xs mx-auto pt-2">
-                        <input
-                          type="text"
-                          placeholder="Ketik token QR pada karung"
-                          value={manualInputId}
-                          onChange={(e) => setManualInputId(e.target.value)}
-                          className="flex-1 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white font-mono uppercase focus:border-emerald-500 outline-hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleScanBagId(manualInputId)}
-                          className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold text-xs cursor-pointer"
-                        >
-                          Pindai
-                        </button>
-                      </div>
-                    </div>
+                    {scannerError && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setScannerError(null);
+                          setIsScannerActive(true);
+                        }}
+                        className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold text-xs"
+                      >
+                        Coba buka kamera lagi
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1999,14 +2104,16 @@ export default function PetaniDashboard() {
                           <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
                             isLocationValid ? 'bg-emerald-200 text-emerald-900' : 'bg-rose-200 text-rose-900'
                           }`}>
-                            {isLocationValid ? '✓ Lokasi Berada di Lahan' : '✕ Lokasi Tidak Sesuai'}
+                            {isLocationValid ? '✓ GPS Terdeteksi' : '✕ GPS Belum Diambil'}
                           </span>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                           <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                             <span className="text-slate-400 block text-[10px]">GPS HP Petani:</span>
-                            <strong className="font-mono text-slate-900">{currentGps.latitude}, {currentGps.longitude}</strong>
+                            <strong className="font-mono text-slate-900">
+                              {currentGps ? `${currentGps.latitude}, ${currentGps.longitude}` : 'Belum diambil'}
+                            </strong>
                           </div>
                           <div className="bg-white p-2.5 rounded-xl border border-slate-200">
                             <span className="text-slate-400 block text-[10px]">Koordinat Lahan Terdaftar:</span>
@@ -2016,70 +2123,62 @@ export default function PetaniDashboard() {
 
                         <div className="flex justify-between items-center text-xs bg-white p-2.5 rounded-xl border border-slate-200">
                           <span className="text-slate-600">Jarak dari Titik Lahan Sawah:</span>
-                          <strong className="font-mono font-bold text-sm text-slate-900">{displayedDistance} meter</strong>
+                          <strong className="font-mono font-bold text-sm text-slate-900">
+                            {displayedDistance === null ? 'Belum tersedia' : `${displayedDistance} meter`}
+                          </strong>
                         </div>
 
                         {isLocationValid ? (
                           <p className="text-xs font-semibold text-emerald-800">
-                            ✓ Lahan Terverifikasi. Petani berada dalam radius lahan yang diperbolehkan ({displayedDistance}m).
+                            ✓ Lokasi tersimpan. Server akan memeriksa geofence saat konfirmasi.
                           </p>
                         ) : (
                           <div className="p-3 bg-white rounded-xl border border-rose-200 space-y-1 text-xs">
-                            <strong className="text-rose-900 block font-bold">Lokasi Tidak Sesuai</strong>
+                            <strong className="text-rose-900 block font-bold">GPS belum tersedia</strong>
                             <p className="text-rose-700">
-                              Anda berada di luar area lahan terdaftar. Pembukaan pupuk hanya dapat dilakukan di area lahan yang telah diverifikasi.
+                              Ambil lokasi perangkat untuk melanjutkan. Server memutuskan apakah koordinat sesuai dengan lahan.
                             </p>
                           </div>
                         )}
 
-                        {/* Simulation Toggle in Result Card */}
-                        <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-                          <span className="text-slate-500 font-medium">Uji Coba Geofencing (Demo):</span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsSimulatedAtLand(true);
-                                setSimulatedCustomDistance(18);
-                                toast.success('Mode Simulasi: Di Sawah (18m)');
-                              }}
-                              className={`px-2 py-1 rounded text-[11px] font-bold cursor-pointer ${
-                                isSimulatedAtLand && simulatedCustomDistance === 18 ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
-                              }`}
-                            >
-                              ✓ Di Sawah (18m)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsSimulatedAtLand(true);
-                                setSimulatedCustomDistance(850);
-                                toast.error('Mode Simulasi: Terlalu Jauh (850m)');
-                              }}
-                              className={`px-2 py-1 rounded text-[11px] font-bold cursor-pointer ${
-                                isSimulatedAtLand && simulatedCustomDistance === 850 ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-700'
-                              }`}
-                            >
-                              ✕ Terlalu Jauh (850m)
-                            </button>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </div>
 
+                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+                    <div>
+                      <strong className="text-sm font-bold text-slate-900">Foto karung setelah dibuka</strong>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Ambil foto bukti dengan kamera perangkat. Foto wajib dikirim bersama lokasi.
+                      </p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      capture="environment"
+                      onChange={(event) => setPupukPhotoFile(event.target.files?.[0] || null)}
+                      className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:px-3 file:py-2 file:font-bold file:text-emerald-800"
+                    />
+                    <p className="text-[11px] text-slate-500">Format JPG, PNG, atau WEBP; maksimum 5 MB.</p>
+                    {pupukPhotoFile && (
+                      <p className="text-xs text-emerald-700" role="status">
+                        Foto dipilih: {pupukPhotoFile.name}
+                      </p>
+                    )}
+                  </div>
+
                   {/* FINAL STATUS & CONFIRMATION BUTTON */}
-                  {qrValidation.isValidQr && qrValidation.isAllocationMatch && isLocationValid ? (
+                  {qrValidation.isValidQr && qrValidation.isAllocationMatch && isLocationValid && hasActiveLandCoordinates && pupukPhotoFile ? (
                     <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
                       <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                           <span className="text-xs font-bold text-slate-900 uppercase">
-                            Status: Pembukaan Pupuk Dapat Dilakukan
+                            Status: Siap Dikonfirmasi
                           </span>
                         </div>
                         <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                          SEMUA VALID
+                          SIAP DIKIRIM
                         </span>
                       </div>
 
@@ -2087,7 +2186,7 @@ export default function PetaniDashboard() {
                         <div>✓ QR Pupuk Valid</div>
                         <div>✓ Pupuk Sesuai Alokasi</div>
                         <div>✓ Petani Terverifikasi</div>
-                        <div>✓ Lokasi Berada di Lahan</div>
+                        <div>✓ GPS & foto siap dikirim</div>
                       </div>
 
                       <button
@@ -2107,8 +2206,12 @@ export default function PetaniDashboard() {
                       </div>
                       <p className="text-xs text-slate-600">
                         {!isLocationValid
-                          ? 'Lokasi Anda berada di luar radius lahan yang terdaftar. Silakan menuju ke petak sawah yang sesuai lalu coba lagi.'
-                          : qrValidation.isAlreadyUsed
+                          ? 'Ambil lokasi GPS perangkat sebelum melanjutkan.'
+                          : !hasActiveLandCoordinates
+                            ? 'Koordinat lahan alokasi belum tersedia. Minta Admin memperbarui lokasi lahan.'
+                          : !pupukPhotoFile
+                            ? 'Ambil atau pilih foto karung yang sudah dibuka sebelum mengonfirmasi.'
+                            : qrValidation.isAlreadyUsed
                             ? 'QR karung ini telah tercatat pernah dibuka sebelumnya. Tidak dapat digunakan kembali.'
                             : !qrValidation.isValidQr
                               ? 'QR Code karung tidak terdaftar pada sistem E-PUPUK.'
@@ -2466,6 +2569,71 @@ export default function PetaniDashboard() {
               </div>
             )}
 
+            <section className="space-y-3 rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-xs font-bold uppercase tracking-wide text-slate-700">
+                  Foto Lahan dan Sertifikat
+                </h4>
+                {!isEditingLandDocuments && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLandPhotoDraft(selectedLandDetail.foto_lahan_url || '');
+                      setCertificateDraft(selectedLandDetail.dokumen_sertifikat_url || '');
+                      setIsEditingLandDocuments(true);
+                    }}
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-800 underline cursor-pointer"
+                  >
+                    Ubah Dokumen
+                  </button>
+                )}
+              </div>
+              {isEditingLandDocuments ? (
+                <>
+                  <FileUploadZone
+                    label="Foto Kondisi Lahan"
+                    category="lahan"
+                    initialUrl={landPhotoDraft || null}
+                    onUploadSuccess={(url) => setLandPhotoDraft(url || '')}
+                  />
+                  <FileUploadZone
+                    label="Sertifikat / SPPT (opsional)"
+                    category="sertifikat"
+                    initialUrl={certificateDraft || null}
+                    helperText="Unggah foto JPG, PNG, atau WEBP (maksimal 5MB)"
+                    onUploadSuccess={(url) => setCertificateDraft(url || '')}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingLandDocuments(false)}
+                      disabled={isSavingLandDocuments}
+                      className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveLandDocuments}
+                      disabled={isSavingLandDocuments || !landPhotoDraft}
+                      className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                    >
+                      {isSavingLandDocuments ? 'Menyimpan...' : 'Simpan Dokumen'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-slate-600">
+                  Sertifikat: {selectedLandDetail.dokumen_sertifikat_url
+                    ? selectedLandDetail.dokumen_sertifikat_url.split('/').pop()
+                    : 'Belum diunggah'}
+                </p>
+              )}
+              <p className="text-[11px] text-slate-500">
+                Pengajuan yang masih menunggu verifikasi akan dikirim ulang ke Admin untuk ditinjau.
+              </p>
+            </section>
+
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-slate-50 rounded-xl">
                 <span className="text-slate-400 block text-[11px]">Luas Lahan:</span>
@@ -2551,18 +2719,36 @@ export default function PetaniDashboard() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Jenis Komoditas
+                    Jenis Komoditas <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={landFormData.commodity_id}
                     onChange={(e) => setLandFormData({ ...landFormData, commodity_id: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-800 focus:border-emerald-500 outline-hidden font-medium"
+                    required
                   >
+                    <option value="">-- Pilih Komoditas --</option>
                     {commodities.map((c) => (
                       <option key={c.id} value={c.id}>{c.nama_komoditas}</option>
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Status Kepemilikan <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={landFormData.status_kepemilikan}
+                  onChange={(e) => setLandFormData({ ...landFormData, status_kepemilikan: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs bg-white text-slate-800 focus:border-emerald-500 outline-hidden font-medium"
+                  required
+                >
+                  <option value="MILIK">Milik sendiri</option>
+                  <option value="GARAP">Garap</option>
+                  <option value="SEWA">Sewa</option>
+                </select>
               </div>
 
               <div>
@@ -2579,6 +2765,19 @@ export default function PetaniDashboard() {
                 />
               </div>
 
+              <FileUploadZone
+                label="Foto Kondisi Lahan"
+                category="lahan"
+                required
+                onUploadSuccess={(url) => setLandFormData((data) => ({ ...data, foto_lahan_url: url || '' }))}
+              />
+              <FileUploadZone
+                label="Sertifikat / SPPT (opsional)"
+                category="sertifikat"
+                helperText="Unggah foto JPG, PNG, atau WEBP (maksimal 5MB)"
+                onUploadSuccess={(url) => setLandFormData((data) => ({ ...data, dokumen_sertifikat_url: url || '' }))}
+              />
+
               {/* Map Coordinates Picker for new Land */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -2587,7 +2786,7 @@ export default function PetaniDashboard() {
                 <MapPicker
                   latitude={landFormData.latitude}
                   longitude={landFormData.longitude}
-                  onChange={(lat, lng) => setLandFormData({ ...landFormData, latitude: lat, longitude: lng })}
+                  onChange={(latitude, longitude) => setLandFormData((data) => ({ ...data, latitude, longitude }))}
                 />
               </div>
 
@@ -2678,10 +2877,10 @@ export default function PetaniDashboard() {
                   </label>
                   <input
                     type="number"
-                    min="10"
+                    min="25"
                     max="1000"
-                    step="5"
-                    placeholder="Contoh: 100"
+                    step="25"
+                    placeholder="Contoh: 100 (kelipatan 25 kg)"
                     value={formData.jumlah_diajukan}
                     onChange={(e) => setFormData({ ...formData, jumlah_diajukan: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-slate-800 focus:border-emerald-500 outline-hidden font-bold"
@@ -2711,7 +2910,7 @@ export default function PetaniDashboard() {
                 <MapPicker
                   latitude={formData.latitude}
                   longitude={formData.longitude}
-                  onChange={(lat, lng) => setFormData({ ...formData, latitude: lat, longitude: lng })}
+                  onChange={(latitude, longitude) => setFormData((data) => ({ ...data, latitude, longitude }))}
                 />
               </div>
 

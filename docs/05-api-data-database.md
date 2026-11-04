@@ -13,7 +13,7 @@ Data yang dihasilkan dari alur sistem: users, farmers (termasuk foto_ktp_url, al
 Data referensi seperti RDKK dan data pertanian dari sumber data terbuka pemerintah (mis. portal data.go.id atau dinas terkait), dipakai sebagai referensi/seed — bukan sinkronisasi otomatis penuh pada versi awal.
 
 ### 2.3 External API
-API cuaca dan API geospasial/peta untuk pengayaan dashboard Admin/Pimpinan.
+API cuaca dan API geospasial/peta untuk pengayaan dashboard Admin.
 
 ## 3. Dataset
 
@@ -24,7 +24,7 @@ Referensi kebutuhan pupuk per kelompok tani/komoditas — dipakai sebagai pemban
 Dataset lahan petani, idealnya tervalidasi terhadap data lahan resmi bila tersedia; pada versi awal diinput manual/diverifikasi PPL melalui survei lapangan.
 
 ### 3.3 Produksi Tanaman
-Data historis produksi per komoditas (opsional, untuk pengayaan analisis Pimpinan).
+Data historis produksi per komoditas (opsional, untuk pengayaan analisis operasional).
 
 ### 3.4 Distribusi Pupuk
 Riwayat distribusi terekam dari sistem sendiri (bukan dataset eksternal) — menjadi dataset internal utama untuk pelaporan.
@@ -38,7 +38,7 @@ Foto KTP petani, foto lahan dari pengajuan, dan foto bukti survei lapangan PPL �
 Untuk render peta distribusi (mis. Leaflet + tile provider) dan/atau lookup koordinat lokasi.
 
 ### 4.2 Weather API
-Untuk menampilkan kondisi cuaca terkini/perkiraan sebagai konteks musim tanam di dashboard Admin/Pimpinan.
+Untuk menampilkan kondisi cuaca terkini/perkiraan sebagai konteks musim tanam di dashboard Admin.
 
 ### 4.3 Other API
 Slot terbuka untuk data terbuka pertanian tambahan bila dibutuhkan (mis. data harga komoditas), ditambahkan sesuai kebutuhan lanjutan.
@@ -100,9 +100,9 @@ Dikelompokkan per domain (bukan per fitur individual), sesuai prinsip yang sudah
 | GET | `/qr/history` | Riwayat scan | Petani, Admin |
 | POST | `/distributions` | Catat distribusi | Admin |
 | GET | `/distributions` | Riwayat distribusi | Semua (sesuai scope) |
-| GET | `/dashboard/kpi` | Data KPI | Admin, Pimpinan |
-| GET | `/dashboard/map` | Data peta distribusi | Admin, Pimpinan |
-| GET | `/dashboard/weather` | Data cuaca (proxy eksternal) | Admin, Pimpinan |
+| GET | `/dashboard/kpi` | Data KPI | Admin |
+| GET | `/dashboard/map` | Data peta distribusi | Admin |
+| GET | `/dashboard/weather` | Data cuaca (proxy eksternal) | Admin |
 | GET | `/audit-logs` | Daftar audit log | Admin |
 
 ## 8. Database Design

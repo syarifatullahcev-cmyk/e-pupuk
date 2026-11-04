@@ -1,32 +1,92 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Briefcase, MapPin, Calendar, CheckCircle2, 
-  Camera, FileText, Send, Eye, Tractor, RefreshCw, X, ShieldCheck,
-  ClipboardCheck, ChevronDown
+  Briefcase, MapPin, CheckCircle2, Camera, Eye, RefreshCw, X,
+  ClipboardCheck, LocateFixed, Ruler, Undo2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { pplApi } from '../services/api';
+import { filesApi, pplApi } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
-import FileUploadZone from '../components/FileUploadZone';
+import PPLBoundaryMap from '../components/PPLBoundaryMap';
 import PhotoViewerModal from '../components/PhotoViewerModal';
 import KPICard from '../components/KPICard';
 import { formatCoord } from '../utils/format';
+
+const EARTH_RADIUS_METERS = 6378137;
+
+function calculatePolygonAreaM2(points) {
+  if (points.length < 3) return 0;
+
+  let total = 0;
+  points.forEach((point, index) => {
+    const nextPoint = points[(index + 1) % points.length];
+    const latitude = (value) => (value * Math.PI) / 180;
+    total +=
+      (latitude(nextPoint[1]) - latitude(point[1])) *
+      (2 + Math.sin(latitude(point[0])) + Math.sin(latitude(nextPoint[0])));
+  });
+
+  return Math.round(Math.abs((total * EARTH_RADIUS_METERS ** 2) / 2) * 100) / 100;
+}
+
+function parsePolygon(value) {
+  let polygon = value;
+  if (typeof polygon === 'string') {
+    try {
+      polygon = JSON.parse(polygon);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(polygon)) return [];
+
+  return polygon
+    .map((point) => Array.isArray(point)
+      ? [Number(point[0]), Number(point[1])]
+      : [Number(point?.lat ?? point?.latitude), Number(point?.lng ?? point?.longitude)])
+    .filter(([latitude, longitude]) =>
+      Number.isFinite(latitude) && Number.isFinite(longitude)
+      && latitude >= -90 && latitude <= 90
+      && longitude >= -180 && longitude <= 180
+    );
+}
+
+function getTaskMapCenter(task) {
+  const latitude = task.latitude ?? task.land?.latitude;
+  const longitude = task.longitude ?? task.land?.longitude;
+  if (latitude == null || longitude == null) return null;
+
+  const center = [Number(latitude), Number(longitude)];
+  if (
+    !Number.isFinite(center[0]) || !Number.isFinite(center[1])
+    || center[0] < -90 || center[0] > 90
+    || center[1] < -180 || center[1] > 180
+  ) {
+    return null;
+  }
+  return center;
+}
 
 export default function PPLDashboard() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
   const [showSurveyModal, setShowSurveyModal] = useState(false);
+  const [surveyStep, setSurveyStep] = useState('measurement');
+  const [startingTaskId, setStartingTaskId] = useState(null);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
 
   // Survey Form fields
-  const [kondisiLahan, setKondisiLahan] = useState('BAIK');
+  const [kondisiLahan, setKondisiLahan] = useState('');
   const [keteranganLahan, setKeteranganLahan] = useState('');
-  const [kondisiTanaman, setKondisiTanaman] = useState('SESUAI');
+  const [kondisiTanaman, setKondisiTanaman] = useState('');
   const [keteranganTanaman, setKeteranganTanaman] = useState('');
-  const [luasAktual, setLuasAktual] = useState('');
-  const [fotoSurveiUrl, setFotoSurveiUrl] = useState(null);
+  const [validitasIdentitas, setValiditasIdentitas] = useState('');
+  const [verifikasiLahan, setVerifikasiLahan] = useState('');
+  const [komoditasAktual, setKomoditasAktual] = useState('');
+  const [boundaryPoints, setBoundaryPoints] = useState([]);
+  const [fotoSurveiUrls, setFotoSurveiUrls] = useState([]);
   const [catatanPpl, setCatatanPpl] = useState('');
-  const [rekomendasi, setRekomendasi] = useState('SETUJU');
+  const [rekomendasi, setRekomendasi] = useState('');
 
   // Photo viewer state
   const [viewerPhoto, setViewerPhoto] = useState({
@@ -40,9 +100,13 @@ export default function PPLDashboard() {
     setLoading(true);
     try {
       const res = await pplApi.getAssignedTasks();
-      setTasks(res.data);
+      const taskData = Array.isArray(res.data) ? res.data : [];
+      setTasks(taskData);
+      return taskData;
     } catch (e) {
       console.error('Error fetching PPL tasks:', e);
+      toast.error(e.response?.data?.detail || 'Gagal memuat daftar tugas PPL.');
+      return null;
     } finally {
       setLoading(false);
     }
@@ -53,37 +117,153 @@ export default function PPLDashboard() {
   }, []);
 
   const handleOpenSurvey = (task) => {
+    if (task.status !== 'SURVEI_LAPANGAN') {
+      toast.error('Mulai survei terlebih dahulu sebelum mengisi laporan.');
+      return;
+    }
+
     setSelectedTask(task);
-    setKondisiLahan('BAIK');
-    setKeteranganLahan('Saluran irigasi memadai, kondisi pematang sawah rapi.');
-    setKondisiTanaman('SESUAI');
-    setKeteranganTanaman(`Tanaman sesuai jenis komoditas (${task.land?.commodity?.nama_komoditas || 'Padi'}).`);
-    setLuasAktual(task.land?.luas_m2 || '');
-    setFotoSurveiUrl('/files/survei/sample_survei_lahan1.jpg');
-    setCatatanPpl('Lahan memenuhi syarat kelayakan fisik untuk menerima alokasi pupuk bersubsidi.');
-    setRekomendasi('SETUJU');
+    setSurveyStep('measurement');
+    setBoundaryPoints(parsePolygon(task.survey?.polygon_coords));
+    setKondisiLahan('');
+    setKeteranganLahan('');
+    setKondisiTanaman('');
+    setKeteranganTanaman('');
+    setValiditasIdentitas('');
+    setVerifikasiLahan('');
+    setKomoditasAktual('');
+    setFotoSurveiUrls([]);
+    setCatatanPpl('');
+    setRekomendasi('');
     setShowSurveyModal(true);
+  };
+
+  const handleStartSurvey = async (task) => {
+    if (task.status === 'SURVEI_LAPANGAN') {
+      handleOpenSurvey(task);
+      return;
+    }
+
+    setStartingTaskId(task.id);
+    try {
+      await pplApi.startSurvey(task.id);
+      const refreshedTasks = await fetchTasks();
+      const updatedTask = refreshedTasks?.find((item) => item.id === task.id)
+        || { ...task, status: 'SURVEI_LAPANGAN' };
+      handleOpenSurvey(updatedTask);
+      toast.success(`Survei pengajuan #${task.id} dimulai.`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Gagal memulai survei lapangan.');
+    } finally {
+      setStartingTaskId(null);
+    }
+  };
+
+  const handleAddBoundaryPoint = (point) => {
+    setBoundaryPoints((points) => [...points, point]);
+  };
+
+  const handleAddCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Browser ini tidak mendukung akses GPS.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => handleAddBoundaryPoint([coords.latitude, coords.longitude]),
+      (error) => {
+        console.error('Unable to get PPL GPS location:', error);
+        toast.error('Lokasi GPS tidak dapat diambil. Periksa izin lokasi perangkat.');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handlePhotoSelection = async (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!files.length) return;
+    if (fotoSurveiUrls.length + files.length > 5) {
+      toast.error('Foto survei maksimal 5 file.');
+      return;
+    }
+
+    const invalidFile = files.find((file) =>
+      !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+      || file.size > 5 * 1024 * 1024
+    );
+    if (invalidFile) {
+      toast.error('Gunakan foto JPG, PNG, atau WEBP dengan ukuran maksimal 5 MB per file.');
+      return;
+    }
+
+    setIsUploadingPhotos(true);
+    const uploadedUrls = [];
+    try {
+      for (const file of files) {
+        const response = await filesApi.upload(file, 'survei');
+        const url = response.data?.url;
+        if (typeof url !== 'string' || !url.startsWith('/files/survei/')) {
+          throw new Error('Server mengembalikan alamat foto survei yang tidak valid.');
+        }
+        uploadedUrls.push(url);
+      }
+      setFotoSurveiUrls((urls) => [...urls, ...uploadedUrls]);
+      toast.success(`${uploadedUrls.length} foto survei berhasil diunggah.`);
+    } catch (err) {
+      if (uploadedUrls.length) {
+        setFotoSurveiUrls((urls) => [...urls, ...uploadedUrls]);
+      }
+      toast.error(err.response?.data?.detail || err.message || 'Gagal mengunggah foto survei.');
+    } finally {
+      setIsUploadingPhotos(false);
+    }
+  };
+
+  const handleContinueToReport = () => {
+    if (boundaryPoints.length < 3 || calculatePolygonAreaM2(boundaryPoints) <= 0) {
+      toast.error('Tambahkan minimal 3 titik batas yang membentuk bidang lahan.');
+      return;
+    }
+    setSurveyStep('report');
   };
 
   const handleSubmitSurvey = async (e) => {
     e.preventDefault();
     if (!selectedTask) return;
+    if (boundaryPoints.length < 3 || calculatePolygonAreaM2(boundaryPoints) <= 0) {
+      toast.error('Poligon batas lahan belum valid.');
+      setSurveyStep('measurement');
+      return;
+    }
+    if (fotoSurveiUrls.length < 2 || fotoSurveiUrls.length > 5) {
+      toast.error('Unggah minimal 2 dan maksimal 5 foto bukti survei.');
+      return;
+    }
 
     const toastId = toast.loading('Mengirim laporan survei...');
     try {
       await pplApi.submitSurvey(selectedTask.id, {
         kondisi_fisik_lahan: kondisiLahan,
-        keterangan_fisik_lahan: keteranganLahan,
+        keterangan_fisik_lahan: [
+          `Pemeriksaan identitas: ${validitasIdentitas}`,
+          `Verifikasi lahan: ${verifikasiLahan}`,
+          keteranganLahan.trim(),
+        ].filter(Boolean).join('. '),
         kondisi_tanaman: kondisiTanaman,
-        keterangan_tanaman: keteranganTanaman,
-        luas_lahan_aktual_m2: luasAktual ? parseFloat(luasAktual) : null,
-        foto_survei_urls: fotoSurveiUrl ? [fotoSurveiUrl] : [],
+        keterangan_tanaman: [
+          `Komoditas aktual: ${komoditasAktual.trim()}`,
+          keteranganTanaman.trim(),
+        ].filter(Boolean).join('. '),
+        luas_lahan_aktual_m2: calculatePolygonAreaM2(boundaryPoints),
+        polygon_coords: boundaryPoints,
+        foto_survei_urls: fotoSurveiUrls,
         catatan_ppl: catatanPpl,
         rekomendasi: rekomendasi,
       });
 
       setShowSurveyModal(false);
-      fetchTasks();
+      await fetchTasks();
       toast.success(`✅ Hasil survei lapangan untuk pengajuan #${selectedTask.id} berhasil diserahkan ke Admin Dinas Pertanian!`, { id: toastId, duration: 5000 });
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Gagal menyimpan hasil survei lapangan.', { id: toastId });
@@ -206,10 +386,16 @@ export default function PPLDashboard() {
                   </div>
 
                   <button
-                    onClick={() => handleOpenSurvey(task)}
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-blue-200 cursor-pointer shrink-0"
+                    onClick={() => handleStartSurvey(task)}
+                    disabled={startingTaskId === task.id}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-blue-200 cursor-pointer shrink-0 disabled:opacity-60 disabled:cursor-wait"
                   >
-                    <Camera className="w-4 h-4" /> Input Hasil Survei
+                    {startingTaskId === task.id
+                      ? <RefreshCw className="w-4 h-4 animate-spin" />
+                      : task.status === 'SURVEI_LAPANGAN'
+                        ? <Camera className="w-4 h-4" />
+                        : <Ruler className="w-4 h-4" />}
+                    {task.status === 'SURVEI_LAPANGAN' ? 'Lanjutkan Survei' : 'Mulai Survei'}
                   </button>
                 </div>
 
@@ -328,12 +514,10 @@ export default function PPLDashboard() {
       {/* Modal: Input Hasil Survei Lapangan PPL */}
       {showSurveyModal && selectedTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-2xl w-full overflow-hidden max-h-[92vh] flex flex-col">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-3xl w-full overflow-hidden max-h-[92vh] flex flex-col">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-sky-50">
               <div>
-                <h3 className="text-base font-bold text-sky-950">
-                  Laporan Pemeriksaan Fisik Lapangan #{selectedTask.id}
-                </h3>
+                <h3 className="text-base font-bold text-sky-950">Survei Lapangan #{selectedTask.id}</h3>
                 <p className="text-xs text-sky-700">
                   Petani: {selectedTask.farmer?.nama} | Lahan: {selectedTask.alamat_lahan}
                 </p>
@@ -346,7 +530,125 @@ export default function PPLDashboard() {
               </button>
             </div>
 
+            {surveyStep === 'measurement' ? (
+              <div className="p-6 overflow-y-auto space-y-4">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Tahap 1 — Pengukuran Batas Lahan</h4>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Klik peta untuk menambahkan titik batas, atau rekam titik GPS saat berada di patok. Minimal 3 titik diperlukan.
+                  </p>
+                </div>
+                <PPLBoundaryMap
+                  center={getTaskMapCenter(selectedTask)}
+                  points={boundaryPoints}
+                  onAddPoint={handleAddBoundaryPoint}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAddCurrentLocation}
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"
+                  >
+                    <LocateFixed className="h-4 w-4" /> Tambah Titik GPS
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBoundaryPoints((points) => points.slice(0, -1))}
+                    disabled={!boundaryPoints.length}
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 disabled:opacity-50"
+                  >
+                    <Undo2 className="h-4 w-4" /> Hapus Titik Terakhir
+                  </button>
+                  <span className="text-xs text-slate-500">{boundaryPoints.length} titik</span>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs">
+                  <p className="font-semibold text-slate-700">Luas hasil ukur</p>
+                  <p className="mt-1 text-lg font-black text-emerald-700">
+                    {calculatePolygonAreaM2(boundaryPoints).toLocaleString('id-ID')} m²
+                  </p>
+                  <p className="mt-1 text-slate-500">
+                    Luas terdaftar: {Number(selectedTask.land?.luas_m2 || 0).toLocaleString('id-ID')} m²
+                  </p>
+                </div>
+                <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowSurveyModal(false)}
+                    className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleContinueToReport}
+                    className="rounded-xl bg-blue-600 px-5 py-2 text-xs font-bold text-white hover:bg-blue-700"
+                  >
+                    Lanjut ke Laporan
+                  </button>
+                </div>
+              </div>
+            ) : (
             <form onSubmit={handleSubmitSurvey} className="p-6 overflow-y-auto space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Tahap 2 — Laporan Hasil Survei</h4>
+                  <p className="text-xs text-slate-500">
+                    Luas terukur: {calculatePolygonAreaM2(boundaryPoints).toLocaleString('id-ID')} m²
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSurveyStep('measurement')}
+                  className="text-xs font-bold text-blue-700 hover:text-blue-800"
+                >
+                  Ubah Pengukuran
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Kesesuaian Identitas Petani <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={validitasIdentitas}
+                    onChange={(e) => setValiditasIdentitas(e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800"
+                  >
+                    <option value="">Pilih hasil pemeriksaan</option>
+                    <option value="SESUAI">Sesuai</option>
+                    <option value="TIDAK_SESUAI">Tidak sesuai</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Verifikasi Kesesuaian Lahan <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={verifikasiLahan}
+                    onChange={(e) => setVerifikasiLahan(e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-800"
+                  >
+                    <option value="">Pilih hasil pemeriksaan</option>
+                    <option value="SESUAI">Sesuai</option>
+                    <option value="TIDAK_SESUAI">Tidak sesuai</option>
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Komoditas Aktual <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={komoditasAktual}
+                    onChange={(e) => setKomoditasAktual(e.target.value)}
+                    required
+                    placeholder="Catat komoditas yang ditemukan di lahan"
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-800"
+                  />
+                </div>
+              </div>
               {/* Kondisi Fisik Lahan */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -356,8 +658,10 @@ export default function PPLDashboard() {
                   <select
                     value={kondisiLahan}
                     onChange={(e) => setKondisiLahan(e.target.value)}
+                    required
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:border-sky-500 outline-hidden font-semibold"
                   >
+                    <option value="">Pilih kondisi lahan</option>
                     <option value="BAIK">BAIK (Subur, irigasi aktif)</option>
                     <option value="CUKUP">CUKUP (Perlu perbaikan ringan)</option>
                     <option value="TIDAK_LAYAK">TIDAK_LAYAK (Lahan tidur / bukan sawah)</option>
@@ -371,8 +675,10 @@ export default function PPLDashboard() {
                   <select
                     value={kondisiTanaman}
                     onChange={(e) => setKondisiTanaman(e.target.value)}
+                    required
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:border-sky-500 outline-hidden font-semibold"
                   >
+                    <option value="">Pilih kesesuaian tanaman</option>
                     <option value="SESUAI">SESUAI (Cocok dengan alokasi pupuk)</option>
                     <option value="TIDAK_SESUAI">TIDAK_SESUAI (Jenis tanaman berbeda)</option>
                   </select>
@@ -408,27 +714,37 @@ export default function PPLDashboard() {
                 </div>
               </div>
 
-              {/* Luas Aktual */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Luas Lahan Aktual Terukur (m²)
+                  Foto Bukti Survei (minimal 2, maksimal 5; JPG/PNG/WEBP, maks. 5 MB per foto) <span className="text-rose-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  value={luasAktual}
-                  onChange={(e) => setLuasAktual(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:border-sky-500 outline-hidden font-semibold"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  disabled={isUploadingPhotos || fotoSurveiUrls.length >= 5}
+                  onChange={handlePhotoSelection}
+                  className="block w-full text-xs text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-xs file:font-bold file:text-emerald-700 disabled:opacity-50"
                 />
-              </div>
-
-              {/* Upload Foto Survei Fisik */}
-              <div>
-                <FileUploadZone
-                  label="Unggah Dokumentasi Foto Survei Fisik Lapangan"
-                  category="survei"
-                  initialUrl={fotoSurveiUrl}
-                  onUploadSuccess={(url) => setFotoSurveiUrl(url)}
-                />
+                {isUploadingPhotos && <p className="mt-2 text-xs text-blue-700">Mengunggah foto...</p>}
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                  {fotoSurveiUrls.map((url) => (
+                    <div key={url} className="relative">
+                      <img src={url} alt="Bukti survei lapangan" className="h-20 w-full rounded-lg border border-slate-200 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setFotoSurveiUrls((urls) => urls.filter((item) => item !== url))}
+                        className="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-rose-600"
+                        aria-label="Hapus foto survei"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {fotoSurveiUrls.length < 2 && (
+                  <p className="mt-1 text-xs text-amber-700">Masih perlu {2 - fotoSurveiUrls.length} foto bukti.</p>
+                )}
               </div>
 
               {/* Catatan PPL & Rekomendasi */}
@@ -440,6 +756,7 @@ export default function PPLDashboard() {
                   rows={2}
                   value={catatanPpl}
                   onChange={(e) => setCatatanPpl(e.target.value)}
+                  required
                   placeholder="Catatan tambahan untuk pertimbangan Admin Dinas..."
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-800 focus:border-sky-500 outline-hidden"
                 />
@@ -486,12 +803,14 @@ export default function PPLDashboard() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-200 cursor-pointer"
+                  disabled={isUploadingPhotos || !rekomendasi}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-200 cursor-pointer disabled:opacity-50"
                 >
                   Kirim Laporan Survei
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}

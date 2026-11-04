@@ -3,7 +3,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role, log_audit_action
-from app.models.models import User, Farmer, FarmerGroup, Commodity, Fertilizer
+from app.models.models import (
+    Application,
+    ApplicationStatus,
+    Farmer,
+    FarmerGroup,
+    Commodity,
+    Fertilizer,
+    Notification,
+    User,
+)
 from app.schemas.schemas import (
     FarmerResponse, FarmerUpdate, FarmerGroupResponse,
     CommodityResponse, FertilizerResponse
@@ -70,9 +79,51 @@ def update_farmer(
     if current_user.role != "ADMIN" and current_user.id != farmer.user_id:
         raise HTTPException(status_code=403, detail="Anda tidak memiliki izin mengubah data petani ini")
         
-    for key, value in data.dict(exclude_unset=True).items():
+    updates = data.dict(exclude_unset=True)
+    ktp_changed = (
+        "foto_ktp_url" in updates
+        and updates["foto_ktp_url"] != farmer.foto_ktp_url
+    )
+    for key, value in updates.items():
         setattr(farmer, key, value)
-        
+
+    if ktp_changed and current_user.role == "PETANI":
+        pending_applications = db.query(Application).filter(
+            Application.farmer_id == farmer.id,
+            Application.status.in_([
+                ApplicationStatus.MENUNGGU_VERIFIKASI_BERKAS,
+                ApplicationStatus.PERLU_PERBAIKAN_BERKAS,
+            ]),
+        ).all()
+        for application in pending_applications:
+            application.foto_ktp_snapshot_url = farmer.foto_ktp_url
+            application.status = ApplicationStatus.MENUNGGU_VERIFIKASI_BERKAS
+            application.admin_verifier_id = None
+            application.admin_verified_at = None
+            application.catatan_admin_berkas = (
+                "Foto KTP diperbarui oleh petani; perlu diverifikasi ulang."
+            )
+
+        if pending_applications:
+            db.add(Notification(
+                user_id=current_user.id,
+                judul="Foto KTP Diperbarui",
+                pesan=(
+                    "Foto KTP terbaru tersimpan. Pengajuan yang masih menunggu "
+                    "verifikasi berkas telah dikirim ulang untuk ditinjau Admin."
+                ),
+                tipe="INFO",
+            ))
+
+        log_audit_action(
+            db,
+            user_id=current_user.id,
+            action="UPDATE_KTP_PHOTO",
+            resource="farmers",
+            resource_id=farmer.id,
+            details="Petani memperbarui foto KTP.",
+        )
+
     db.commit()
     db.refresh(farmer)
     return farmer

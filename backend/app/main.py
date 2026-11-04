@@ -90,4 +90,3 @@ def health_check():
         "service": "epupuk-backend",
         "database": db_status
     }
-

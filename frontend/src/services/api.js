@@ -51,6 +51,7 @@ export const applicationsApi = {
 
 export const adminApi = {
   getStats: () => api.get('/api/admin/stats'),
+  getDistributions: () => api.get('/api/admin/distributions'),
   getPplOfficers: () => api.get('/api/admin/ppl-officers'),
   verifyDocs: (id, data) => api.post(`/api/admin/applications/${id}/verify-docs`, data),
   assignPpl: (id, data) => api.post(`/api/admin/applications/${id}/assign-ppl`, data),

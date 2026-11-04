@@ -108,13 +108,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
                 ),
                 const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'Setelah membuat akun, unggah foto KTP pada Profil dan foto lahan serta sertifikat/SPPT pada Data Lahan. Dokumen dapat diganti jika salah; pengajuan yang menunggu akan ditinjau ulang Admin.',
+                    style: TextStyle(
+                      color: Color(0xFF166534),
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 // 1. Nama Lengkap
                 TextFormField(
                   controller: _namaController,
-                  decoration: _inputDecoration('Nama Lengkap Sesuai KTP', Icons.person_outline),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty ? 'Nama lengkap wajib diisi' : null,
+                  decoration: _inputDecoration(
+                      'Nama Lengkap Sesuai KTP', Icons.person_outline),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Nama lengkap wajib diisi'
+                      : null,
                 ),
                 const SizedBox(height: 16),
 
@@ -123,10 +142,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _nikController,
                   keyboardType: TextInputType.number,
                   maxLength: 16,
-                  decoration: _inputDecoration('NIK (16 Digit Angka)', Icons.badge_outlined),
+                  decoration: _inputDecoration(
+                      'NIK (16 Digit Angka)', Icons.badge_outlined),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) return 'NIK wajib diisi';
-                    if (value.trim().length != 16) return 'NIK harus terdiri dari 16 digit angka';
+                    if (value == null || value.trim().isEmpty)
+                      return 'NIK wajib diisi';
+                    if (value.trim().length != 16)
+                      return 'NIK harus terdiri dari 16 digit angka';
                     if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
                       return 'NIK hanya boleh berupa angka';
                     }
@@ -138,9 +160,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // 3. Username
                 TextFormField(
                   controller: _usernameController,
-                  decoration: _inputDecoration('Username Akun', Icons.alternate_email),
-                  validator: (value) =>
-                      value == null || value.trim().isEmpty ? 'Username wajib diisi' : null,
+                  decoration:
+                      _inputDecoration('Username Akun', Icons.alternate_email),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Username wajib diisi'
+                      : null,
                 ),
                 const SizedBox(height: 16),
 
@@ -148,9 +172,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: _inputDecoration('Alamat Email Aktif', Icons.email_outlined),
+                  decoration: _inputDecoration(
+                      'Alamat Email Aktif', Icons.email_outlined),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) return 'Email wajib diisi';
+                    if (value == null || value.trim().isEmpty)
+                      return 'Email wajib diisi';
                     if (!value.contains('@')) return 'Format email tidak valid';
                     return null;
                   },
@@ -161,18 +187,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  decoration: _inputDecoration('Kata Sandi (Min. 6 Karakter)', Icons.lock_outline).copyWith(
+                  decoration: _inputDecoration(
+                          'Kata Sandi (Min. 6 Karakter)', Icons.lock_outline)
+                      .copyWith(
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                         color: Colors.grey,
                       ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Kata sandi wajib diisi';
-                    if (value.length < 6) return 'Kata sandi minimal 6 karakter';
+                    if (value == null || value.isEmpty)
+                      return 'Kata sandi wajib diisi';
+                    if (value.length < 6)
+                      return 'Kata sandi minimal 6 karakter';
                     return null;
                   },
                 ),
@@ -182,14 +215,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _kontakController,
                   keyboardType: TextInputType.phone,
-                  decoration: _inputDecoration('Nomor WhatsApp / HP', Icons.phone_outlined),
+                  decoration: _inputDecoration(
+                      'Nomor WhatsApp / HP', Icons.phone_outlined),
                 ),
                 const SizedBox(height: 16),
 
                 // 7. Kelompok Tani
                 TextFormField(
                   controller: _kelompokTaniController,
-                  decoration: _inputDecoration('Nama Kelompok Tani (Poktan)', Icons.groups_outlined),
+                  decoration: _inputDecoration(
+                      'Nama Kelompok Tani (Poktan)', Icons.groups_outlined),
                 ),
                 const SizedBox(height: 16),
 
@@ -197,7 +232,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _alamatController,
                   maxLines: 2,
-                  decoration: _inputDecoration('Alamat Domisili Lengkap', Icons.home_outlined),
+                  decoration: _inputDecoration(
+                      'Alamat Domisili Lengkap', Icons.home_outlined),
                 ),
                 const SizedBox(height: 28),
 
@@ -217,11 +253,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ? const SizedBox(
                           height: 20,
                           width: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
                         )
                       : const Text(
                           'Daftar Sekarang',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                 ),
                 const SizedBox(height: 16),
@@ -230,7 +268,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Sudah punya akun? ', style: TextStyle(color: Color(0xFF6B7280))),
+                    const Text('Sudah punya akun? ',
+                        style: TextStyle(color: Color(0xFF6B7280))),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
                       child: const Text(

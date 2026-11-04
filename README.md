@@ -33,10 +33,7 @@
    - Menerbitkan batch alokasi pupuk dan menerbitkan QR Code penebusan.
    - Memantau log audit (*audit trail*) dan statistik operasional.
 
-4. **🏛️ Pimpinan / Kepala Dinas (`PIMPINAN`)**
-   - Memantau *Executive Dashboard*: ringkasan KPI, total kuota tersalurkan, status verifikasi se-kabupaten, dan peta sebaran geospasial lahan pertanian.
-
-5. **🏪 Kios Resmi / Penyalur (`KIOSK SCANNER`)**
+4. **🏪 Kios Resmi / Penyalur (`KIOSK SCANNER`)**
    - Portal mandiri untuk memindai (*scan*) QR Code petani menggunakan kamera perangkat atau input token manual.
    - Memvalidasi keaslian kuota, nomor batch pupuk, dan tanggal kedaluwarsa sebelum penyaluran dilakukan.
 
@@ -189,7 +186,6 @@ Gunakan akun siap pakai berikut pada halaman login (`http://localhost:5173/login
 | **Petugas PPL** | `ppl_ahmad` | `ppl123` | Ahmad Fauzi, S.P. (PPL Mojosari) | Menerima Tugas Survei Lapangan, Upload Foto Bukti, Submit Laporan |
 | **Petani 1** | `petani_budi` | `petani123` | Budi Santoso (Poktan Sumber Makmur) | Kelola Lahan Padi Mojosari, Ajukan Subsidi, Tampilkan QR Code |
 | **Petani 2** | `petani_siti` | `petani123` | Siti Aminah (Poktan Tani Jaya) | Kelola Lahan Jagung Trowulan, Ajukan Subsidi Pupuk |
-| **Pimpinan** | `pimpinan` | `pimpinan123` | Kepala Dinas Pertanian Kab. Mojokerto | Executive Monitoring, Grafik Realisasi, Peta Geospasial Lahan |
 
 ### 📱 Kiosk QR Scanner (Penebusan di Kios)
 Untuk membuka modul Kiosk pemindai QR Code di kios resmi:

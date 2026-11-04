@@ -11,7 +11,6 @@ class UserRole:
     PETANI = "PETANI"
     PPL = "PPL"
     ADMIN = "ADMIN"
-    PIMPINAN = "PIMPINAN"
 
 class ApplicationStatus:
     DIAJUKAN = "DIAJUKAN"
@@ -34,7 +33,7 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False, index=True)
     email = Column(String(150), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
-    role = Column(SQLEnum(UserRole.PETANI, UserRole.PPL, UserRole.ADMIN, UserRole.PIMPINAN), nullable=False)
+    role = Column(SQLEnum(UserRole.PETANI, UserRole.PPL, UserRole.ADMIN), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
 
@@ -174,7 +173,7 @@ class Application(Base):
     assigned_ppl = relationship("User", foreign_keys=[assigned_ppl_id])
     final_approver = relationship("User", foreign_keys=[final_approver_id])
     survey = relationship("FieldSurvey", back_populates="application", uselist=False, cascade="all, delete-orphan")
-    distribution = relationship("Distribution", back_populates="application", uselist=False, cascade="all, delete-orphan")
+    distributions = relationship("Distribution", back_populates="application", cascade="all, delete-orphan")
 
 class FieldSurvey(Base):
     __tablename__ = "field_surveys"
@@ -214,7 +213,7 @@ class Distribution(Base):
     __tablename__ = "distributions"
 
     id = Column(Integer, primary_key=True, index=True)
-    application_id = Column(Integer, ForeignKey("applications.id", ondelete="CASCADE"), unique=True, nullable=False)
+    application_id = Column(Integer, ForeignKey("applications.id", ondelete="CASCADE"), index=True, nullable=False)
     batch_id = Column(Integer, ForeignKey("fertilizer_batches.id", ondelete="SET NULL"), nullable=True)
     jumlah_disalurkan = Column(Numeric(10, 2), nullable=False)
     status_penyaluran = Column(SQLEnum("MENUNGGU_PENGAMBILAN", "SELESAI", "BATAL"), default="MENUNGGU_PENGAMBILAN")
@@ -223,7 +222,7 @@ class Distribution(Base):
     created_at = Column(DateTime, server_default=func.now())
 
     # Relationships
-    application = relationship("Application", back_populates="distribution")
+    application = relationship("Application", back_populates="distributions")
     batch = relationship("FertilizerBatch", back_populates="distributions")
     scans = relationship("QRScan", back_populates="distribution", cascade="all, delete-orphan")
 
@@ -236,6 +235,7 @@ class QRScan(Base):
     scan_timestamp = Column(DateTime, server_default=func.now())
     latitude = Column(Numeric(10, 7), nullable=True)
     longitude = Column(Numeric(10, 7), nullable=True)
+    foto_pupuk_url = Column(String(500), nullable=True)
     validation_status = Column(SQLEnum("VALID", "EXPIRED", "ALREADY_CLAIMED", "INVALID"), nullable=False)
 
     distribution = relationship("Distribution", back_populates="scans")
