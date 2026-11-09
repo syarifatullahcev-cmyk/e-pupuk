@@ -11,7 +11,7 @@
 
 ## 📌 1. Tentang Sistem
 
-**E-Pupuk Kabupaten Mojokerto** adalah platform terintegrasi untuk pendataan, verifikasi berkas administratif, survei fisik lapangan oleh Petugas Penyuluh Lapangan (PPL), persetujuan bertingkat, hingga penebusan pupuk bersubsidi menggunakan **QR Code** secara transparan dan akuntabel di tingkat kios resmi.
+**E-Pupuk Kabupaten Mojokerto** adalah platform untuk pendataan, verifikasi berkas, survei PPL, persetujuan bertingkat, dan alokasi pupuk melalui **QR Code**. Validasi penebusan saat ini masih dilakukan oleh akun Petani pemilik QR; portal/role Kios mandiri belum tersedia.
 
 ### 👥 Peran Pengguna & Hak Akses (RBAC)
 
@@ -27,15 +27,16 @@
    - Mengunggah foto bukti survei fisik serta menginput catatan kelayakan dan rekomendasi kuota.
 
 3. **🏢 Admin Dinas Pertanian (`ADMIN`)**
+   - Portal Admin saat ini tersedia di web; aplikasi Flutter ditujukan untuk Petani dan PPL.
    - Melakukan verifikasi berkas administratif pengajuan (KTP, legalitas lahan, kesesuaian komoditas).
    - Menugaskan (disposisi) tugas survei kepada petugas PPL berdasarkan wilayah.
    - Memberikan persetujuan akhir (*Final Approval*) pasca-survei PPL.
    - Menerbitkan batch alokasi pupuk dan menerbitkan QR Code penebusan.
    - Memantau log audit (*audit trail*) dan statistik operasional.
 
-4. **🏪 Kios Resmi / Penyalur (`KIOSK SCANNER`)**
-   - Portal mandiri untuk memindai (*scan*) QR Code petani menggunakan kamera perangkat atau input token manual.
-   - Memvalidasi keaslian kuota, nomor batch pupuk, dan tanggal kedaluwarsa sebelum penyaluran dilakukan.
+4. **🏪 Penebusan QR (belum ada akun/peran Kios mandiri)**
+   - Endpoint penebusan saat ini mengizinkan Petani pemilik QR untuk mengirim token, lokasi GPS aktual, dan foto pupuk.
+   - Role `KIOS` dan alur pemindaian QR dengan kamera kios belum tersedia; jangan operasikan modul ini sebagai portal kios produksi.
 
 ---
 
@@ -120,20 +121,21 @@ Buka terminal baru (PowerShell, Command Prompt, atau Bash) lalu navigasikan ke f
    MYSQL_PORT=3306
    MYSQL_USER=root
    MYSQL_PASSWORD=            # Isi jika MySQL Anda memiliki kata sandi
-   MYSQL_DB=epupuk
+   MYSQL_DB=epupuk_demo
    ```
 
-5. **(Opsional) Generate Aset Gambar Sampel (KTP & Lahan)**:
-   Aplikasi telah menyediakan generator otomatis berkas citra demo beresolusi tinggi:
-   ```bash
-   python generate_seed_media.py
+5. **(Opsional) Generate Aset Gambar Demo**:
+   Aset yang dihasilkan adalah ilustrasi fiktif ber-watermark DUMMY, bukan dokumen atau bukti lapangan. Untuk menghindari penulisan ke `backend/uploads`, arahkan output ke direktori sementara:
+   ```powershell
+   python generate_seed_media.py --output-dir "$env:TEMP\e-pupuk-demo-media"
    ```
-   *File foto simulasi KTP dan hamparan sawah/lahan akan tersimpan di direktori `backend/uploads/`.*
+   Jangan gunakan gambar ini untuk verifikasi identitas/lahan, pengujian lapangan, atau data produksi.
+   Untuk menampilkan gambar demo secara lokal, gunakan direktori unggahan yang memang terisolasi untuk demo, dan tambahkan `--allow-uploads` bila output diarahkan ke `backend/uploads`. Generator menolak menimpa file yang sudah ada. Jangan jalankan pada server/penyimpanan produksi atau direktori yang berisi dokumen pengguna.
 
 6. **Inisialisasi Data Demo Awal (Seed Data)**:
-   Jalankan script seed untuk mengisi akun pengguna demo, kelompok tani, data komoditas, jenis pupuk, dan sampel pengajuan:
+   Seed hanya menerima database lokal bernama `epupuk_demo` dan membutuhkan konfirmasi eksplisit. Data nama, NIK, kontak, alamat, dan lahan di dalamnya fiktif; jangan gunakan seed atau dokumen demo untuk verifikasi maupun produksi.
    ```bash
-   python seed_data.py
+   python seed_data.py --demo-only
    ```
    Output sukses: `Seeding initial data for E-Pupuk... Seeding completed successfully!`
 
@@ -183,13 +185,14 @@ Gunakan akun siap pakai berikut pada halaman login (`http://localhost:5173/login
 | Peran (Role) | Username | Password | Nama Pengguna / Instansi | Hak Akses Utama |
 | :--- | :--- | :--- | :--- | :--- |
 | **Admin** | `admin` | `admin123` | Administrator Dinas Pertanian | Verifikasi Berkas, Disposisi PPL, Final Approval, Audit Log |
-| **Petugas PPL** | `ppl_ahmad` | `ppl123` | Ahmad Fauzi, S.P. (PPL Mojosari) | Menerima Tugas Survei Lapangan, Upload Foto Bukti, Submit Laporan |
-| **Petani 1** | `petani_budi` | `petani123` | Budi Santoso (Poktan Sumber Makmur) | Kelola Lahan Padi Mojosari, Ajukan Subsidi, Tampilkan QR Code |
-| **Petani 2** | `petani_siti` | `petani123` | Siti Aminah (Poktan Tani Jaya) | Kelola Lahan Jagung Trowulan, Ajukan Subsidi Pupuk |
+| **Petugas PPL** | `ppl_ahmad` | `ppl123` | PPL CONTOH | Menerima tugas demo, mengunggah foto dummy, dan mengirim laporan |
+| **Petani 1** | `petani_budi` | `petani123` | PETANI CONTOH 1 (POKTAN CONTOH 1) | Kelola lahan demo, ajukan subsidi, dan tampilkan QR |
+| **Petani 2** | `petani_siti` | `petani123` | PETANI CONTOH 2 (POKTAN CONTOH 2) | Kelola lahan demo dan ajukan subsidi |
+
+Akun ini hanya tersedia setelah seeding berhasil ke database demo yang terisolasi. Seluruh identitas dan dokumen contoh tidak nyata dan tidak sah untuk verifikasi.
 
 ### 📱 Kiosk QR Scanner (Penebusan di Kios)
-Untuk membuka modul Kiosk pemindai QR Code di kios resmi:
-👉 Akses URL: **`http://localhost:5173/kiosk-scanner`** *(Dapat diakses langsung tanpa login)*.
+Route **`http://localhost:5173/kiosk-scanner`** saat ini hanya dapat dibuka oleh akun `PETANI` yang login. Token dimasukkan manual; browser meminta GPS dan foto karung sebelum mengirim ke API. Endpoint membatasi QR ke Petani pemiliknya. Ini bukan role atau akun Kios mandiri.
 
 ---
 
@@ -198,7 +201,7 @@ Untuk membuka modul Kiosk pemindai QR Code di kios resmi:
 Untuk menguji seluruh fitur sistem secara lengkap, ikuti alur simulasi berikut:
 
 ```
-[1. Petani]             [2. Admin]             [3. PPL]             [4. Admin]             [5. Kiosk Resmi]
+[1. Petani]             [2. Admin]             [3. PPL]             [4. Admin]             [5. Penebusan oleh pemilik QR]
  Ajukan Subsidi  ───►  Verifikasi Berkas  ───►  Survei Lapangan ───►  Final Approval  ───►  Scan QR Penebusan
  (KTP & Lahan)         & Disposisi PPL        (Foto & Catatan)      (Terbitkan QR)         (Pupuk Disalurkan)
 ```
@@ -208,9 +211,10 @@ Untuk menguji seluruh fitur sistem secara lengkap, ikuti alur simulasi berikut:
    - Masuk ke tab **Form Pengajuan**.
    - Pilih lahan dan jenis pupuk yang dibutuhkan. Kuota maksimal dihitung otomatis berdasarkan luas lahan dan standar komoditas.
    - Klik **Kirim Pengajuan Subsidi**. Status awal: `MENUNGGU_VERIFIKASI_BERKAS`.
+   - Pada demo lokal, dokumen gambar dapat berupa ilustrasi DUMMY; jangan anggap sebagai bukti identitas atau dasar verifikasi nyata.
 2. **Tahap 2: Verifikasi Berkas & Disposisi oleh Admin**
    - Logout, lalu login sebagai `admin` (`admin123`).
-   - Pada panel **Verifikasi Berkas Masuk**, periksa dokumen KTP dan foto lahan petani.
+   - Pada panel **Verifikasi Berkas Masuk**, periksa alur tampilan dokumen. Aset DUMMY hanya untuk demo dan tidak boleh dipakai untuk verifikasi nyata.
    - Klik tombol **Setujui Berkas** (Status berubah menjadi `BERKAS_TERVERIFIKASI`).
    - Lakukan **Tugaskan Petugas PPL**: pilih petugas `ppl_ahmad`, lalu klik **Kirim Tugas Lapangan** (Status menjadi `DITUGASKAN_KE_PPL`).
 3. **Tahap 3: Pelaksanaan Survei Fisik oleh PPL**
@@ -223,11 +227,13 @@ Untuk menguji seluruh fitur sistem secara lengkap, ikuti alur simulasi berikut:
    - Masuk ke bagian **Persetujuan Akhir Pengajuan**.
    - Tinjau hasil survei fisik PPL. Jika sesuai, klik **Setujui & Terbitkan Alokasi Pupuk**.
    - Sistem secara otomatis mengalokasikan batch pupuk dan menerbitkan **QR Code Digital** (Status menjadi `DIJADWALKAN_DISTRIBUSI`).
-5. **Tahap 5: Penebusan di Kios Pertanian (Kiosk Scanner)**
-   - Login sebagai `petani_budi`, lihat kartu pengajuan yang telah disetujui, lalu klik **Tampilkan QR Code**.
-   - Buka tab peramban baru ke **`http://localhost:5173/kiosk-scanner`**.
-   - Arahkan kamera ke QR Code atau salin token/kode transaksi ke kolom input manual, lalu klik **Validasi & Salurkan**.
-   - Status pengajuan resmi berganti menjadi **`TERSALURKAN`** dan riwayat distribusi tercatat di log audit.
+5. **Tahap 5: Uji penebusan sesuai API saat ini**
+   - Login sebagai `petani_budi`, lihat kartu pengajuan demo yang telah disetujui, lalu klik **Tampilkan QR Code**.
+   - Buka **`http://localhost:5173/kiosk-scanner`** dalam sesi Petani yang sama, masukkan token secara manual, izinkan GPS dan unggah foto uji yang diberi label DEMO.
+   - Sistem menerima pemindaian hanya jika QR adalah milik Petani login dan lokasi sesuai lahan. Kamera untuk membaca QR oleh petugas Kios belum didukung; jangan anggap uji demo sebagai penyaluran pupuk nyata.
+   - Status pengajuan menjadi **`TERSALURKAN`** setelah seluruh jatah pada pengajuan tersebut ditebus.
+
+> **Uji perangkat nyata belum dilakukan.** Langkah di atas adalah alur kode/API; izin kamera, GPS, kualitas foto, koneksi lemah, dan peta di perangkat lapangan tetap perlu diuji langsung. Lihat [panduan uji lapangan dan gladi demo](./PANDUAN_UJI_LAPANGAN_DAN_GLADI_DEMO.md).
 
 ---
 
@@ -286,8 +292,7 @@ e-pupuk/
 - **Solusi**: Pastikan virtual environment aktif, lalu jalankan kembali `pip install -r requirements.txt`.
 
 ### 🔴 Permasalahan Kamera pada QR Scanner Kiosk
-- **Penyebab**: Izin akses webcam pada peramban web belum diizinkan atau kamera sedang digunakan aplikasi lain.
-- **Solusi**: Klik ikon gembok/kamera di sebelah kiri bilah alamat browser, pilih **Allow/Izinkan** akses kamera. Anda juga dapat menggunakan opsi **Input Token Manual** yang tersedia di halaman kiosk.
+- Halaman web saat ini tidak membaca QR dengan kamera. Masukkan token manual, aktifkan izin lokasi, lalu ambil/unggah foto pupuk. Untuk membaca QR memakai kamera kios dan akun Kios khusus diperlukan implementasi terpisah.
 
 ---
 

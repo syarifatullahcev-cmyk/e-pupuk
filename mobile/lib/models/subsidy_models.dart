@@ -74,12 +74,13 @@ class LandModel {
   factory LandModel.fromJson(Map<String, dynamic> json) {
     return LandModel(
       id: json['id'] ?? 0,
-      lokasiDeskripsi: json['lokasi_deskripsi'] ?? 'Lahan Petani',
+      lokasiDeskripsi: json['lokasi_deskripsi'] ?? 'Lokasi belum tersedia',
       luasM2: (json['luas_m2'] is num)
           ? (json['luas_m2'] as num).toDouble()
           : double.tryParse('${json['luas_m2']}') ?? 0.0,
       alamatLahan: json['alamat_lahan'] ?? '',
-      statusKepemilikan: json['status_kepemilikan'] ?? 'MILIK',
+      statusKepemilikan:
+          json['status_kepemilikan'] ?? 'STATUS_KEPEMILIKAN_TIDAK_DIKETAHUI',
       latitude: json['latitude'] != null
           ? double.tryParse('${json['latitude']}')
           : null,

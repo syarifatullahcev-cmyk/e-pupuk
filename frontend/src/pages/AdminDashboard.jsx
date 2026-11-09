@@ -15,6 +15,13 @@ import StatusBadge from '../components/StatusBadge';
 import ProgressStepper from '../components/ProgressStepper';
 import PhotoViewerModal from '../components/PhotoViewerModal';
 import { formatCoord } from '../utils/format';
+import {
+  ADMIN_REPORT_TYPES,
+  buildAdminReport,
+  escapeReportHtml,
+  getAdminReportRegions,
+  toCsvCell,
+} from '../utils/adminReports';
 
 const ADMIN_TAB_PATHS = {
   dashboard: '/admin',
@@ -44,9 +51,13 @@ export default function AdminDashboard() {
   const [farmersList, setFarmersList] = useState([]);
   const [landsList, setLandsList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reportStartDate, setReportStartDate] = useState('');
+  const [reportEndDate, setReportEndDate] = useState('');
+  const [reportRegion, setReportRegion] = useState('');
 
   // Selected item for actions
   const [selectedApp, setSelectedApp] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [actionNotes, setActionNotes] = useState('');
   const [selectedPplId, setSelectedPplId] = useState('');
   const [approvedKg, setApprovedKg] = useState('');
@@ -184,6 +195,27 @@ export default function AdminDashboard() {
   );
   const uniqueFarmers = farmersList;
   const uniqueLands = landsList;
+  const reportRegions = getAdminReportRegions(farmersList);
+  const userRows = [
+    ...uniqueFarmers.map((farmer) => ({
+      id: farmer.id,
+      name: farmer.nama,
+      username: farmer.user?.username,
+      email: farmer.user?.email,
+      contact: farmer.kontak,
+      nik: farmer.nik,
+      role: 'PETANI',
+      isActive: farmer.user?.is_active,
+    })),
+    ...pplOfficers.map((officer) => ({
+      id: officer.id,
+      name: officer.nama || officer.username,
+      username: officer.username,
+      email: officer.email,
+      role: 'PPL LAPANGAN',
+      isActive: true,
+    })),
+  ];
   const totalLandAreaM2 = uniqueLands.reduce((total, land) => total + Number(land.luas_m2 || 0), 0);
   const farmersWithoutGroup = uniqueFarmers.filter((farmer) => !farmer.farmer_group_id).length;
   const landsAwaitingSurvey = uniqueLands.filter((land) =>
@@ -208,6 +240,93 @@ export default function AdminDashboard() {
     const path = ADMIN_TAB_PATHS[tab];
     if (!path) return;
     navigate(applicationId ? `${path}?applicationId=${applicationId}` : path);
+  };
+
+  const getReport = (reportKey) => {
+    if (reportStartDate && reportEndDate && reportStartDate > reportEndDate) {
+      toast.error('Tanggal mulai tidak boleh melewati tanggal akhir.');
+      return null;
+    }
+
+    return buildAdminReport(reportKey, {
+      farmers: farmersList,
+      lands: landsList,
+      applications,
+      distributions,
+    }, {
+      startDate: reportStartDate,
+      endDate: reportEndDate,
+      region: reportRegion,
+    });
+  };
+
+  const handleExportCsv = (reportKey) => {
+    const report = getReport(reportKey);
+    if (!report) return;
+
+    const csv = [report.headers, ...report.rows]
+      .map((row) => row.map(toCsvCell).join(','))
+      .join('\r\n');
+    const url = URL.createObjectURL(
+      new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }),
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${reportKey}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success(`CSV laporan berhasil diunduh (${report.rows.length} baris).`);
+  };
+
+  const handlePrintReport = (reportKey) => {
+    const report = getReport(reportKey);
+    if (!report) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Jendela cetak diblokir browser. Izinkan pop-up lalu coba lagi.');
+      return;
+    }
+
+    const tableRows = report.rows.map((row) => (
+      `<tr>${row.map((cell) => `<td>${escapeReportHtml(cell)}</td>`).join('')}</tr>`
+    )).join('');
+    const period = [
+      reportStartDate && `Mulai: ${reportStartDate}`,
+      reportEndDate && `Sampai: ${reportEndDate}`,
+      reportRegion && `Wilayah: ${reportRegion}`,
+    ].filter(Boolean).join(' | ') || 'Semua tanggal dan wilayah';
+
+    printWindow.document.write(`<!doctype html>
+      <html lang="id">
+        <head>
+          <meta charset="utf-8">
+          <title>${escapeReportHtml(report.title)}</title>
+          <style>
+            body { font: 12px Arial, sans-serif; color: #0f172a; padding: 24px; }
+            h1 { font-size: 20px; margin: 0 0 8px; }
+            p { color: #475569; margin: 0 0 16px; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: top; }
+            th { background: #f1f5f9; }
+            tr { break-inside: avoid; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>${escapeReportHtml(report.title)}</h1>
+          <p>E-Pupuk Kabupaten Mojokerto · ${escapeReportHtml(period)} · ${report.rows.length} baris</p>
+          <table>
+            <thead><tr>${report.headers.map((cell) => `<th>${escapeReportHtml(cell)}</th>`).join('')}</tr></thead>
+            <tbody>${tableRows || `<tr><td colspan="${report.headers.length}">Tidak ada data untuk filter ini.</td></tr>`}</tbody>
+          </table>
+        </body>
+      </html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   };
 
   // Verification Actions
@@ -1475,8 +1594,8 @@ export default function AdminDashboard() {
                 <strong className="block text-xl font-black text-emerald-600 mt-1">{totalApprovedKg} kg</strong>
               </div>
               <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PUPUK TERPANTAU</span>
-                <strong className="block text-xl font-black text-blue-600 mt-1">100% Sah</strong>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TRANSAKSI DISTRIBUSI</span>
+                <strong className="block text-xl font-black text-blue-600 mt-1">{distributions.length}</strong>
               </div>
             </div>
 
@@ -1512,24 +1631,25 @@ export default function AdminDashboard() {
               <p className="text-xs text-slate-400 mt-0.5">Ekspor berkas laporan resmi untuk pelaporan instansi dan dinas ketahanan pangan.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <input type="date" className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium" />
+              <label className="sr-only" htmlFor="report-start-date">Tanggal mulai laporan</label>
+              <input id="report-start-date" type="date" value={reportStartDate} onChange={(event) => setReportStartDate(event.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium" />
               <span className="text-xs text-slate-400 font-semibold">sampai</span>
-              <input type="date" className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium" />
-              <select className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-semibold">
-                <option>Semua Kecamatan</option>
-                <option>Trowulan</option>
-                <option>Mojosari</option>
-                <option>Puri</option>
+              <label className="sr-only" htmlFor="report-end-date">Tanggal akhir laporan</label>
+              <input id="report-end-date" type="date" value={reportEndDate} onChange={(event) => setReportEndDate(event.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium" />
+              <label className="sr-only" htmlFor="report-region">Filter wilayah laporan</label>
+              <select id="report-region" value={reportRegion} onChange={(event) => setReportRegion(event.target.value)} className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-semibold">
+                <option value="">Semua Wilayah</option>
+                {reportRegions.map((region) => <option key={region} value={region}>{region}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-              {['Data Petani Terdaftar', 'Register Bidang Lahan', 'Pengajuan & Verifikasi Berkas', 'Hasil Survei Lapangan PPL', 'Surat Keputusan Persetujuan', 'Distribusi Pupuk Bersubsidi'].map((report) => (
-                <div key={report} className="border border-slate-200/90 rounded-2xl p-4.5 bg-slate-50/50 hover:bg-white transition-all shadow-2xs">
+              {ADMIN_REPORT_TYPES.map(({ key, title }) => (
+                <div key={key} className="border border-slate-200/90 rounded-2xl p-4.5 bg-slate-50/50 hover:bg-white transition-all shadow-2xs">
                   <ClipboardList className="w-5 h-5 text-emerald-600 mb-2.5" />
-                  <h4 className="text-xs font-bold text-slate-900">{report}</h4>
+                  <h4 className="text-xs font-bold text-slate-900">{title}</h4>
                   <div className="flex gap-2.5 mt-3.5 pt-3 border-t border-slate-100">
-                    <button onClick={() => toast.success(`Laporan ${report} diekspor ke PDF`)} className="text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer">Export PDF</button>
-                    <button onClick={() => toast.success(`Laporan ${report} diekspor ke Excel`)} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer">Export Excel</button>
+                    <button onClick={() => handlePrintReport(key)} className="text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer">Cetak / Simpan PDF</button>
+                    <button onClick={() => handleExportCsv(key)} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer">Unduh CSV</button>
                   </div>
                 </div>
               ))}
@@ -1545,7 +1665,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-bold text-slate-900">Manajemen Pengguna Sistem</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Kelola hak akses untuk Petani, Petugas PPL Lapangan, dan Staf Dinas.</p>
+                <p className="text-xs text-slate-400 mt-0.5">Lihat informasi akun Petani dan Petugas PPL yang tersedia pada sistem.</p>
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -1560,18 +1680,53 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {[...uniqueFarmers.map((f) => ({ name: f.nama, username: f.user?.username || f.nik, role: 'PETANI' })), ...pplOfficers.map((p) => ({ name: p.username, username: p.username, role: 'PPL LAPANGAN' }))].map((person, idx) => (
-                    <tr key={person.role + idx} className="hover:bg-slate-50/60">
-                      <td className="py-3 px-4 font-bold text-slate-900">{person.name}</td>
-                      <td className="py-3 px-4 font-mono text-slate-500">{person.username}</td>
+                  {userRows.map((person) => (
+                    <tr key={`${person.role}-${person.id}`} className="hover:bg-slate-50/60">
+                      <td className="py-3 px-4 font-bold text-slate-900">{person.name || 'Nama belum tersedia'}</td>
+                      <td className="py-3 px-4 font-mono text-slate-500">{person.username || 'Belum tersedia'}</td>
                       <td className="py-3 px-4"><span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">{person.role}</span></td>
-                      <td className="py-3 px-4"><span className="text-emerald-600 font-bold">Aktif</span></td>
-                      <td className="py-3 px-4 text-center"><button onClick={() => toast.success(`Detail akun ${person.name}`)} className="text-emerald-700 font-bold hover:underline cursor-pointer">Detail</button></td>
+                      <td className="py-3 px-4">
+                        <span className={person.isActive === true ? 'text-emerald-600 font-bold' : person.isActive === false ? 'text-rose-600 font-bold' : 'text-slate-400'}>
+                          {person.isActive === true ? 'Aktif' : person.isActive === false ? 'Nonaktif' : 'Tidak tersedia'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center"><button onClick={() => setSelectedUser(person)} className="text-emerald-700 font-bold hover:underline cursor-pointer">Detail</button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {selectedUser && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4" role="presentation" onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedUser(null);
+          }}>
+            <section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="account-detail-title">
+              <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <h2 id="account-detail-title" className="text-base font-bold text-slate-900">Detail Akun</h2>
+                  <p className="mt-1 text-xs text-slate-500">{selectedUser.name || 'Nama belum tersedia'}</p>
+                </div>
+                <button onClick={() => setSelectedUser(null)} className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100">Tutup</button>
+              </div>
+              <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                {[
+                  ['Peran', selectedUser.role],
+                  ['Username', selectedUser.username || 'Belum tersedia pada data API'],
+                  ['Email', selectedUser.email || 'Belum tersedia pada data API'],
+                  ['Kontak', selectedUser.contact || 'Belum tersedia'],
+                  ['NIK', selectedUser.nik || 'Belum tersedia'],
+                  ['Status akun', selectedUser.isActive === true ? 'Aktif' : selectedUser.isActive === false ? 'Nonaktif' : 'Belum tersedia pada data API'],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl bg-slate-50 p-3">
+                    <dt className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</dt>
+                    <dd className="mt-1 break-words font-semibold text-slate-800">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
           </div>
         )}
 

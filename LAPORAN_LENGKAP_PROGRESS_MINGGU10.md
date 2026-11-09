@@ -3,10 +3,19 @@
 ### Sistem Terpadu Pengajuan Alokasi, Verifikasi Lapangan Spasial GIS, & Distribusi Pupuk Bersubsidi
 *(Lanjutan Siklus Pengembangan & Audit Faktual Pasca Minggu Ke-9)*
 
+> **Catatan koreksi status:** angka 91.8% di laporan ini adalah catatan historis bertanggal 28 Oktober 2026, bukan metrik progres terkini dan bukan bukti sistem 100% selesai/siap produksi. Uji perangkat nyata dan dukungan role Kios mandiri masih belum dibuktikan/tersedia. Gunakan [panduan uji lapangan dan gladi demo](./PANDUAN_UJI_LAPANGAN_DAN_GLADI_DEMO.md) untuk status verifikasi terkini; jangan mengutip angka lama sebagai capaian saat ini.
+
+### Verifikasi kode terbaru (bukan persentase progres)
+
+- Backend: tujuh tes workflow E2E, generator aset, dan pengaman seed lulus. Workflow memakai SQLite dan direktori unggahan sementara; termasuk unggah foto survei, validasi foto, status akhir, dan penebusan berulang.
+- React: 4 tes lulus; lint dan production build selesai dengan sejumlah peringatan lint/bundle.
+- Flutter: 37 tes lulus dan Flutter Web release build berhasil. Analisis lima file PPL terkait mencatat 49 diagnostik kategori info, tanpa error/warning.
+- Aset demo: lima gambar seed-compatible diuji pada direktori sementara; watermark DUMMY terlihat. Data seed kini fiktif dan dibatasi ke database lokal bernama `epupuk_demo`. Tidak ada uji perangkat fisik.
+
 > **Mata Kuliah**: Workshop Pemrograman Framework  
 > **Program Studi**: D3 Teknik Informatika — PENS PSDKU Lamongan (Tahun Akademik 2026)  
 > **Dosen Pengampu**: Amma Liesvarastranta Haz, S.Tr.T., M.T.  
-> **Status Kemajuan Sistem**: **91.8% (Production-Ready, GIS Spasial Geodesic WGS-84 Verified, 36/36 Flutter Tests PASS, Backend Re-Verification)**  
+> **Status Kemajuan Sistem (historis)**: **91.8% per 28 Oktober 2026 — bukan status atau persentase terkini**
 > **Tanggal Pelaporan**: 28 Oktober 2026  
 > 
 > **Tim Pengembang**:
@@ -22,7 +31,7 @@
 3. [Bedah Faktual Mobile Application Flutter (Syarifatullah Ceva Efendy)](#3-bedah-faktual-mobile-application-flutter)
 4. [Bedah Faktual Backend API & Geospasial Engine (Selby Wafi Nurjuan)](#4-bedah-faktual-backend-api--geospasial-engine)
 5. [Integritas Skema Basis Data & Sinkronisasi Spasial](#5-integritas-skema-basis-data--sinkronisasi-spasial)
-6. [Matriks Pengujian Sistem (Test Matrix: 36/36 Mobile + 100% Backend PASS)](#6-matriks-pengujian-sistem)
+6. [Matriks Pengujian Sistem (hasil historis; bukan verifikasi terkini)](#6-matriks-pengujian-sistem)
 7. [Kendala Teknis & Solusi Rekayasa yang Diterapkan](#7-kendala-teknis--solusi-rekayasa-yang-diterapkan)
 8. [Roadmap Penyelesaian Menuju Rilis Final 100%](#8-roadmap-penyelesaian-menuju-rilis-final-100)
 9. [Panduan Slide PPT Presentasi Progres di Depan Dosen Pengampu](#9-panduan-slide-ppt-presentasi-progres)
@@ -37,13 +46,13 @@ Pada siklus pengembangan minggu ini (21 s.d. 28 Oktober 2026), fokus dialihkan s
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│               EVOLUSI ARSITEKTUR E-PUPUK MENUJU KEMATANGAN TINGGI (91.8%)              │
+│          EVOLUSI ARSITEKTUR E-PUPUK (RINGKASAN HISTORIS, BUKAN PROGRES TERKINI)        │
 ├───────────────────┬───────────────────┬───────────────────────┬────────────────────────┤
 │  FASE KONTAINER   │    FASE PORTAL    │     FASE AUDIT GIS    │     FASE INTEGRASI     │
 │    (Minggu 9)     │    (Awal W10)     │      (Minggu Ini)     │      VERIFIKASI        │
 ├───────────────────┼───────────────────┼───────────────────────┼────────────────────────┤
-│ • Docker Compose  │ • Portal Login    │ • Eliminasi Titik     │ • 36/36 Flutter Test   │
-│   4 Kontainer     │   PPL Mobile      │   Estimasi Palsu      │   PASS (Zero Error)    │
+│ • Docker Compose  │ • Portal Login    │ • Eliminasi Titik     │ • 36/36 test historis   │
+│   4 Kontainer     │   PPL Mobile      │   Estimasi Palsu      │   bukan hasil terkini  │
 │ • MySQL 8.0 &     │   Terpisah        │ • Form Koordinat      │ • Server-Side Re-Calc  │
 │   phpMyAdmin      │ • Role Guard PPL  │   Manual P1..Pn       │   Deviasi Luas < 10%   │
 │ • Zero Overflow   │   di Backend      │ • Geodesic Spherical  │ • Proteksi Luas Asli   │
@@ -51,7 +60,7 @@ Pada siklus pengembangan minggu ini (21 s.d. 28 Oktober 2026), fokus dialihkan s
 └───────────────────┴───────────────────┴───────────────────────┴────────────────────────┘
 ```
 
-### Tabel Matriks Pembobotan Kemajuan Sistem (Realistis 91.8%):
+### Tabel Matriks Pembobotan pada Laporan Lama (historis; bukan nilai saat ini):
 
 | No | Modul / Dimensi Sistem | Bobot | Realisasi | Kontribusi | Status Operasional Berdasarkan Kode Aktual |
 | :-: | :--- | :---: | :---: | :---: | :--- |
@@ -59,8 +68,8 @@ Pada siklus pengembangan minggu ini (21 s.d. 28 Oktober 2026), fokus dialihkan s
 | **2** | **Backend API FastAPI & GIS Engine** | 25% | **92.0%** | **23.00%** | 🟢 Re-verifikasi Server, Formula Geodesik Python, 8 Router Aktif |
 | **3** | **Frontend Web Admin, Kios, & Dinas** | 20% | **90.0%** | **18.00%** | 🟢 Multi-Portal Guard, Peta Leaflet, Persetujuan Berkas RDKK |
 | **4** | **Mobile App Flutter (Petani & PPL)**| 25% | **92.0%** | **23.00%** | 🟢 Login PPL, Form P1..Pn, FlutterMap Satelit, Catatan Interaktif |
-| **5** | **Automated Testing Suite & QA** | 15% | **90.0%** | **13.50%** | 🟢 **36/36 Flutter Test PASS, 3 File Test Backend 100% PASS** |
-| | **TOTAL CAPAIAN SISTEM** | **100%** | — | **91.75% ≈ 91.8%** | 🟢 **SISTEM MATANG, FAKTUAL, & SIAP SIDANG AKHIR** |
+| **5** | **Automated Testing Suite & QA** | 15% | **90.0%** | **13.50%** | Hasil yang dicatat pada laporan lama; belum mewakili uji terkini |
+| | **TOTAL CAPAIAN HISTORIS** | **100%** | — | **91.75% ≈ 91.8%** | Tidak dapat dipakai sebagai klaim siap produksi atau status terkini |
 
 ---
 
@@ -273,7 +282,7 @@ Karakteristik Integritas:
 
 ---
 
-## 6. MATRIKS PENGUJIAN SISTEM
+## 6. MATRIKS PENGUJIAN SISTEM (HASIL HISTORIS)
 
 Pengujian dilakukan secara bertingkat: Unit Testing Matematika Geodesik, Widget Testing Antarmuka Mobile, serta Pengujian Integrasi Nyata ke Live Backend FastAPI.
 
@@ -281,7 +290,7 @@ Pengujian dilakukan secara bertingkat: Unit Testing Matematika Geodesik, Widget 
 
 ```text
 ========================================================================================
-HASIL PENGUJIAN MOBILE TEST SUITE: 36 DARI 36 PENGUJIAN LULUS (100% PASS)
+HASIL YANG DICATAT SAAT LAPORAN LAMA: 36/36 TEST MOBILE LULUS (BUKAN VERIFIKASI TERKINI)
 ========================================================================================
 • test/gis_boundary_test.dart       : 13 Pengujian LULUS (0 Gagal)
 • test/ppl_flow_test.dart           : 10 Pengujian LULUS (0 Gagal)
@@ -346,9 +355,9 @@ WAKTU EKSEKUSI TOTAL                : 14 Detik (Zero Regression)
 
 ---
 
-## 8. ROADMAP PENYELESAIAN MENUJU RILIS FINAL 100%
+## 8. ROADMAP HISTORIS DAN PEKERJAAN YANG MASIH TERBUKA
 
-Dengan tercapainya angka **91.8%**, sistem telah memasuki fase penyempurnaan akhir (*final polish & export reporting*). Rencana kerja penutup:
+Angka 91.8% dan agenda di bawah berasal dari tanggal laporan, bukan pengukuran progres saat ini. Panduan uji lapangan/gladi demo sudah dibuat, tetapi hal-hal berikut tetap memerlukan implementasi atau bukti uji sebelum rilis:
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -360,8 +369,8 @@ Dengan tercapainya angka **91.8%**, sistem telah memasuki fase penyempurnaan akh
 │ 2. Caching Peta Offline  │ • Implementasi tile caching pada FlutterMap untuk antisipasi│
 │    Citra Satelit         │   hilang sinyal di pelosok persawahan Kabupaten Mojokerto.  │
 ├──────────────────────────┼─────────────────────────────────────────────────────────────┤
-│ 3. Buku Panduan (Manual) │ • Penyusunan dokumentasi operasional untuk 4 peran pengguna:│
-│    & Video Demonstrasi   │   Petani, Petugas PPL Lapangan, Admin Dinas, dan Kios Rekanan│
+│ 3. Buku Panduan (Manual) │ • Panduan uji sudah ada; manual operasional peran Kios dan  │
+│    & Video Demonstrasi   │   video demo masih memerlukan alur Kios yang benar-benar ada│
 ├──────────────────────────┼─────────────────────────────────────────────────────────────┤
 │ 4. Final Rehearsal Sidang│ • Gladi bersih simulasi transaksi hulu-ke-hilir untuk demo  │
 │    Workshop Framework    │   sidang akhir Workshop Pemrograman Framework.              │
@@ -372,16 +381,16 @@ Dengan tercapainya angka **91.8%**, sistem telah memasuki fase penyempurnaan akh
 
 ## 9. PANDUAN SLIDE PPT PRESENTASI PROGRES DI DEPAN DOSEN PENGAMPU
 
-Gunakan 8 slide terstruktur berikut untuk memaparkan kemajuan minggu ini:
+Gunakan daftar ini hanya sebagai kerangka presentasi historis; perbarui angka dan bukti sebelum dipakai:
 
 * **Slide 1 (Judul & Anggota)**: E-PUPUK Mojokerto — Laporan Kemajuan Minggu Ini: *Audit, Implementasi & Verifikasi Modul GIS Spasial Mobile PPL*.
-* **Slide 2 (Highlight Capaian 91.8%)**: Lonjakan sistem dari 82.5% ke 91.8% dengan fokus integritas data geospasial faktual.
+* **Slide 2 (Status Progres)**: Jangan gunakan 91.8% sebagai angka terkini; paparkan hasil terukur dan pekerjaan yang masih terbuka.
 * **Slide 3 (Portal Login PPL Mobile)**: Demonstrasi pemisahan portal otentikasi PPL dari petani, pengamanan token JWT, dan desain responsif dinas.
 * **Slide 4 (Eliminasi Poligon Fiktif)**: Bukti pembersihan 4 titik palsu acak menuju sistem input manual patok batas riil P1..Pn.
 * **Slide 5 (Formula Geodesik WGS-84)**: Penjelasan ilmiah penggunaan *Spherical Excess* WGS-84 untuk perhitungan luas $m^2$, Ha, dan keliling meter.
 * **Slide 6 (Layar Hasil Ukur & Catatan Lapangan)**: Fitur komparasi luas RDKK vs ukur PPL, batas toleransi $<5\%$, dan input catatan dinamis.
 * **Slide 7 (Integritas Basis Data & Re-verifikasi Server)**: Proteksi data luas awal petani vs luas ukur PPL di backend FastAPI & database.
-* **Slide 8 (Matriks Pengujian 100% PASS)**: Bukti 36/36 test mobile lulus dan pengujian integrasi live backend sukses tanpa error.
+* **Slide 8 (Matriks Pengujian)**: Sajikan hasil tes otomatis yang aktual dan pisahkan dari uji perangkat fisik; jangan menyebut semua tes 100% PASS tanpa bukti terbaru.
 
 ---
 
@@ -389,4 +398,3 @@ Mojokerto, 28 Oktober 2026
 **Tim Pengembang Sistem E-PUPUK Kabupaten Mojokerto**  
 
 *(Syarifatullah Ceva Efendy & Selby Wafi Nurjuan)*
-

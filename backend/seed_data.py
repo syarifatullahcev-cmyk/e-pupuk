@@ -1,3 +1,4 @@
+import argparse
 import sys
 import datetime
 from pathlib import Path
@@ -16,7 +17,25 @@ from app.models.models import (
     FieldSurvey, Distribution, Notification
 )
 
-def seed():
+def _is_demo_database(database_url):
+    database_name = Path(database_url.database or "").stem
+    if database_name.lower() != "epupuk_demo":
+        return False
+    if database_url.drivername.startswith("sqlite"):
+        return True
+    return database_url.host in {"localhost", "127.0.0.1", "::1", "db"}
+
+
+def seed(demo_only=False):
+    if not demo_only:
+        raise RuntimeError(
+            "Demo seeding is disabled by default. Pass --demo-only to continue."
+        )
+    if not _is_demo_database(engine.url):
+        raise RuntimeError(
+            "Refusing to seed: configure a local database named epupuk_demo."
+        )
+
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
@@ -29,18 +48,18 @@ def seed():
 
         # 1. Users
         users = [
-            User(username="admin", email="admin.pupuk@mojokertokab.go.id", password_hash=get_password_hash("admin123"), role="ADMIN"),
-            User(username="petani_budi", email="budi.santoso@gmail.com", password_hash=get_password_hash("petani123"), role="PETANI"),
-            User(username="petani_siti", email="siti.aminah@gmail.com", password_hash=get_password_hash("petani123"), role="PETANI"),
-            User(username="ppl_ahmad", email="ahmad.ppl@mojokertokab.go.id", password_hash=get_password_hash("ppl123"), role="PPL"),
+            User(username="admin", email="admin@example.com", password_hash=get_password_hash("admin123"), role="ADMIN"),
+            User(username="petani_budi", email="petani1@example.com", password_hash=get_password_hash("petani123"), role="PETANI"),
+            User(username="petani_siti", email="petani2@example.com", password_hash=get_password_hash("petani123"), role="PETANI"),
+            User(username="ppl_ahmad", email="ppl@example.com", password_hash=get_password_hash("ppl123"), role="PPL"),
         ]
         db.add_all(users)
         db.commit()
 
         # 2. Farmer Groups
         groups = [
-            FarmerGroup(nama_kelompok="Poktan Sumber Makmur", wilayah="Kecamatan Mojosari, Kab. Mojokerto"),
-            FarmerGroup(nama_kelompok="Poktan Tani Jaya", wilayah="Kecamatan Trowulan, Kab. Mojokerto"),
+            FarmerGroup(nama_kelompok="POKTAN CONTOH 1", wilayah="WILAYAH DEMO 1"),
+            FarmerGroup(nama_kelompok="POKTAN CONTOH 2", wilayah="WILAYAH DEMO 2"),
         ]
         db.add_all(groups)
         db.commit()
@@ -85,20 +104,20 @@ def seed():
         # 6. Farmers
         farmers = [
             Farmer(
-                user_id=users[1].id, # budi
-                nama="Budi Santoso",
-                nik="3516011208800001",
-                kontak="081234567890",
-                alamat="Dsn. Sumberarum RT 02 RW 01, Ds. Kebondalem, Kec. Mojosari",
+                user_id=users[1].id,
+                nama="PETANI CONTOH 1",
+                nik="0000000000000001",
+                kontak="00000000001",
+                alamat="ALAMAT CONTOH 1 - BUKAN ALAMAT NYATA",
                 foto_ktp_url="/files/ktp/sample_ktp_budi.jpg",
                 farmer_group_id=groups[0].id
             ),
             Farmer(
-                user_id=users[2].id, # siti
-                nama="Siti Aminah",
-                nik="3516025505850002",
-                kontak="085712345678",
-                alamat="Dsn. Kemasan RT 03 RW 02, Ds. Sentonorejo, Kec. Trowulan",
+                user_id=users[2].id,
+                nama="PETANI CONTOH 2",
+                nik="0000000000000002",
+                kontak="00000000002",
+                alamat="ALAMAT CONTOH 2 - BUKAN ALAMAT NYATA",
                 foto_ktp_url="/files/ktp/sample_ktp_siti.jpg",
                 farmer_group_id=groups[1].id
             ),
@@ -110,10 +129,10 @@ def seed():
         lands = [
             Land(
                 farmer_id=farmers[0].id,
-                lokasi_deskripsi="Sawah Blok Timur Kebondalem",
-                alamat_lahan="Jl. Raya Pertanian No. 12, Kebondalem, Mojosari",
-                latitude=Decimal("-7.5312340"),
-                longitude=Decimal("112.5512340"),
+                lokasi_deskripsi="LOKASI DEMO 1 - BUKAN LAHAN NYATA",
+                alamat_lahan="ALAMAT LAHAN DEMO 1 - BUKAN ALAMAT NYATA",
+                latitude=None,
+                longitude=None,
                 luas_m2=Decimal("12000.00"),
                 commodity_id=commodities[0].id,
                 status_kepemilikan="MILIK",
@@ -121,10 +140,10 @@ def seed():
             ),
             Land(
                 farmer_id=farmers[1].id,
-                lokasi_deskripsi="Tegal Jagung Sentonorejo",
-                alamat_lahan="Jl. Candi Gentong No. 45, Trowulan",
-                latitude=Decimal("-7.5589120"),
-                longitude=Decimal("112.3812340"),
+                lokasi_deskripsi="LOKASI DEMO 2 - BUKAN LAHAN NYATA",
+                alamat_lahan="ALAMAT LAHAN DEMO 2 - BUKAN ALAMAT NYATA",
+                latitude=None,
+                longitude=None,
                 luas_m2=Decimal("8500.00"),
                 commodity_id=commodities[1].id,
                 status_kepemilikan="GARAP",
@@ -135,7 +154,7 @@ def seed():
         db.commit()
 
         # 8. Applications representing the lifecycle stages
-        # App 1: MENUNGGU_VERIFIKASI_BERKAS (Budi)
+        # App 1: MENUNGGU_VERIFIKASI_BERKAS (Petani Contoh 1)
         app1 = Application(
             farmer_id=farmers[0].id,
             land_id=lands[0].id,
@@ -150,7 +169,7 @@ def seed():
             longitude=lands[0].longitude
         )
 
-        # App 2: DITUGASKAN_KE_PPL (Siti)
+        # App 2: DITUGASKAN_KE_PPL (Petani Contoh 2)
         app2 = Application(
             farmer_id=farmers[1].id,
             land_id=lands[1].id,
@@ -171,7 +190,7 @@ def seed():
             catatan_penugasan="Segera tinjau batas lahan dan jenis tanaman jagung."
         )
 
-        # App 3: MENUNGGU_PERSETUJUAN_AKHIR (Budi) - survey complete
+        # App 3: MENUNGGU_PERSETUJUAN_AKHIR (Petani Contoh 1) - survey complete
         app3 = Application(
             farmer_id=farmers[0].id,
             land_id=lands[0].id,
@@ -192,7 +211,7 @@ def seed():
             catatan_penugasan="Cek fisik lahan padi."
         )
 
-        # App 4: DIJADWALKAN_DISTRIBUSI (Siti) - with QR ready
+        # App 4: DIJADWALKAN_DISTRIBUSI (Petani Contoh 2) - with QR ready
         app4 = Application(
             farmer_id=farmers[1].id,
             land_id=lands[1].id,
@@ -260,7 +279,7 @@ def seed():
             Notification(
                 user_id=users[3].id, # ppl ahmad
                 judul="Tugas Survei Baru",
-                pesan="Anda memiliki tugas survei fisik lapangan untuk pengajuan #2 di Trowulan.",
+                pesan="Anda memiliki tugas survei fisik lapangan untuk pengajuan demo #2.",
                 tipe="WARNING"
             ),
             Notification(
@@ -277,5 +296,21 @@ def seed():
     finally:
         db.close()
 
+def main():
+    parser = argparse.ArgumentParser(
+        description="Seed fictional data into an isolated local demo database."
+    )
+    parser.add_argument(
+        "--demo-only",
+        action="store_true",
+        help="Confirm that this is an isolated demo database named epupuk_demo.",
+    )
+    args = parser.parse_args()
+    try:
+        seed(demo_only=args.demo_only)
+    except RuntimeError as error:
+        parser.error(str(error))
+
+
 if __name__ == "__main__":
-    seed()
+    main()

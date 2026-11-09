@@ -94,7 +94,14 @@ export default function App() {
         <Route path="/register" element={<Register />} />
 
         {/* Kiosk Scanner Route */}
-        <Route path="/kiosk-scanner" element={<QRScannerKiosk />} />
+        <Route
+          path="/kiosk-scanner"
+          element={
+            <ProtectedRoute allowedRoles={['PETANI']}>
+              <QRScannerKiosk />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Petani Dashboard Route — hanya PETANI */}
         <Route

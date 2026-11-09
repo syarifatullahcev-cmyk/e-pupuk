@@ -1,20 +1,48 @@
-import React, { useState } from 'react';
-import { 
-  QrCode, CheckCircle2, AlertTriangle, XCircle, 
-  ArrowLeft, PackageCheck, Tractor, ShieldCheck, Sparkles 
+import React, { useRef, useState } from 'react';
+import {
+  QrCode, CheckCircle2, AlertTriangle, XCircle, ArrowLeft,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { distributionsApi } from '../services/api';
+import { distributionsApi, filesApi } from '../services/api';
 
 export default function QRScannerKiosk() {
   const [tokenInput, setTokenInput] = useState('');
+  const [fertilizerPhoto, setFertilizerPhoto] = useState(null);
   const [loading, setLoading] = useState(false);
   const [scanResult, setScanResult] = useState(null);
+  const photoInputRef = useRef(null);
 
-  const handleScanOrSubmit = async (tokenToUse) => {
-    const code = tokenToUse || tokenInput;
+  const getCurrentPosition = () => new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Browser ini tidak mendukung GPS.'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => resolve({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      }),
+      (error) => {
+        const messages = {
+          1: 'Izin lokasi ditolak. Aktifkan izin lokasi untuk melanjutkan.',
+          2: 'Lokasi tidak tersedia. Periksa GPS atau jaringan perangkat.',
+          3: 'Permintaan lokasi melewati batas waktu. Coba lagi di area terbuka.',
+        };
+        reject(new Error(messages[error.code] || 'Lokasi perangkat gagal dibaca.'));
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
+    );
+  });
+
+  const handleScanOrSubmit = async () => {
+    const code = tokenInput.trim();
     if (!code) {
-      alert('Masukkan kode token QR.');
+      setScanResult({ success: false, status: 'ERROR', message: 'Masukkan token QR yang ditampilkan pada pengajuan Anda.' });
+      return;
+    }
+    if (!fertilizerPhoto) {
+      setScanResult({ success: false, status: 'ERROR', message: 'Ambil foto karung pupuk terlebih dahulu.' });
       return;
     }
 
@@ -22,10 +50,12 @@ export default function QRScannerKiosk() {
     setScanResult(null);
 
     try {
+      const location = await getCurrentPosition();
+      const uploadedPhoto = await filesApi.upload(fertilizerPhoto, 'pupuk');
       const res = await distributionsApi.scanQr({
-        qr_token: code.trim(),
-        latitude: -7.4726,
-        longitude: 112.4381,
+        qr_token: code,
+        ...location,
+        foto_pupuk_url: uploadedPhoto.data.url,
       });
       setScanResult(res.data);
     } catch (err) {
@@ -51,7 +81,7 @@ export default function QRScannerKiosk() {
             <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard
           </Link>
           <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-800">
-            Kiosk Distribusi Pupuk
+            Validasi Pengambilan Pupuk
           </span>
         </div>
 
@@ -60,10 +90,10 @@ export default function QRScannerKiosk() {
             <QrCode className="w-8 h-8" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black font-display text-white">
-            Pindai Kode QR Pengambilan Pupuk
+            Validasi QR di Lokasi Lahan
           </h1>
           <p className="text-xs text-slate-400 max-w-md mx-auto">
-            Gunakan pemindai kamera atau masukkan token kode QR resmi yang ditunjukkan oleh petani pada aplikasi E-Pupuk.
+            Halaman ini mengikuti API saat ini: perlu login sebagai petani pemilik QR, GPS aktif, dan foto karung pupuk. Pemindaian kamera kios dengan akun khusus belum didukung.
           </p>
         </div>
 
@@ -78,12 +108,12 @@ export default function QRScannerKiosk() {
                 type="text"
                 value={tokenInput}
                 onChange={(e) => setTokenInput(e.target.value)}
-                placeholder="Contoh: EPUPUK-4-SITI-QR2026"
+                placeholder="Masukkan token dari pengajuan Anda"
                 className="flex-1 px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-mono focus:border-emerald-500 outline-hidden tracking-wider uppercase"
               />
               <button
                 type="button"
-                onClick={() => handleScanOrSubmit()}
+                onClick={handleScanOrSubmit}
                 disabled={loading}
                 className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
@@ -92,19 +122,21 @@ export default function QRScannerKiosk() {
             </div>
           </div>
 
-          {/* Quick Mock Sample Token for demo convenience */}
-          <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-            <span>Token Siap Uji:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setTokenInput('EPUPUK-4-SITI-QR2026');
-                handleScanOrSubmit('EPUPUK-4-SITI-QR2026');
-              }}
-              className="text-emerald-400 hover:text-emerald-300 font-mono font-bold hover:underline cursor-pointer"
-            >
-              Gunakan Token Demo Petani Siti
-            </button>
+          <div className="pt-3 border-t border-slate-800 space-y-2">
+            <label className="block text-xs font-semibold text-slate-300">
+              Foto karung pupuk (wajib):
+            </label>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              capture="environment"
+              onChange={(event) => setFertilizerPhoto(event.target.files?.[0] || null)}
+              className="block w-full text-xs text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-700 file:px-3 file:py-2 file:text-xs file:font-bold file:text-white"
+            />
+            {fertilizerPhoto && (
+              <p className="text-xs text-emerald-300">{fertilizerPhoto.name}</p>
+            )}
           </div>
         </div>
 
@@ -128,6 +160,9 @@ export default function QRScannerKiosk() {
                 ) : (
                   <XCircle className="w-8 h-8 text-rose-400" />
                 )}
+                <p className="text-center text-[11px] text-slate-500">
+                  Validasi memerlukan koneksi internet. Jangan unggah foto simulasi atau dummy.
+                </p>
               </div>
 
               <div className="flex-1 space-y-2">

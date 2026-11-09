@@ -168,7 +168,7 @@ class FieldSurveyCreate(BaseModel):
     polygon_coords: Optional[Any] = None # List of [lat, lng] or JSON
     catatan_ppl: Optional[str] = None
     rekomendasi: str # SETUJU, TOLAK
-    foto_survei_urls: Optional[List[str]] = []
+    foto_survei_urls: List[str] = Field(min_length=2, max_length=5)
 
 class FieldSurveyResponse(BaseModel):
     id: int

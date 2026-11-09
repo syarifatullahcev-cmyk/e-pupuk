@@ -179,6 +179,7 @@ def scan_and_redeem_qr(
 
     dist.status_penyaluran = "SELESAI"
     dist.tanggal_penyaluran = datetime.datetime.now()
+    db.flush()
 
     unfinished_bags = db.query(Distribution).filter(
         Distribution.application_id == dist.application_id,

@@ -1,11 +1,51 @@
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
+import '../../models/ppl_task_model.dart';
 import '../../models/user_model.dart';
+import '../../services/ppl_service.dart';
+import '../../widgets/ppl_notifications_button.dart';
+import 'ppl_detail_tugas_screen.dart';
 
-class PPLAktivitasScreen extends StatelessWidget {
+class PPLAktivitasScreen extends StatefulWidget {
   final UserModel user;
 
   const PPLAktivitasScreen({super.key, required this.user});
+
+  @override
+  State<PPLAktivitasScreen> createState() => _PPLAktivitasScreenState();
+}
+
+class _PPLAktivitasScreenState extends State<PPLAktivitasScreen> {
+  List<PPLTaskModel> _tasks = [];
+  bool _isLoading = true;
+  String? _loadError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    setState(() => _isLoading = true);
+    try {
+      final tasks = await PPLService.getAssignedTasks();
+      if (mounted) {
+        setState(() {
+          _tasks = tasks;
+          _loadError = null;
+          _isLoading = false;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _loadError = error.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +63,8 @@ class PPLAktivitasScreen extends StatelessWidget {
                 color: AppTheme.lightGreen,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.history, color: AppTheme.primaryGreen, size: 20),
+              child: const Icon(Icons.history,
+                  color: AppTheme.primaryGreen, size: 20),
             ),
             const SizedBox(width: 10),
             Column(
@@ -39,7 +80,7 @@ class PPLAktivitasScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Aktivitas & Log Survei',
+                  'Tugas & Survei',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -51,16 +92,17 @@ class PPLAktivitasScreen extends StatelessWidget {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_outlined, color: AppTheme.textPrimary),
-            onPressed: () {},
-          ),
+          const PPLNotificationsButton(),
           Padding(
             padding: const EdgeInsets.only(right: 16, left: 4),
             child: CircleAvatar(
               radius: 16,
               backgroundColor: AppTheme.darkGreen,
-              child: const Text('AH', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              child: Text(_initials,
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -75,9 +117,9 @@ class PPLAktivitasScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildMetricCard(
-                    title: 'Survei Selesai',
-                    value: '18',
-                    subtitle: 'Bulan ini',
+                    title: 'Tugas Ditugaskan',
+                    value: '${_tasks.length}',
+                    subtitle: 'Data dari server',
                     color: AppTheme.primaryGreen,
                     icon: Icons.task_alt,
                   ),
@@ -85,9 +127,10 @@ class PPLAktivitasScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _buildMetricCard(
-                    title: 'Lahan Terpetakan',
-                    value: '14,2 Ha',
-                    subtitle: 'Geodesic WGS84',
+                    title: 'Poligon Tersimpan',
+                    value:
+                        '${_tasks.where((task) => task.parsedPolygonPoints.length >= 3).length}',
+                    subtitle: 'Memiliki batas survei',
                     color: const Color(0xFF2563EB),
                     icon: Icons.polyline,
                   ),
@@ -97,38 +140,104 @@ class PPLAktivitasScreen extends StatelessWidget {
             const SizedBox(height: 18),
 
             const Text(
-              'Riwayat Pemeriksaan Terkini',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              'Tugas Lapangan',
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary),
             ),
             const SizedBox(height: 12),
 
-            _buildActivityItem(
-              title: 'Pengukuran Poligon Lahan PLN-001',
-              subtitle: 'Siti Aminah • Sawah Blok Timur Kebondalem',
-              time: 'Hari ini • 09:45 WIB',
-              status: 'Tersinkronisasi',
-              statusColor: AppTheme.primaryGreen,
-              icon: Icons.check_circle_outline,
-            ),
-            _buildActivityItem(
-              title: 'Verifikasi Fisik Batas Irigasi',
-              subtitle: 'Joko Santoso • Sawah Sukamaju Blok Tengah',
-              time: 'Kemarin • 14:15 WIB',
-              status: 'Dalam Proses',
-              statusColor: const Color(0xFF2563EB),
-              icon: Icons.timelapse,
-            ),
-            _buildActivityItem(
-              title: 'Pencatatan Anomali Batas Lahan',
-              subtitle: 'Dewi Lestari • Tegal Sumberrejo Blok Utara',
-              time: '12 Feb 2025 • 11:20 WIB',
-              status: 'Perlu Revisi',
-              statusColor: const Color(0xFFD97706),
-              icon: Icons.warning_amber_rounded,
-            ),
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(
+                    color: AppTheme.primaryGreen,
+                  ),
+                ),
+              )
+            else if (_loadError != null)
+              _buildLoadError()
+            else if (_tasks.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    'Belum ada tugas lapangan yang tercatat.',
+                    style: TextStyle(color: AppTheme.textSecondary),
+                  ),
+                ),
+              )
+            else
+              ..._tasks.map(_buildTaskItem),
             const SizedBox(height: 30),
           ],
         ),
+      ),
+    );
+  }
+
+  String get _initials {
+    final parts = widget.user.nama.trim().split(RegExp(r'\s+'));
+    if (parts.first.isEmpty) return '?';
+    if (parts.length > 1) {
+      return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+    }
+    return parts.first
+        .substring(0, parts.first.length.clamp(0, 2))
+        .toUpperCase();
+  }
+
+  Widget _buildLoadError() {
+    return Center(
+      child: Column(
+        children: [
+          Text(
+            'Gagal memuat tugas: $_loadError',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFFB91C1C)),
+          ),
+          TextButton.icon(
+            onPressed: _loadTasks,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Coba lagi'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaskItem(PPLTaskModel task) {
+    final Color statusColor;
+    final IconData statusIcon;
+    if (task.status == 'MENUNGGU_PERSETUJUAN_AKHIR' ||
+        task.status == 'DISETUJUI') {
+      statusColor = AppTheme.primaryGreen;
+      statusIcon = Icons.check_circle_outline;
+    } else if (task.status == 'PERLU_PERBAIKAN_BERKAS' ||
+        task.status == 'DITOLAK_LAPANGAN') {
+      statusColor = AppTheme.warningOrange;
+      statusIcon = Icons.warning_amber_rounded;
+    } else {
+      statusColor = const Color(0xFF2563EB);
+      statusIcon = Icons.timelapse;
+    }
+
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PPLDetailTugasScreen(task: task),
+        ),
+      ),
+      child: _buildActivityItem(
+        title: task.taskIdCode,
+        subtitle: '${task.namaPetani} • ${task.lokasiLahan}',
+        time: task.jadwal,
+        status: task.statusLabel,
+        statusColor: statusColor,
+        icon: statusIcon,
       ),
     );
   }
@@ -154,14 +263,19 @@ class PPLAktivitasScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 11, color: AppTheme.textSecondary)),
               Icon(icon, size: 16, color: color),
             ],
           ),
           const SizedBox(height: 6),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 18, fontWeight: FontWeight.bold, color: color)),
           const SizedBox(height: 2),
-          Text(subtitle, style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+          Text(subtitle,
+              style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
         ],
       ),
     );
@@ -199,27 +313,37 @@ class PPLAktivitasScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                  style: const TextStyle(
+                      fontSize: 11, color: AppTheme.textSecondary),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(time, style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
+                    Text(time,
+                        style: const TextStyle(
+                            fontSize: 10, color: AppTheme.textMuted)),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: statusColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         status,
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: statusColor),
+                        style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: statusColor),
                       ),
                     ),
                   ],

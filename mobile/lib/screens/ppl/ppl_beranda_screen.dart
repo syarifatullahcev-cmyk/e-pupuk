@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../config/theme.dart';
 import '../../models/ppl_task_model.dart';
 import '../../models/user_model.dart';
 import '../../services/ppl_service.dart';
+import '../../widgets/ppl_notifications_button.dart';
 import 'ppl_detail_tugas_screen.dart';
 import 'ppl_peta_lahan_screen.dart';
 
@@ -25,8 +26,28 @@ class PPLBerandaScreen extends StatefulWidget {
 class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
   List<PPLTaskModel> _tasks = [];
   bool _isLoading = true;
+  String? _loadError;
   final TextEditingController _searchController = TextEditingController();
   final MapController _miniMapController = MapController();
+
+  String get _userInitials {
+    final parts = widget.user.nama.trim().split(RegExp(r'\s+'));
+    if (parts.first.isEmpty) return '?';
+    if (parts.length > 1) {
+      return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+    }
+    return parts.first
+        .substring(0, parts.first.length.clamp(0, 2))
+        .toUpperCase();
+  }
+
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 11) return 'Selamat pagi';
+    if (hour < 15) return 'Selamat siang';
+    if (hour < 18) return 'Selamat sore';
+    return 'Selamat malam';
+  }
 
   @override
   void initState() {
@@ -36,12 +57,22 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
-    final tasks = await PPLService.getAssignedTasks();
-    if (mounted) {
-      setState(() {
-        _tasks = tasks;
-        _isLoading = false;
-      });
+    try {
+      final tasks = await PPLService.getAssignedTasks();
+      if (mounted) {
+        setState(() {
+          _tasks = tasks;
+          _loadError = null;
+          _isLoading = false;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _loadError = error.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -61,7 +92,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
           onRefresh: _loadData,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -136,14 +168,7 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
         ),
         Row(
           children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_none, color: AppTheme.textPrimary, size: 24),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Tidak ada notifikasi baru hari ini.')),
-                );
-              },
-            ),
+            const PPLNotificationsButton(),
             GestureDetector(
               onTap: () => widget.onTabChange(4), // Go to Profile
               child: Container(
@@ -166,10 +191,10 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
   Widget _buildGreetingSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Text(
-          'Selamat pagi, Ahmad 👋',
-          style: TextStyle(
+          '$_greeting, ${widget.user.nama} 👋',
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
             color: AppTheme.textPrimary,
@@ -209,9 +234,9 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                   borderRadius: BorderRadius.circular(22),
                 ),
                 alignment: Alignment.center,
-                child: const Text(
-                  'AH',
-                  style: TextStyle(
+                child: Text(
+                  _userInitials,
+                  style: const TextStyle(
                     color: AppTheme.primaryGreen,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -224,17 +249,18 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      children: const [
+                      children: [
                         Text(
-                          'Ahmad, S.P.',
-                          style: TextStyle(
+                          widget.user.nama,
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
                             color: AppTheme.textPrimary,
                           ),
                         ),
                         SizedBox(width: 4),
-                        Icon(Icons.verified, color: AppTheme.primaryGreen, size: 16),
+                        Icon(Icons.verified,
+                            color: AppTheme.primaryGreen, size: 16),
                       ],
                     ),
                     const SizedBox(height: 2),
@@ -285,11 +311,12 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
             ),
             child: Row(
               children: const [
-                Icon(Icons.location_on_outlined, color: AppTheme.primaryGreen, size: 16),
+                Icon(Icons.location_on_outlined,
+                    color: AppTheme.primaryGreen, size: 16),
                 SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    'BPP Wilayah Mojosari — Kab. Mojokerto',
+                    'Petugas Penyuluh Lapangan (PPL)',
                     style: TextStyle(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w500,
@@ -320,9 +347,11 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
         decoration: InputDecoration(
           hintText: 'Cari nama petani, NIK, atau lokasi lahan...',
           hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
-          prefixIcon: const Icon(Icons.search, color: AppTheme.textMuted, size: 20),
+          prefixIcon:
+              const Icon(Icons.search, color: AppTheme.textMuted, size: 20),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         ),
         onSubmitted: (value) {
           if (value.isNotEmpty) {
@@ -343,7 +372,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
           children: [
             Row(
               children: const [
-                Icon(Icons.calendar_today_outlined, size: 16, color: AppTheme.primaryGreen),
+                Icon(Icons.calendar_today_outlined,
+                    size: 16, color: AppTheme.primaryGreen),
                 SizedBox(width: 6),
                 Text(
                   'Ringkasan Hari Ini',
@@ -382,7 +412,10 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                       children: [
                         const Text(
                           'Belum Disurvei',
-                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w500),
                         ),
                         Container(
                           padding: const EdgeInsets.all(4),
@@ -390,19 +423,24 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                             color: AppTheme.warningBg,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Icon(Icons.warning_amber_rounded, size: 14, color: AppTheme.warningOrange),
+                          child: const Icon(Icons.warning_amber_rounded,
+                              size: 14, color: AppTheme.warningOrange),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Text(
                       '${_tasks.where((t) => !t.hasSurvey).length}',
-                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                      style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary),
                     ),
                     const SizedBox(height: 2),
                     const Text(
                       'Tugas menanti verifikasi',
-                      style: TextStyle(fontSize: 10.5, color: AppTheme.textMuted),
+                      style:
+                          TextStyle(fontSize: 10.5, color: AppTheme.textMuted),
                     ),
                   ],
                 ),
@@ -427,7 +465,10 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                       children: [
                         const Text(
                           'Menunggu Validasi',
-                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w500),
                         ),
                         Container(
                           padding: const EdgeInsets.all(4),
@@ -435,19 +476,24 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                             color: AppTheme.infoBg,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Icon(Icons.verified_outlined, size: 14, color: AppTheme.infoBlue),
+                          child: const Icon(Icons.verified_outlined,
+                              size: 14, color: AppTheme.infoBlue),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Text(
                       '${_tasks.where((t) => t.status == 'MENUNGGU_PERSETUJUAN_AKHIR').length}',
-                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                      style: const TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary),
                     ),
                     const SizedBox(height: 2),
                     const Text(
                       'Laporan ke Dinas',
-                      style: TextStyle(fontSize: 10.5, color: AppTheme.textMuted),
+                      style:
+                          TextStyle(fontSize: 10.5, color: AppTheme.textMuted),
                     ),
                   ],
                 ),
@@ -469,7 +515,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
           children: [
             Row(
               children: const [
-                Icon(Icons.flag_outlined, size: 16, color: AppTheme.primaryGreen),
+                Icon(Icons.flag_outlined,
+                    size: 16, color: AppTheme.primaryGreen),
                 SizedBox(width: 6),
                 Text(
                   'Tugas Prioritas',
@@ -493,16 +540,22 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                       color: AppTheme.primaryGreen,
                     ),
                   ),
-                  Icon(Icons.chevron_right, size: 16, color: AppTheme.primaryGreen),
+                  Icon(Icons.chevron_right,
+                      size: 16, color: AppTheme.primaryGreen),
                 ],
               ),
             ),
           ],
         ),
         const SizedBox(height: 10),
-
         if (_isLoading)
-          const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: AppTheme.primaryGreen)))
+          const Center(
+              child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child:
+                      CircularProgressIndicator(color: AppTheme.primaryGreen)))
+        else if (_loadError != null)
+          _buildLoadError(_loadError!, _loadData)
         else if (_tasks.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
@@ -514,11 +567,36 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
             ),
           )
         else
-          ...List.generate(_tasks.take(3).length, (i) => [
-            if (i > 0) const SizedBox(height: 12),
-            _buildPriorityTaskCard(task: _tasks[i]),
-          ]).expand((e) => e),
+          ...List.generate(
+              _tasks.take(3).length,
+              (i) => [
+                    if (i > 0) const SizedBox(height: 12),
+                    _buildPriorityTaskCard(task: _tasks[i]),
+                  ]).expand((e) => e),
       ],
+    );
+  }
+
+  Widget _buildLoadError(String message, Future<void> Function() onRetry) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFECACA)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(message, style: const TextStyle(color: Color(0xFFB91C1C))),
+          TextButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Coba lagi'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -557,10 +635,12 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
         break;
       default:
         statusLabel = isSurveyed ? 'Sudah Disurvei' : 'Belum Dimulai';
-        statusColor = isSurveyed ? AppTheme.primaryGreen : AppTheme.warningOrange;
+        statusColor =
+            isSurveyed ? AppTheme.primaryGreen : AppTheme.warningOrange;
         statusBg = isSurveyed ? AppTheme.lightGreen : AppTheme.warningBg;
         buttonText = isSurveyed ? 'Lihat Hasil' : 'Mulai Survei';
-        buttonIcon = isSurveyed ? Icons.visibility_outlined : Icons.play_circle_outline;
+        buttonIcon =
+            isSurveyed ? Icons.visibility_outlined : Icons.play_circle_outline;
     }
 
     return Container(
@@ -584,7 +664,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                   color: AppTheme.infoBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.person_outline, color: AppTheme.infoBlue, size: 20),
+                child: const Icon(Icons.person_outline,
+                    color: AppTheme.infoBlue, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -601,7 +682,9 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      task.desaKecamatan.isNotEmpty ? task.desaKecamatan : task.alamatLahan,
+                      task.desaKecamatan.isNotEmpty
+                          ? task.desaKecamatan
+                          : task.alamatLahan,
                       style: const TextStyle(
                         fontSize: 11.5,
                         color: AppTheme.textSecondary,
@@ -636,7 +719,9 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
               Row(
                 children: [
                   Icon(
-                    task.komoditas.toLowerCase().contains('jagung') ? Icons.grass : Icons.eco,
+                    task.komoditas.toLowerCase().contains('jagung')
+                        ? Icons.grass
+                        : Icons.eco,
                     size: 15,
                     color: AppTheme.primaryGreen,
                   ),
@@ -676,7 +761,10 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
               icon: Icon(buttonIcon, size: 18, color: Colors.white),
               label: Text(
                 buttonText,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.darkGreen,
@@ -692,16 +780,39 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
     );
   }
 
-
   // 7. Lokasi Survei (Peta Mini Interaktif)
   Widget _buildSurveyLocationSection() {
-    // Koordinat poligon contoh sawah Kebondalem Mojosari
-    final samplePolygon = [
-      const LatLng(-7.5255, 112.5330),
-      const LatLng(-7.5255, 112.5350),
-      const LatLng(-7.5270, 112.5350),
-      const LatLng(-7.5270, 112.5330),
-    ];
+    PPLTaskModel? task;
+    for (final candidate in _tasks) {
+      if (candidate.latitude >= -90 &&
+          candidate.latitude <= 90 &&
+          candidate.longitude >= -180 &&
+          candidate.longitude <= 180 &&
+          (candidate.latitude != 0 || candidate.longitude != 0)) {
+        task = candidate;
+        break;
+      }
+    }
+
+    final surveyTask = task;
+    if (surveyTask == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppTheme.cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: const Text(
+          'Lokasi survei belum tersedia. Peta akan muncul setelah ada tugas dengan koordinat yang valid.',
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
+      );
+    }
+
+    final location = LatLng(surveyTask.latitude, surveyTask.longitude);
+    final polygonPoints = surveyTask.parsedPolygonPoints;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -719,7 +830,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
             children: [
               Row(
                 children: const [
-                  Icon(Icons.map_outlined, size: 18, color: AppTheme.primaryGreen),
+                  Icon(Icons.map_outlined,
+                      size: 18, color: AppTheme.primaryGreen),
                   SizedBox(width: 6),
                   Text(
                     'Lokasi Survei',
@@ -736,18 +848,24 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const PPLPetaLahanScreen(),
+                      builder: (context) =>
+                          PPLPetaLahanScreen(task: surveyTask),
                     ),
                   );
                 },
-                icon: const Icon(Icons.layers_outlined, size: 14, color: AppTheme.primaryGreen),
+                icon: const Icon(Icons.layers_outlined,
+                    size: 14, color: AppTheme.primaryGreen),
                 label: const Text(
                   'Buka Peta',
-                  style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen),
+                  style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryGreen),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.lightGreen,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -771,8 +889,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                 children: [
                   FlutterMap(
                     mapController: _miniMapController,
-                    options: const MapOptions(
-                      initialCenter: LatLng(-7.5264, 112.5342),
+                    options: MapOptions(
+                      initialCenter: location,
                       initialZoom: 16.2,
                       interactionOptions: InteractionOptions(
                         flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
@@ -780,24 +898,27 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                     ),
                     children: [
                       TileLayer(
-                        urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                        urlTemplate:
+                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
                         userAgentPackageName: 'com.epupuk.mobile',
                       ),
                       PolygonLayer(
-                        polygons: [
-                          Polygon(
-                            points: samplePolygon,
-                            color: const Color(0x55078A61),
-                            borderColor: AppTheme.primaryGreen,
-                            borderStrokeWidth: 2,
-                            isFilled: true,
-                          ),
-                        ],
+                        polygons: polygonPoints.length >= 3
+                            ? [
+                                Polygon(
+                                  points: polygonPoints,
+                                  color: AppTheme.primaryGreen.withOpacity(0.2),
+                                  borderColor: AppTheme.primaryGreen,
+                                  borderStrokeWidth: 2,
+                                  isFilled: true,
+                                ),
+                              ]
+                            : [],
                       ),
                       MarkerLayer(
                         markers: [
                           Marker(
-                            point: const LatLng(-7.52625, 112.5340),
+                            point: location,
                             width: 70,
                             height: 24,
                             child: Container(
@@ -806,9 +927,12 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                                 color: Colors.black.withOpacity(0.65),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text(
-                                '0.8 Ha • Padi',
-                                style: TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+                              child: Text(
+                                '${(surveyTask.luasLahanM2 / 10000).toStringAsFixed(2)} Ha • ${surveyTask.komoditas}',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
@@ -824,12 +948,16 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                       children: [
                         _buildMiniMapBtn(Icons.add, () {
                           final currentZoom = _miniMapController.camera.zoom;
-                          _miniMapController.move(_miniMapController.camera.center, currentZoom + 1);
+                          _miniMapController.move(
+                              _miniMapController.camera.center,
+                              currentZoom + 1);
                         }),
                         const SizedBox(height: 4),
                         _buildMiniMapBtn(Icons.remove, () {
                           final currentZoom = _miniMapController.camera.zoom;
-                          _miniMapController.move(_miniMapController.camera.center, currentZoom - 1);
+                          _miniMapController.move(
+                              _miniMapController.camera.center,
+                              currentZoom - 1);
                         }),
                       ],
                     ),
@@ -839,19 +967,24 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                     left: 8,
                     bottom: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.92),
                         borderRadius: BorderRadius.circular(6),
-                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black12, blurRadius: 4)
+                        ],
                       ),
                       child: Row(
-                        children: const [
-                          CircleAvatar(radius: 3, backgroundColor: AppTheme.primaryGreen),
+                        children: [
+                          CircleAvatar(
+                              radius: 3,
+                              backgroundColor: AppTheme.primaryGreen),
                           SizedBox(width: 4),
                           Text(
-                            '7.5264° S, 112.5342° E • Mojosari',
-                            style: TextStyle(
+                            '${surveyTask.latitude.toStringAsFixed(6)}, ${surveyTask.longitude.toStringAsFixed(6)}',
+                            style: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                               fontFamily: 'monospace',
