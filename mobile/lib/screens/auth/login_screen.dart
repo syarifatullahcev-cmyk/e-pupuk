@@ -1,9 +1,9 @@
+import '../../widgets/app_logo.dart';
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 import '../petani/petani_dashboard_screen.dart';
 import '../ppl/ppl_dashboard_screen.dart';
-import 'ppl_login_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -248,57 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 28),
 
-                    // Divider Pemisah Portal
-                    Row(
-                      children: [
-                        const Expanded(child: Divider(color: AppTheme.border)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            'PETUGAS LAPANGAN',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey.shade500,
-                              letterSpacing: 1.1,
-                            ),
-                          ),
-                        ),
-                        const Expanded(child: Divider(color: AppTheme.border)),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Tombol Khusus Menuju Portal PPL
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const PPLLoginScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.assignment_ind_rounded, size: 20, color: AppTheme.primaryGreen),
-                      label: const Text(
-                        'Masuk sebagai Petugas PPL',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primaryGreen,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: AppTheme.primaryGreen, width: 1.5),
-                        backgroundColor: AppTheme.lightGreen.withOpacity(0.3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),

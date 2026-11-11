@@ -166,7 +166,6 @@ void main() {
     expect(find.text('NIP / Username Petugas'), findsOneWidget);
     expect(find.text('Kata Sandi'), findsOneWidget);
     expect(find.text('Masuk Portal PPL'), findsOneWidget);
-    expect(find.text('Masuk sebagai Petani'), findsOneWidget);
 
     // Coba submit form kosong untuk cek validator
     await tester.tap(find.text('Masuk Portal PPL'));
@@ -175,7 +174,7 @@ void main() {
     expect(find.text('NIP atau username petugas wajib diisi'), findsOneWidget);
   });
 
-  testWidgets('Test Layar: LoginScreen menampilkan link Portal PPL',
+  testWidgets('Test Layar: LoginScreen menampilkan form login Petani',
       (tester) async {
     await tester.pumpWidget(makeTestable(const LoginScreen()));
     await tester.pump();
@@ -183,6 +182,5 @@ void main() {
     expect(find.text('e-Pupuk Mobile'), findsOneWidget);
     expect(find.text('Masuk sebagai Petani'), findsOneWidget);
     expect(find.text('Daftar Petani'), findsOneWidget);
-    expect(find.text('Masuk sebagai Petugas PPL'), findsOneWidget);
   });
 }

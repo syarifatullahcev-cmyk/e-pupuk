@@ -1,3 +1,4 @@
+import '../../widgets/app_logo.dart';
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../auth/login_screen.dart';
@@ -98,22 +99,7 @@ class _LandingScreenState extends State<LandingScreen> {
       toolbarHeight: 68,
       title: Row(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryGreen,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryGreen.withOpacity(0.25),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: const Icon(Icons.eco_rounded, color: Colors.white, size: 22),
-          ),
+          const AppLogo(size: 38),
           const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1021,15 +1007,7 @@ class _LandingScreenState extends State<LandingScreen> {
           // Logo & Nama
           Row(
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryGreen,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.eco_rounded, color: Colors.white, size: 20),
-              ),
+              const AppLogo(size: 34),
               const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
