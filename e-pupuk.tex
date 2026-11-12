@@ -69,7 +69,7 @@ Selby Wafi Nurjuan (3125521018) \par
 \clearpage
 
 % ==================== BAB I ====================
-\title{E-Pupuk: Sistem Pengajuan Subsidi Pupuk Kabupaten Mojokerto Berbasis Data Terbuka Pemerintah\\
+\title{E-Pupuk: Sistem Pengajuan Subsidi Pupuk Kabupaten Mojokerto Berbasis Open Government Data\\
 \thanks{Laporan Progres Mata Kuliah Workshop Pemrograman Framework, D3 Teknik Informatika PSDKU Lamongan, PENS.}
 }
 
@@ -84,61 +84,125 @@ Lamongan, Indonesia \\
 \maketitle
 
 \begin{abstract}
-Pengelolaan dan distribusi pupuk bersubsidi merupakan elemen vital dalam menjaga stabilitas produktivitas sektor pertanian di Kabupaten Mojokerto. Kendati demikian, mekanisme pengelolaan manual dan fragmentasi data alokasi sering memicu ketidakteraturan kuota, keterlambatan verifikasi pengajuan, serta potensi penyaluran yang tidak tepat sasaran. Penelitian ini mengusulkan pengembangan E-Pupuk, sistem informasi berbasis web terintegrasi yang memanfaatkan data terbuka pemerintah (\textit{Open Government Data}) alokasi Rencana Definitif Kebutuhan Kelompok (RDKK) secara dinamis. Kebaharuan (\textit{novelty}) dari sistem ini terletak pada penerapan validasi kuota otomatis berbasis aturan (\textit{rule-based quota checking}) yang diselaraskan dengan verifikasi geospasial batas lahan (\textit{geotagging}), alur verifikasi digital berjenjang (\textit{multi-tier verification}) antara Petani, Petugas Penyuluh Lapangan (PPL), dan Dinas Pertanian, serta penerbitan bukti tebus alokasi digital dengan \textit{dynamic QR code token} guna mengeliminasi risiko klaim ganda. Arsitektur sistem dibangun dengan model terpisah (\textit{decoupled}) menggunakan FastAPI (Python) pada sisi \textit{backend REST API}, PostgreSQL sebagai basis data relasional berkinerja tinggi, React.js dengan TypeScript pada sisi antarmuka \textit{frontend}, serta proteksi akses menggunakan \textit{Role-Based Access Control} (RBAC) berbasis JSON Web Token (JWT). Metode validasi sistem dilakukan secara menyeluruh melalui pengujian fungsionalitas menggunakan \textit{Black Box Testing} berbasis skenario peran ganda serta evaluasi penerimaan pengguna menggunakan metode \textit{System Usability Scale} (SUS) terhadap perwakilan kelompok tani dan petugas lapangan. Hasil pengujian menunjukkan persentase keberhasilan sistem mencapai XX,XX\% pada pengujian fungsionalitas \textit{Black Box Testing} dan skor usabilitas sebesar XX,XX\% pada evaluasi \textit{System Usability Scale} (SUS), yang membuktikan bahwa E-Pupuk berhasil mengotomatisasi validasi kuota, meningkatkan akurasi data pengajuan, serta menyediakan transparansi realisasi distribusi pupuk bersubsidi secara tepat waktu, efektif, dan akuntabel.
+Pengelolaan dan distribusi pupuk bersubsidi merupakan elemen vital dalam menjaga stabilitas produktivitas sektor pertanian di Kabupaten Mojokerto. Kendati demikian, mekanisme pengelolaan manual dan fragmentasi data alokasi sering memicu ketidakteraturan kuota, keterlambatan verifikasi pengajuan, serta potensi penyaluran yang tidak tepat sasaran. Penelitian ini mengusulkan pengembangan E-Pupuk, sistem informasi berbasis web terintegrasi yang memanfaatkan \textit{Open Government Data} untuk alokasi Rencana Definitif Kebutuhan Kelompok (RDKK) secara dinamis. Novelty dari sistem ini terletak pada penerapan \textit{rule-based quota checking} yang diselaraskan dengan \textit{geotagging} untuk verifikasi batas lahan, \textit{multi-tier verification} antara Petani, Petugas Penyuluh Lapangan (PPL), dan Dinas Pertanian, serta penerbitan bukti tebus alokasi digital dengan \textit{dynamic QR code token} guna mengeliminasi risiko klaim ganda. Arsitektur sistem menggunakan decoupled architecture dengan FastAPI (Python) pada sisi \textit{backend REST API}, PostgreSQL sebagai basis data relasional berkinerja tinggi, React.js dengan TypeScript pada sisi \textit{frontend}, serta proteksi akses menggunakan \textit{Role-Based Access Control} (RBAC) berbasis JSON Web Token (JWT). Metode validasi sistem dilakukan secara menyeluruh melalui \textit{Black-box testing} berbasis skenario peran ganda serta evaluasi penerimaan pengguna menggunakan metode \textit{System Usability Scale} (SUS) terhadap perwakilan kelompok tani dan petugas lapangan. Hasil pengujian menunjukkan persentase keberhasilan sistem mencapai XX,XX\% pada \textit{Black-box testing} dan skor usability sebesar XX,XX\% pada evaluasi \textit{System Usability Scale} (SUS), yang membuktikan bahwa E-Pupuk berhasil mengotomatisasi validasi kuota, meningkatkan akurasi data pengajuan, serta menyediakan transparansi realisasi distribusi pupuk bersubsidi secara tepat waktu, efektif, dan akuntabel.
 \end{abstract}
 
 \begin{IEEEkeywords}
-e-Governance, E-Pupuk, Subsidi Pupuk, Open Government Data, RDKK, FastAPI, React, Role-Based Access Control, QR Code, Black Box Testing, System Usability Scale.
+e-Governance, E-Pupuk, Subsidi Pupuk, Open Government Data, RDKK, FastAPI, React, Role-Based Access Control, QR Code, Black-box testing, System Usability Scale.
 \end{IEEEkeywords}
 
 \section{Introduction}  
-Perkembangan teknologi informasi dan komunikasi (TIK) mendorong transformasi tata kelola pemerintahan menuju \textit{e-Governance} yang transparan, partisipatif, efisien, dan akuntabel \cite{b1}. Salah satu pilar penting dalam modernisasi tata kelola sektor publik adalah pemanfaatan data terbuka pemerintah (\textit{Open Government Data}) sebagai instrumen transparansi dan akurasi pengambilan kebijakan publik \cite{b2}, \cite{b3}. Pemanfaatan data terbuka tidak hanya membuka akses informasi bagi publik, melainkan juga berperan sebagai fondasi integrasi layanan antarinstitusi guna mereduksi inefisiensi administratif \cite{b3}, khususnya dalam pengelolaan rantai pasok dan bantuan publik pada sektor agrikultur \cite{b6}.
+Perkembangan teknologi informasi dan komunikasi (TIK) mendorong transformasi tata kelola pemerintahan menuju \textit{e-Governance} yang transparan, partisipatif, efisien, dan akuntabel \cite{b1}. Salah satu pilar penting dalam modernisasi tata kelola sektor publik adalah pemanfaatan \textit{Open Government Data} sebagai instrumen transparansi dan akurasi pengambilan kebijakan publik \cite{b2}, \cite{b3}. Pemanfaatan Open Government Data tidak hanya membuka akses informasi bagi publik, melainkan juga berperan sebagai fondasi integrasi layanan antarinstitusi guna mereduksi inefisiensi administratif \cite{b3}, khususnya dalam pengelolaan rantai pasok dan bantuan publik pada sektor agrikultur \cite{b6}.
 
 Dalam konteks ketahanan pangan regional, Pemerintah Kabupaten Mojokerto secara periodik menyalurkan program pupuk bersubsidi guna membantu kelompok tani menekan ongkos produksi dan mempertahankan stabilitas hasil panen \cite{b5}. Alokasi volume pupuk subsidi ini mengacu pada dokumen Rencana Definitif Kebutuhan Kelompok (RDKK) yang disusun secara musyawarah oleh kelompok tani untuk kemudian divalidasi oleh instansi dinas teknis setempat \cite{b4}. Meskipun regulasi kuota telah diatur secara normatif, kenyataan operasional di tingkat lapangan kerap menemui kendala fragmentasi pendataan, keterlambatan pelaporan berkas fisik, tingginya potensi kekeliruan rekapitulasi data petani, serta kerentanan distorsi penyaluran alokasi kuota kepada pihak yang tidak memenuhi kualifikasi \cite{b5}, \cite{b7}.
 
-Kondisi faktual tersebut semakin diperparah dengan ketiadaan saluran informasi digital interaktif bagi para petani, sehingga mereka mengalami kendala dalam memeriksa sisa hak kuota kelompok dan status pemrosesan berkas secara mandiri \cite{b7}. Di sisi lain, Petugas Penyuluh Lapangan (PPL) terbebani proses administrasi manual yang memakan waktu lama saat melakukan verifikasi fisik lahan dan keabsahan dokumen permohonan \cite{b6}. Dari perspektif regulator, pihak Dinas Pertanian menghadapi hambatan dalam melakukan pengawasan realisasi serapan pupuk secara seketika (\textit{real-time}), sehingga sulit mengidentifikasi anomali penyaluran sejak dini \cite{b3}, \cite{b5}.
+Kondisi faktual tersebut semakin diperparah dengan ketiadaan saluran informasi digital interaktif bagi para petani, sehingga mereka mengalami kendala dalam memeriksa sisa hak kuota kelompok dan status pemrosesan berkas secara mandiri \cite{b7}. Di sisi lain, Petugas Penyuluh Lapangan (PPL) terbebani proses administrasi manual yang memakan waktu lama saat melakukan verifikasi fisik lahan dan keabsahan dokumen permohonan \cite{b6}. Dari perspektif regulator, pihak Dinas Pertanian menghadapi hambatan dalam melakukan pengawasan realisasi serapan pupuk secara \textit{real-time}, sehingga sulit mengidentifikasi anomali penyaluran sejak dini \cite{b3}, \cite{b5}.
 
-Guna memecahkan kendala sistemik tersebut, penelitian ini mengembangkan \textbf{E-Pupuk: Sistem Pengajuan Subsidi Pupuk Kabupaten Mojokerto Berbasis Data Terbuka Pemerintah}. E-Pupuk dirancang sebagai platform web komprehensif yang mengintegrasikan pendataan spasial petani dan poligon lahan, sinkronisasi kuota berbasis dataset terbuka RDKK, alur persetujuan verifikasi digital berjenjang, penerbitan tanda bukti tebus alokasi terenkripsi kode batang respons cepat (\textit{QR Code}), serta dasbor analitik distribusi eksekutif terpusat bagi jajaran dinas terkait \cite{b6}, \cite{b7}.
+Guna memecahkan kendala sistemik tersebut, penelitian ini mengembangkan E-Pupuk: Sistem Pengajuan Subsidi Pupuk Kabupaten Mojokerto Berbasis Open Government Data. E-Pupuk dirancang sebagai platform web komprehensif yang mengintegrasikan pendataan spasial petani dan poligon lahan, sinkronisasi kuota berbasis dataset RDKK dari Open Government Data, alur persetujuan verifikasi digital berjenjang, penerbitan tanda bukti tebus alokasi terenkripsi \textit{QR Code}, serta dasbor analitik distribusi eksekutif terpusat bagi jajaran dinas terkait \cite{b6}, \cite{b7}.
 
 \section{Tinjauan Pustaka}
 \subsection{E-Governance dan Ekosistem Open Government Data}
-Implementasi teknologi informasi pada sektor pemerintahan atau \textit{e-Governance} secara fundamental bertujuan mentransformasi interaksi antara pemerintah, masyarakat, dan pelaku usaha ke arah yang lebih transparan dan akuntabel \cite{b1}. Janssen dkk. menekankan bahwa pemanfaatan data terbuka pemerintah (\textit{Open Government Data}) membuka peluang besar untuk meruntuhkan silo birokrasi, memberdayakan masyarakat, dan menstimulasi efisiensi operasional layanan publik berbasis data valid \cite{b2}. Kajian komprehensif oleh Attard dkk. menegaskan bahwa keberhasilan inisiatif data terbuka sangat bergantung pada ketersediaan data yang terstruktur, mudah diakses, serta dapat digunakan secara langsung oleh aplikasi pihak ketiga maupun sistem informasi publik \cite{b3}. Dalam domain pertanian di Indonesia, Ahmad menguraikan bahwa transparansi data alokasi pupuk bersubsidi melalui portal data terbuka dapat menekan potensi kecurangan dan memastikan asas keadilan bagi petani penggarap \cite{b6}. Pada arsitektur E-Pupuk, dataset terbuka pemerintah daerah digunakan sebagai titik acuan data awal (\textit{data-seeding}) untuk memvalidasi batas atas kuota per kelompok tani secara transparan.
+Implementasi teknologi informasi melalui \textit{e-Governance} secara fundamental bertujuan mentransformasi interaksi antara pemerintah, masyarakat, dan pelaku usaha ke arah yang lebih transparan dan akuntabel \cite{b1}. Janssen dkk. menekankan bahwa pemanfaatan \textit{Open Government Data} membuka peluang besar untuk meruntuhkan silo birokrasi, memberdayakan masyarakat, dan menstimulasi efisiensi operasional layanan publik berbasis data valid \cite{b2}. Kajian komprehensif oleh Attard dkk. menegaskan bahwa keberhasilan Open Government Data initiatives sangat bergantung pada ketersediaan data yang terstruktur, mudah diakses, serta dapat digunakan secara langsung oleh aplikasi pihak ketiga maupun sistem informasi publik \cite{b3}. Dalam domain pertanian di Indonesia, Ahmad menguraikan bahwa transparansi data alokasi pupuk bersubsidi melalui Open Government Data portal dapat menekan potensi kecurangan dan memastikan asas keadilan bagi petani penggarap \cite{b6}. Pada arsitektur E-Pupuk, data-seeding menggunakan Open Government Data pemerintah daerah untuk memvalidasi batas atas kuota per kelompok tani secara transparan.
 
 \subsection{Regulasi RDKK dan Dinamika Distribusi Pupuk Subsidi}
 Rencana Definitif Kebutuhan Kelompok (RDKK) secara elektronik atau e-RDKK merupakan instrumen regulasi utama yang ditetapkan Kementerian Pertanian Republik Indonesia untuk merencanakan alokasi pupuk bersubsidi secara berjenjang mulai dari tingkat desa hingga nasional \cite{b4}. Kendati kerangka elektronik e-RDKK telah digulirkan secara terpusat, laporan evaluasi Dinas Pertanian Kabupaten Mojokerto menggarisbawahi bahwa pada tingkat implementasi operasional kecamatan masih terdapat celah koordinasi, keterlambatan pemutakhiran data kepemilikan lahan, serta kendala validasi fisik di lapangan oleh petugas penyuluh \cite{b5}. Penelitian Suryanto dkk. membuktikan bahwa integrasi data alokasi pupuk dengan pemetaan geografis berbasis web secara signifikan mampu menyederhanakan pemantauan kuota dan mencegah tumpang-tindih permohonan antar-kelompok \cite{b7}. E-Pupuk menyempurnakan pendekatan ini dengan menghubungkan kuota RDKK terhadap validasi batas luas lahan secara langsung pada saat pengajuan diajukan oleh petani.
 
 \subsection{Arsitektur Perangkat Lunak Web RESTful dan Asynchronous API}
-Pengembangan aplikasi layanan publik modern mensyaratkan arsitektur yang tangguh, responsif, dan mudah dipelihara. Pola arsitektur terpisah (\textit{decoupled architecture}) memisahkan antarmuka pengguna (\textit{frontend}) dan penyedia layanan data (\textit{backend}) melalui antarmuka pertukaran data standar RESTful API \cite{b8}, \cite{b9}. Framework FastAPI dipilih dalam riset ini karena kemampuannya mengeksekusi komputasi konkurensi asinkron (\textit{asynchronous I/O}) berbasis standar ASGI Python, menyajikan performa latensi sangat rendah, serta menyediakan validasi tipe data otomatis melalui skema Pydantic \cite{b8}. Pada sisi antarmuka, library React.js yang dipadukan dengan bahasa TypeScript memberikan keandalan dalam merender antarmuka pengguna berbasis komponen reaktif secara cepat, menjamin kerapian kode skala besar, serta memfasilitasi interaksi pengguna yang adaptif terhadap perangkat seluler maupun desktop \cite{b9}, \cite{b15}.
+Pengembangan aplikasi layanan publik modern mensyaratkan arsitektur yang tangguh, responsif, dan mudah dipelihara. Decoupled architecture memisahkan \textit{frontend} dan \textit{backend} melalui antarmuka pertukaran data standar RESTful API \cite{b8}, \cite{b9}. Framework FastAPI dipilih dalam riset ini karena kemampuannya mengeksekusi \textit{asynchronous I/O} berbasis standar ASGI Python, menyajikan performa latensi sangat rendah, serta menyediakan validasi tipe data otomatis melalui skema Pydantic \cite{b8}. Pada sisi antarmuka, library React.js yang dipadukan dengan bahasa TypeScript memberikan keandalan dalam merender antarmuka pengguna berbasis komponen reaktif secara cepat, menjamin kerapian kode skala besar, serta memfasilitasi interaksi pengguna yang adaptif terhadap perangkat seluler maupun desktop \cite{b9}, \cite{b15}.
 
 \subsection{Keamanan Sistem dan Role-Based Access Control (RBAC)}
-Sistem informasi tata kelola pemerintahan yang melibatkan berbagai entitas pengguna wajib mengimplementasikan kontrol otorisasi yang ketat. Standar keamanan National Institute of Standards and Technology (NIST) mendefinisikan \textit{Role-Based Access Control} (RBAC) sebagai metodologi penetapan izin akses berdasarkan peran fungsional pengguna dalam suatu organisasi \cite{b10}. Dalam E-Pupuk, RBAC diimplementasikan secara granular untuk membedakan hak akses antara Petani, Petugas Penyuluh Lapangan (PPL), Admin Kecamatan, dan Kepala Dinas Pertanian. Untuk menjamin komunikasi data yang nir-status (\textit{stateless}), sistem menerapkan standar tokenisasi \textit{JSON Web Token} (JWT) dengan enkripsi berbasis algoritma SHA-256 yang dikombinasikan dengan teknik \textit{hashing} kata sandi menggunakan pustaka Bcrypt, sehingga privasi dan integritas data pengguna terlindungi dari ancaman penyusupan tidak sah \cite{b11}.
+Sistem informasi tata kelola pemerintahan yang melibatkan berbagai entitas pengguna wajib mengimplementasikan kontrol otorisasi yang ketat. Standar keamanan National Institute of Standards and Technology (NIST) mendefinisikan \textit{Role-Based Access Control} (RBAC) sebagai metodologi penetapan izin akses berdasarkan peran fungsional pengguna dalam suatu organisasi \cite{b10}. Dalam E-Pupuk, RBAC diimplementasikan secara granular untuk membedakan hak akses antara Petani, Petugas Penyuluh Lapangan (PPL), Admin Kecamatan, dan Kepala Dinas Pertanian. Untuk menjamin stateless communication, sistem menerapkan standar tokenisasi \textit{JSON Web Token} (JWT) dengan enkripsi berbasis algoritma SHA-256 yang dikombinasikan dengan \textit{password hashing} menggunakan pustaka Bcrypt, sehingga privasi dan integritas data pengguna terlindungi dari ancaman penyusupan tidak sah \cite{b11}.
 
 \subsection{Verifikasi Geospasial dan Validasi Transaksi QR Code}
-Validasi faktual keberadaan lahan pertanian menjadi faktor penentu dalam mencegah penyalahgunaan subsidi pupuk. Pemanfaatan koordinat geospasial (\textit{geotagging}) pada peta digital interaktif memungkinkan petugas PPL memverifikasi lokasi fisik lahan yang didaftarkan petani secara objektif \cite{b7}. Selain itu, teknologi kode respons cepat (\textit{QR Code}) terbukti efektif sebagai media verifikasi fisik yang cepat, murah, dan akurat dalam rantai pelacakan logistik maupun bukti transaksi resmi \cite{b12}. E-Pupuk mengimplementasikan generasi QR Code yang memuat tanda tangan kriptografis unik pada setiap lembar bukti alokasi yang telah disetujui, sehingga pihak kios penyalur dapat melakukan validasi keaslian dokumen secara instan dan mencegah penebusan berulang atas kuota yang sama \cite{b12}.
+Validasi faktual keberadaan lahan pertanian menjadi faktor penentu dalam mencegah penyalahgunaan subsidi pupuk. Pemanfaatan \textit{geotagging} pada peta digital interaktif memungkinkan petugas PPL memverifikasi lokasi fisik lahan yang didaftarkan petani secara objektif \cite{b7}. Selain itu, \textit{QR Code} terbukti efektif sebagai media verifikasi fisik yang cepat, murah, dan akurat dalam rantai pelacakan logistik maupun bukti transaksi resmi \cite{b12}. E-Pupuk mengimplementasikan generasi QR Code yang memuat tanda tangan kriptografis unik pada setiap lembar bukti alokasi yang telah disetujui, sehingga pihak kios penyalur dapat melakukan validasi keaslian dokumen secara instan dan mencegah penebusan berulang atas kuota yang sama \cite{b12}.
 
 \subsection{Metodologi Pengujian dan Evaluasi Usabilitas Sistem}
-Untuk menjamin kualitas dan keandalan sistem sebelum diterapkan secara luas, diperlukan metodologi rekayasa perangkat lunak yang sistematis. Pressman dan Maxim menjelaskan bahwa metode pengujian kotak hitam (\textit{Black Box Testing}) merupakan pendekatan esensial untuk memverifikasi fungsionalitas antarmuka dan keluaran sistem berdasarkan spesifikasi kebutuhan tanpa harus menganalisis kode internal secara langsung \cite{b13}. Di samping pengujian fungsional, penerimaan sistem oleh pengguna akhir dievaluasi menggunakan instrumen \textit{System Usability Scale} (SUS) yang dikembangkan oleh Brooke \cite{b14}. Instrumen SUS telah terbukti secara empiris sebagai alat ukur usabilitas standar industri dengan keandalan tinggi untuk menilai kemudahan belajar, efisiensi interaksi, dan tingkat kepuasan pengguna \cite{b14}, \cite{b16}. Prinsip-prinsip desain antarmuka responsif yang ramah pengguna juga diterapkan sesuai panduan Nielsen untuk memastikan petani dengan variasi literasi digital dapat mengoperasikan sistem tanpa kendala berarti \cite{b15}.
+Untuk menjamin kualitas dan keandalan sistem sebelum diterapkan secara luas, diperlukan metodologi rekayasa perangkat lunak yang sistematis. Pressman dan Maxim menjelaskan bahwa metode \textit{Black-box testing} merupakan pendekatan esensial untuk memverifikasi fungsionalitas antarmuka dan keluaran sistem berdasarkan spesifikasi kebutuhan tanpa harus menganalisis kode internal secara langsung \cite{b13}. Di samping pengujian fungsional, penerimaan sistem oleh pengguna akhir dievaluasi menggunakan instrumen \textit{System Usability Scale} (SUS) yang dikembangkan oleh Brooke \cite{b14}. Instrumen SUS telah terbukti secara empiris sebagai alat ukur usability standar industri dengan keandalan tinggi untuk menilai kemudahan belajar, efisiensi interaksi, dan tingkat kepuasan pengguna \cite{b14}, \cite{b16}. Prinsip-prinsip desain antarmuka responsif yang ramah pengguna juga diterapkan sesuai panduan Nielsen untuk memastikan petani dengan variasi literasi digital dapat mengoperasikan sistem tanpa kendala berarti \cite{b15}.
 
 \subsection{Posisi dan Kebaharuan Sistem E-Pupuk}
-Berdasarkan sintesis terhadap berbagai studi terdahulu, sistem E-Pupuk menempati posisi strategis yang menjembatani kesenjangan antara ketersediaan data terbuka pemerintah dengan otomatisasi alur kerja verifikasi lapangan di sektor pertanian. Perbandingan terhadap sistem konvensional menunjukkan bahwa E-Pupuk tidak sekadar mendigitalkan formulir pengajuan, melainkan menghadirkan kebaharuan integrasi validasi kuota otomatis terhubung dataset e-RDKK, pengecekan spasial lahan, pelacakan status berjenjang terverifikasi PPL, hingga penerbitan token tebus QR Code anti-pemalsuan. Integrasi menyeluruh ini menghadirkan ekosistem tata kelola distribusi pupuk bersubsidi Kabupaten Mojokerto yang akuntabel, transparan, dan terukur.
+Berdasarkan sintesis terhadap berbagai studi terdahulu, sistem E-Pupuk menempati posisi strategis yang menjembatani kesenjangan antara ketersediaan Open Government Data dengan otomatisasi alur kerja verifikasi lapangan di sektor pertanian. Perbandingan terhadap sistem konvensional menunjukkan bahwa E-Pupuk tidak sekadar mendigitalkan formulir pengajuan, melainkan menghadirkan kebaharuan integrasi validasi kuota otomatis terhubung dataset e-RDKK, pengecekan spasial lahan, pelacakan status berjenjang terverifikasi PPL, hingga penerbitan token tebus QR Code anti-pemalsuan. Integrasi menyeluruh ini menghadirkan ekosistem tata kelola distribusi pupuk bersubsidi Kabupaten Mojokerto yang akuntabel, transparan, dan terukur.
+
+
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Arsitektur Sistem dan Alur Pemrosesan Kasus}
+Arsitektur sistem E-Pupuk dibangun mengadopsi pola \textit{decoupled multi-tier architecture} yang memisahkan antarmuka pengguna (\textit{frontend}), logika bisnis \textit{backend REST API}, modul inferensi kecerdasan artifisial, serta penyimpanan data terpusat \cite{b1}, \cite{b14}, \cite{b15}. Alur pemrosesan kasus pengajuan subsidi pupuk dan validasi laporan operasional dirancang mengikuti siklus terstruktur yang terdiri atas lima tahapan utama:
+\begin{enumerate}
+    \item \textbf{Inisiasi dan Input Berkas Kasus:} Pengguna mengunggah data permohonan melalui antarmuka web reaktif \cite{b14} atau aplikasi mobile berbasis formulir terstruktur dengan validasi skema data seketika menggunakan Pydantic \cite{b18}. Data mencakup nomor identitas kependudukan (NIK), keanggotaan kelompok tani (Poktan), komoditas tanaman, serta koordinat poligon batas lahan pertanian via Leaflet GIS \cite{b16}.
+    \item \textbf{Sinkronisasi dan Validasi Rule-based Kuota e-RDKK:} Sistem memproses data masukan terhadap dataset terbuka pemerintah alokasi RDKK tingkat kecamatan. Mesin aturan (\textit{rule engine}) melakukan verifikasi batas kuota pupuk (Urea dan NPK) berdasarkan luas baku lahan yang diajukan untuk mendeteksi potensi anomali volume permohonan \cite{b17}.
+    \item \textbf{Disposisi dan Verifikasi Lapangan (PPL):} Kasus permohonan yang lolos validasi awal diteruskan ke dasbor kerja Petugas Penyuluh Lapangan (PPL). Petugas melakukan survei faktual di lapangan, mencocokkan koordinat geospasial lahan, memeriksa kondisi riil vegetasi tanaman, dan memberikan rekomendasi persetujuan (\textit{approval}) atau penolakan dengan catatan revisi berjenjang.
+    \item \textbf{Otorisasi Eksekutif dan Penerbitan Token Kriptografis:} Permohonan yang disetujui PPL divalidasi oleh Dinas Pertanian untuk kemudian diterbitkan bukti alokasi digital memuat \textit{dynamic QR Code token} berbasis enkripsi SHA-256 dan protokol stateless JWT \cite{b2}. Token ini mengunci identitas penerima dan kuota tebus guna mencegah klaim ganda di tingkat kios penyalur.
+    \item \textbf{Pencatatan Transaksi dan Audit Trail:} Seluruh riwayat perubahan status kasus disimpan ke dalam basis data relasional PostgreSQL dengan pencatatan stempel waktu (\textit{timestamp}) dan jejak audit (\textit{audit trail}) yang transparan \cite{b13}.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \setlength{\fboxsep}{10pt}
+    \fbox{
+        \begin{minipage}[c][5.2cm][c]{0.88\columnwidth}
+            \centering
+            \textbf{[Space Kosong Gambar]}\\[0.25cm]
+            \footnotesize \textbf{Arsitektur Sistem E-Pupuk}\\
+            \textit{(Space disediakan untuk gambar diagram arsitektur sistem E-Pupuk)}
+        \end{minipage}
+    }
+    \caption{Arsitektur Sistem E-Pupuk}
+    \label{fig:arsitektur_epupuk}
+\end{figure}
+
+\subsection{Rancangan User Flow Pelaporan Siswa}
+Modul pelaporan dalam sistem E-Pupuk mengakomodasi peran siswa magang, mahasiswa peneliti vokasi pertanian (siswa pelapor lapangan), serta petani dalam menyampaikan laporan kendala operasional, laporan penyaluran pupuk, maupun pengaduan anomali data di wilayah kerja Kabupaten Mojokerto. Rancangan \textit{user flow} pelaporan dirancang responsif dan intuitif sesuai sepuluh prinsip heuristik usabilitas Nielsen \cite{b12}:
+\begin{enumerate}
+    \item \textbf{Tahap Autentikasi dan Pemilihan Modul:} Pengguna melakukan proses masuk (\textit{login}) dengan pengamanan RBAC dan token JWT \cite{b2}. Pada menu pelaporan, sistem menyajikan opsi kategori: (a) Pelaporan Lapangan / Survei Mandiri Siswa, (b) Pengaduan Kendala Kuota Petani, dan (c) Pelaporan Ketidaksesuaian Distribusi Kios.
+    \item \textbf{Pengisian Formulir dan Bukti Geospasial:} Antarmuka menyajikan alur langkah (\textit{stepper wizard}) untuk memandu pengisian kronologi kasus, deskripsi narasi laporan, unggah foto bukti lapangan faktual, serta penandaan titik koordinat GPS interaktif \cite{b16}.
+    \item \textbf{Pra-validasi dan Deteksi Anomali Seketika:} Sebelum laporan dikirim, sistem secara otomatis menjalankan sanitasi masukan teks, validasi format gambar, dan pemeriksaan duplikasi berkas laporan aktif guna menjamin integritas data pengaduan.
+    \item \textbf{Konfirmasi Pengiriman dan Pelacakan Tiket:} Setelah laporan terkirim, sistem menghasilkan nomor tiket laporan unik (\textit{Report Tracking ID}). Siswa atau pelapor dapat memantau status tindak lanjut penanganan kasus (Diterima, Sedang Diverifikasi, Ditindaklanjuti, Selesai) secara transparan melalui lini masa (\textit{timeline}) status interaktif.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \setlength{\fboxsep}{10pt}
+    \fbox{
+        \begin{minipage}[c][5.2cm][c]{0.88\columnwidth}
+            \centering
+            \textbf{[Space Kosong Gambar]}\\[0.25cm]
+            \footnotesize \textbf{Diagram Alur Pengguna (\textit{User Flow})}\\
+            \textit{(Space disediakan untuk gambar diagram alur pengguna pelaporan)}
+        \end{minipage}
+    }
+    \caption{Diagram Alur Pengguna (\textit{User Flow}) Pelaporan Sistem E-Pupuk}
+    \label{fig:user_flow_pelaporan}
+\end{figure}
+
+\subsection{AI Pipeline}
+Untuk mempercepat penanganan volume laporan dan mendeteksi anomali pada kasus pengajuan subsidi, E-Pupuk mengintegrasikan saluran pipa kecerdasan artifisial (\textit{AI Pipeline}) terotomatisasi yang terdiri dari tiga tahapan pemrosesan data:
+\begin{enumerate}
+    \item \textbf{Text Processing dan Klasifikasi Kategori Laporan (NLP Stage):} Deskripsi teks pengaduan atau catatan survei lapangan diproses melalui tahapan \textit{case folding}, pembersihan karakter, dan tokenisasi. Representasi vektor teks diekstraksi memanfaatkan model \textit{bidirectional encoder} berbasis arsitektur Transformer \cite{b3}, \cite{b4} dan RoBERTa \cite{b9}. Model kemudian mengklasifikasikan tiket laporan ke dalam departemen penanganan yang relevan secara otomatis menggunakan algoritma pembelajaran mesin terawasi \cite{b8}, \cite{b17}.
+    \item \textbf{Computer Vision dan Validasi Bukti Fisik (CV Stage):} Citra dokumentasi lapangan atau foto surat tanda kepemilikan lahan dianalisis menggunakan jaringan saraf tiruan konvolusional (Convolutional Neural Networks / ResNet) \cite{b6}, \cite{b7}. Tahap ini memverifikasi kejelasan visual bukti dokumentasi lahan pertanian serta mendeteksi potensi kecurangan atau gambar berulang (\textit{duplicate image submission}).
+    \item \textbf{Knowledge Retrieval dan Generasi Solusi Penanganan (RAG Stage):} Untuk membantu petugas dinas merumuskan respons penanganan laporan kasus secara cepat dan sesuai regulasi, diimplementasikan kerangka kerja \textit{Retrieval-Augmented Generation} (RAG) \cite{b11}. Mesin pencarian semantik (\textit{dense retrieval}) berbasis representasi kalimat \cite{b10} menelusuri basis pengetahuan regulasi perundang-undangan pupuk bersubsidi, kemudian model generatif merangkum draf rekomendasi solusi tindak lanjut bagi pengambil kebijakan \cite{b5}.
+\end{enumerate}
+
 
 \begin{thebibliography}{00}
-\bibitem{b1} R. Heeks, \textit{Implementing and Managing e-Government: An International Text}. London: SAGE Publications, 2006.
-\bibitem{b2} M. Janssen, Y. Charalabidis, and A. Zuiderwijk, `Benefits, adoption barriers and myths of open data and open government,'' \textit{Information Systems Management}, vol. 29, no. 4, pp. 258--268, 2012.
-\bibitem{b3} J. Attard, F. Orlandi, S. Scerri, and S. Auer, `A systematic review of open government data initiatives,'' \textit{Government Information Quarterly}, vol. 32, no. 4, pp. 399--418, 2015.
-\bibitem{b4} Kementerian Pertanian Republik Indonesia, `Pedoman Pengelolaan Sistem Elektronik Rencana Definitif Kebutuhan Kelompok (e-RDKK),'' Kementerian Pertanian RI, Jakarta, 2021.
-\bibitem{b5} Dinas Pertanian Kabupaten Mojokerto, `Laporan Evaluasi Penyaluran Pupuk Bersubsidi Kabupaten Mojokerto,'' Dinas Pertanian Kab. Mojokerto, Mojokerto, 2024.
-\bibitem{b6} A. S. Ahmad, `Pemanfaatan Open Government Data untuk Transparansi Layanan Publik di Sektor Pertanian,'' \textit{Jurnal Teknologi dan Governance}, vol. 8, no. 1, pp. 45--56, 2023.
-\bibitem{b7} R. Suryanto, H. Wibowo, dan M. Firdaus, `Rancang Bangun Sistem Informasi Distribusi Pupuk Bersubsidi Berbasis Web dan Geospasial,'' \textit{Jurnal RESTI (Rekayasa Sistem dan Teknologi Informasi)}, vol. 6, no. 3, pp. 412--419, 2022.
-\bibitem{b8} M. S. L. Tiangolo, `FastAPI: Modern, High-Performance Web Framework for Python,'' 2023. [Online]. Available: https://fastapi.tiangolo.com/
-\bibitem{b9} A. Freeman, \textit{Pro React 18: Intensive Modern Web Development}. New York: Apress, 2023.
-\bibitem{b10} D. F. Ferraiolo, R. Sandhu, S. Gavrila, D. R. Kuhn, and R. Chandramouli, `Proposed NIST Standard for Role-Based Access Control,'' \textit{ACM Transactions on Information and System Security}, vol. 4, no. 3, pp. 224--274, 2001.
-\bibitem{b11} M. B. Jones, J. Bradley, and N. Sakimura, `JSON Web Token (JWT),'' \textit{RFC 7519, Internet Engineering Task Force (IETF)}, 2015.
-\bibitem{b12} T. Gao, D. Liu, and Y. Zhang, `Application of QR Code Technology in Traceability and Verification Systems,'' \textit{IEEE Access}, vol. 8, pp. 128450--128461, 2020.
-\bibitem{b13} R. S. Pressman and B. R. Maxim, \textit{Software Engineering: A Practitioner's Approach}, 9th ed. New York: McGraw-Hill Education, 2020.
-\bibitem{b14} J. Brooke, `SUS: A 'Quick and Dirty' Usability Scale,'' in \textit{Usability Evaluation in Industry}, P. W. Jordan, B. Thomas, I. L. McClelland, and B. Weerdmeester, Eds. London: Taylor \& Francis, 1996, pp. 189--194.
-\bibitem{b15} J. Nielsen and R. Budiu, \textit{Mobile Usability: Usability Engineering in the Era of Responsive Design}. Berkeley: New Riders, 2013.
-\bibitem{b16} D. Pramudita dan M. Muslikh, `Analisis Penerimaan Sistem Informasi Pertanian Digital Menggunakan Model Evaluasi Usabilitas,'' \textit{Jurnal Sistem Cerdas}, vol. 5, no. 2, pp. 98--109, 2022.
+\bibitem{b1} M. S. L. Tiangolo, ``FastAPI: Modern, High-Performance Web Framework for Python,'' 2023. [Online]. Available: https://fastapi.tiangolo.com/
+\bibitem{b2} M. B. Jones, J. Bradley, and N. Sakimura, ``JSON Web Token (JWT),'' \textit{RFC 7519, Internet Engineering Task Force (IETF)}, 2015. [Online]. Available: https://datatracker.ietf.org/doc/html/rfc7519
+\bibitem{b3} A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, L. Kaiser, and I. Polosukhin, ``Attention Is All You Need,'' in \textit{Advances in Neural Information Processing Systems (NeurIPS)}, vol. 30, 2017. [Online]. Available: https://arxiv.org/abs/1706.03762
+\bibitem{b4} J. Devlin, M. W. Chang, K. Lee, and K. Toutanova, ``BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding,'' in \textit{Proc. NAACL-HLT}, 2019, pp. 4171--4186. [Online]. Available: https://arxiv.org/abs/1810.04805
+\bibitem{b5} A. Radford, J. Wu, R. Child, D. Luan, D. Amodei, and I. Sutskever, ``Language Models are Unsupervised Multitask Learners,'' OpenAI Technical Report, 2019. [Online]. Available: https://cdn.openai.com/better-language-models/language\_models\_are\_unsupervised\_multitask\_learners.pdf
+\bibitem{b6} Y. Kim, ``Convolutional Neural Networks for Sentence Classification,'' in \textit{Proc. EMNLP}, 2014, pp. 1746--1751. [Online]. Available: https://arxiv.org/abs/1408.5882
+\bibitem{b7} K. He, X. Zhang, S. Ren, and J. Sun, ``Deep Residual Learning for Image Recognition,'' in \textit{Proc. IEEE CVPR}, 2016, pp. 770--778. [Online]. Available: https://arxiv.org/abs/1512.03385
+\bibitem{b8} A. Joulin, E. Grave, P. Bojanowski, and T. Mikolov, ``Bag of Tricks for Efficient Text Classification,'' in \textit{Proc. EACL}, 2017, pp. 427--431. [Online]. Available: https://arxiv.org/abs/1607.01759
+\bibitem{b9} Y. Liu, M. Ott, N. Goyal, J. Du, M. Joshi, D. Chen, O. Levy, M. Lewis, L. Zettlemoyer, and V. Stoyanov, ``RoBERTa: A Robustly Optimized BERT Pretraining Approach,'' arXiv preprint arXiv:1907.11692, 2019. [Online]. Available: https://arxiv.org/abs/1907.11692
+\bibitem{b10} N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks,'' in \textit{Proc. EMNLP-IJCNLP}, 2019, pp. 3982--3992. [Online]. Available: https://arxiv.org/abs/1908.10084
+\bibitem{b11} P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. Kuttler, M. Lewis, W. Yih, T. Rockt\"{a}schel, S. Riedel, and D. Kiela, ``Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,'' in \textit{Advances in Neural Information Processing Systems (NeurIPS)}, vol. 33, 2020, pp. 9459--9474. [Online]. Available: https://arxiv.org/abs/2005.11401
+\bibitem{b12} J. Nielsen, ``10 Usability Heuristics for User Interface Design,'' Nielsen Norman Group, 2020. [Online]. Available: https://www.nngroup.com/articles/ten-usability-heuristics/
+\bibitem{b13} PostgreSQL Global Development Group, ``PostgreSQL 16 Documentation,'' 2023. [Online]. Available: https://www.postgresql.org/docs/current/index.html
+\bibitem{b14} Meta Open Source, ``React: The Library for Web and Native User Interfaces,'' 2023. [Online]. Available: https://react.dev/
+\bibitem{b15} Docker Inc., ``Docker Documentation: Accelerated Container Application Development,'' 2023. [Online]. Available: https://docs.docker.com/
+\bibitem{b16} V. Agafonkin, ``Leaflet: An Open-Source JavaScript Library for Mobile-Friendly Interactive Maps,'' 2023. [Online]. Available: https://leafletjs.com/
+\bibitem{b17} F. Pedregosa et al., ``Scikit-learn: Machine Learning in Python,'' \textit{Journal of Machine Learning Research}, vol. 12, pp. 2825--2830, 2011. [Online]. Available: https://scikit-learn.org/stable/
+\bibitem{b18} S. Colvin et al., ``Pydantic: Data Validation using Python Type Hints,'' 2023. [Online]. Available: https://docs.pydantic.dev/
 \end{thebibliography}
 
 % ==================== PERALIHAN KE 1 KOLOM & LEMBAR BARU ====================
@@ -221,7 +285,7 @@ Selby Wafi Nurjuan (3125521018) \par
 \clearpage
 
 % ==================== BAB I ====================
-\title{E-Pupuk: Sistem Pengajuan Subsidi Pupuk Kabupaten Mojokerto Berbasis Data Terbuka Pemerintah\\
+\title{E-Pupuk: Sistem Pengajuan Subsidi Pupuk Kabupaten Mojokerto Berbasis Open Government Data\\
 \thanks{Laporan Progres Mata Kuliah Workshop Pemrograman Framework, D3 Teknik Informatika PSDKU Lamongan, PENS.}
 }
 
@@ -236,61 +300,125 @@ Lamongan, Indonesia \\
 \maketitle
 
 \begin{abstract}
-Pengelolaan dan distribusi pupuk bersubsidi merupakan elemen vital dalam menjaga stabilitas produktivitas sektor pertanian di Kabupaten Mojokerto. Kendati demikian, mekanisme pengelolaan manual dan fragmentasi data alokasi sering memicu ketidakteraturan kuota, keterlambatan verifikasi pengajuan, serta potensi penyaluran yang tidak tepat sasaran. Penelitian ini mengusulkan pengembangan E-Pupuk, sistem informasi berbasis web terintegrasi yang memanfaatkan data terbuka pemerintah (\textit{Open Government Data}) alokasi Rencana Definitif Kebutuhan Kelompok (RDKK) secara dinamis. Kebaharuan (\textit{novelty}) dari sistem ini terletak pada penerapan validasi kuota otomatis berbasis aturan (\textit{rule-based quota checking}) yang diselaraskan dengan verifikasi geospasial batas lahan (\textit{geotagging}), alur verifikasi digital berjenjang (\textit{multi-tier verification}) antara Petani, Petugas Penyuluh Lapangan (PPL), dan Dinas Pertanian, serta penerbitan bukti tebus alokasi digital dengan \textit{dynamic QR code token} guna mengeliminasi risiko klaim ganda. Arsitektur sistem dibangun dengan model terpisah (\textit{decoupled}) menggunakan FastAPI (Python) pada sisi \textit{backend REST API}, PostgreSQL sebagai basis data relasional berkinerja tinggi, React.js dengan TypeScript pada sisi antarmuka \textit{frontend}, serta proteksi akses menggunakan \textit{Role-Based Access Control} (RBAC) berbasis JSON Web Token (JWT). Metode validasi sistem dilakukan secara menyeluruh melalui pengujian fungsionalitas menggunakan \textit{Black Box Testing} berbasis skenario peran ganda serta evaluasi penerimaan pengguna menggunakan metode \textit{System Usability Scale} (SUS) terhadap perwakilan kelompok tani dan petugas lapangan. Hasil pengujian menunjukkan persentase keberhasilan sistem mencapai XX,XX\% pada pengujian fungsionalitas \textit{Black Box Testing} dan skor usabilitas sebesar XX,XX\% pada evaluasi \textit{System Usability Scale} (SUS), yang membuktikan bahwa E-Pupuk berhasil mengotomatisasi validasi kuota, meningkatkan akurasi data pengajuan, serta menyediakan transparansi realisasi distribusi pupuk bersubsidi secara tepat waktu, efektif, dan akuntabel.
+Pengelolaan dan distribusi pupuk bersubsidi merupakan elemen vital dalam menjaga stabilitas produktivitas sektor pertanian di Kabupaten Mojokerto. Kendati demikian, mekanisme pengelolaan manual dan fragmentasi data alokasi sering memicu ketidakteraturan kuota, keterlambatan verifikasi pengajuan, serta potensi penyaluran yang tidak tepat sasaran. Penelitian ini mengusulkan pengembangan E-Pupuk, sistem informasi berbasis web terintegrasi yang memanfaatkan \textit{Open Government Data} untuk alokasi Rencana Definitif Kebutuhan Kelompok (RDKK) secara dinamis. Novelty dari sistem ini terletak pada penerapan \textit{rule-based quota checking} yang diselaraskan dengan \textit{geotagging} untuk verifikasi batas lahan, \textit{multi-tier verification} antara Petani, Petugas Penyuluh Lapangan (PPL), dan Dinas Pertanian, serta penerbitan bukti tebus alokasi digital dengan \textit{dynamic QR code token} guna mengeliminasi risiko klaim ganda. Arsitektur sistem menggunakan decoupled architecture dengan FastAPI (Python) pada sisi \textit{backend REST API}, PostgreSQL sebagai basis data relasional berkinerja tinggi, React.js dengan TypeScript pada sisi \textit{frontend}, serta proteksi akses menggunakan \textit{Role-Based Access Control} (RBAC) berbasis JSON Web Token (JWT). Metode validasi sistem dilakukan secara menyeluruh melalui \textit{Black-box testing} berbasis skenario peran ganda serta evaluasi penerimaan pengguna menggunakan metode \textit{System Usability Scale} (SUS) terhadap perwakilan kelompok tani dan petugas lapangan. Hasil pengujian menunjukkan persentase keberhasilan sistem mencapai XX,XX\% pada \textit{Black-box testing} dan skor usability sebesar XX,XX\% pada evaluasi \textit{System Usability Scale} (SUS), yang membuktikan bahwa E-Pupuk berhasil mengotomatisasi validasi kuota, meningkatkan akurasi data pengajuan, serta menyediakan transparansi realisasi distribusi pupuk bersubsidi secara tepat waktu, efektif, dan akuntabel.
 \end{abstract}
 
 \begin{IEEEkeywords}
-e-Governance, E-Pupuk, Subsidi Pupuk, Open Government Data, RDKK, FastAPI, React, Role-Based Access Control, QR Code, Black Box Testing, System Usability Scale.
+e-Governance, E-Pupuk, Subsidi Pupuk, Open Government Data, RDKK, FastAPI, React, Role-Based Access Control, QR Code, Black-box testing, System Usability Scale.
 \end{IEEEkeywords}
 
 \section{Introduction}  
-Perkembangan teknologi informasi dan komunikasi (TIK) mendorong transformasi tata kelola pemerintahan menuju \textit{e-Governance} yang transparan, partisipatif, efisien, dan akuntabel \cite{b1}. Salah satu pilar penting dalam modernisasi tata kelola sektor publik adalah pemanfaatan data terbuka pemerintah (\textit{Open Government Data}) sebagai instrumen transparansi dan akurasi pengambilan kebijakan publik \cite{b2}, \cite{b3}. Pemanfaatan data terbuka tidak hanya membuka akses informasi bagi publik, melainkan juga berperan sebagai fondasi integrasi layanan antarinstitusi guna mereduksi inefisiensi administratif \cite{b3}, khususnya dalam pengelolaan rantai pasok dan bantuan publik pada sektor agrikultur \cite{b6}.
+Perkembangan teknologi informasi dan komunikasi (TIK) mendorong transformasi tata kelola pemerintahan menuju \textit{e-Governance} yang transparan, partisipatif, efisien, dan akuntabel \cite{b1}. Salah satu pilar penting dalam modernisasi tata kelola sektor publik adalah pemanfaatan \textit{Open Government Data} sebagai instrumen transparansi dan akurasi pengambilan kebijakan publik \cite{b2}, \cite{b3}. Pemanfaatan Open Government Data tidak hanya membuka akses informasi bagi publik, melainkan juga berperan sebagai fondasi integrasi layanan antarinstitusi guna mereduksi inefisiensi administratif \cite{b3}, khususnya dalam pengelolaan rantai pasok dan bantuan publik pada sektor agrikultur \cite{b6}.
 
 Dalam konteks ketahanan pangan regional, Pemerintah Kabupaten Mojokerto secara periodik menyalurkan program pupuk bersubsidi guna membantu kelompok tani menekan ongkos produksi dan mempertahankan stabilitas hasil panen \cite{b5}. Alokasi volume pupuk subsidi ini mengacu pada dokumen Rencana Definitif Kebutuhan Kelompok (RDKK) yang disusun secara musyawarah oleh kelompok tani untuk kemudian divalidasi oleh instansi dinas teknis setempat \cite{b4}. Meskipun regulasi kuota telah diatur secara normatif, kenyataan operasional di tingkat lapangan kerap menemui kendala fragmentasi pendataan, keterlambatan pelaporan berkas fisik, tingginya potensi kekeliruan rekapitulasi data petani, serta kerentanan distorsi penyaluran alokasi kuota kepada pihak yang tidak memenuhi kualifikasi \cite{b5}, \cite{b7}.
 
-Kondisi faktual tersebut semakin diperparah dengan ketiadaan saluran informasi digital interaktif bagi para petani, sehingga mereka mengalami kendala dalam memeriksa sisa hak kuota kelompok dan status pemrosesan berkas secara mandiri \cite{b7}. Di sisi lain, Petugas Penyuluh Lapangan (PPL) terbebani proses administrasi manual yang memakan waktu lama saat melakukan verifikasi fisik lahan dan keabsahan dokumen permohonan \cite{b6}. Dari perspektif regulator, pihak Dinas Pertanian menghadapi hambatan dalam melakukan pengawasan realisasi serapan pupuk secara seketika (\textit{real-time}), sehingga sulit mengidentifikasi anomali penyaluran sejak dini \cite{b3}, \cite{b5}.
+Kondisi faktual tersebut semakin diperparah dengan ketiadaan saluran informasi digital interaktif bagi para petani, sehingga mereka mengalami kendala dalam memeriksa sisa hak kuota kelompok dan status pemrosesan berkas secara mandiri \cite{b7}. Di sisi lain, Petugas Penyuluh Lapangan (PPL) terbebani proses administrasi manual yang memakan waktu lama saat melakukan verifikasi fisik lahan dan keabsahan dokumen permohonan \cite{b6}. Dari perspektif regulator, pihak Dinas Pertanian menghadapi hambatan dalam melakukan pengawasan realisasi serapan pupuk secara \textit{real-time}, sehingga sulit mengidentifikasi anomali penyaluran sejak dini \cite{b3}, \cite{b5}.
 
-Guna memecahkan kendala sistemik tersebut, penelitian ini mengembangkan \textbf{E-Pupuk: Sistem Pengajuan Subsidi Pupuk Kabupaten Mojokerto Berbasis Data Terbuka Pemerintah}. E-Pupuk dirancang sebagai platform web komprehensif yang mengintegrasikan pendataan spasial petani dan poligon lahan, sinkronisasi kuota berbasis dataset terbuka RDKK, alur persetujuan verifikasi digital berjenjang, penerbitan tanda bukti tebus alokasi terenkripsi kode batang respons cepat (\textit{QR Code}), serta dasbor analitik distribusi eksekutif terpusat bagi jajaran dinas terkait \cite{b6}, \cite{b7}.
+Guna memecahkan kendala sistemik tersebut, penelitian ini mengembangkan E-Pupuk: Sistem Pengajuan Subsidi Pupuk Kabupaten Mojokerto Berbasis Open Government Data. E-Pupuk dirancang sebagai platform web komprehensif yang mengintegrasikan pendataan spasial petani dan poligon lahan, sinkronisasi kuota berbasis dataset RDKK dari Open Government Data, alur persetujuan verifikasi digital berjenjang, penerbitan tanda bukti tebus alokasi terenkripsi \textit{QR Code}, serta dasbor analitik distribusi eksekutif terpusat bagi jajaran dinas terkait \cite{b6}, \cite{b7}.
 
 \section{Tinjauan Pustaka}
 \subsection{E-Governance dan Ekosistem Open Government Data}
-Implementasi teknologi informasi pada sektor pemerintahan atau \textit{e-Governance} secara fundamental bertujuan mentransformasi interaksi antara pemerintah, masyarakat, dan pelaku usaha ke arah yang lebih transparan dan akuntabel \cite{b1}. Janssen dkk. menekankan bahwa pemanfaatan data terbuka pemerintah (\textit{Open Government Data}) membuka peluang besar untuk meruntuhkan silo birokrasi, memberdayakan masyarakat, dan menstimulasi efisiensi operasional layanan publik berbasis data valid \cite{b2}. Kajian komprehensif oleh Attard dkk. menegaskan bahwa keberhasilan inisiatif data terbuka sangat bergantung pada ketersediaan data yang terstruktur, mudah diakses, serta dapat digunakan secara langsung oleh aplikasi pihak ketiga maupun sistem informasi publik \cite{b3}. Dalam domain pertanian di Indonesia, Ahmad menguraikan bahwa transparansi data alokasi pupuk bersubsidi melalui portal data terbuka dapat menekan potensi kecurangan dan memastikan asas keadilan bagi petani penggarap \cite{b6}. Pada arsitektur E-Pupuk, dataset terbuka pemerintah daerah digunakan sebagai titik acuan data awal (\textit{data-seeding}) untuk memvalidasi batas atas kuota per kelompok tani secara transparan.
+Implementasi teknologi informasi melalui \textit{e-Governance} secara fundamental bertujuan mentransformasi interaksi antara pemerintah, masyarakat, dan pelaku usaha ke arah yang lebih transparan dan akuntabel \cite{b1}. Janssen dkk. menekankan bahwa pemanfaatan \textit{Open Government Data} membuka peluang besar untuk meruntuhkan silo birokrasi, memberdayakan masyarakat, dan menstimulasi efisiensi operasional layanan publik berbasis data valid \cite{b2}. Kajian komprehensif oleh Attard dkk. menegaskan bahwa keberhasilan Open Government Data initiatives sangat bergantung pada ketersediaan data yang terstruktur, mudah diakses, serta dapat digunakan secara langsung oleh aplikasi pihak ketiga maupun sistem informasi publik \cite{b3}. Dalam domain pertanian di Indonesia, Ahmad menguraikan bahwa transparansi data alokasi pupuk bersubsidi melalui Open Government Data portal dapat menekan potensi kecurangan dan memastikan asas keadilan bagi petani penggarap \cite{b6}. Pada arsitektur E-Pupuk, data-seeding menggunakan Open Government Data pemerintah daerah untuk memvalidasi batas atas kuota per kelompok tani secara transparan.
 
 \subsection{Regulasi RDKK dan Dinamika Distribusi Pupuk Subsidi}
 Rencana Definitif Kebutuhan Kelompok (RDKK) secara elektronik atau e-RDKK merupakan instrumen regulasi utama yang ditetapkan Kementerian Pertanian Republik Indonesia untuk merencanakan alokasi pupuk bersubsidi secara berjenjang mulai dari tingkat desa hingga nasional \cite{b4}. Kendati kerangka elektronik e-RDKK telah digulirkan secara terpusat, laporan evaluasi Dinas Pertanian Kabupaten Mojokerto menggarisbawahi bahwa pada tingkat implementasi operasional kecamatan masih terdapat celah koordinasi, keterlambatan pemutakhiran data kepemilikan lahan, serta kendala validasi fisik di lapangan oleh petugas penyuluh \cite{b5}. Penelitian Suryanto dkk. membuktikan bahwa integrasi data alokasi pupuk dengan pemetaan geografis berbasis web secara signifikan mampu menyederhanakan pemantauan kuota dan mencegah tumpang-tindih permohonan antar-kelompok \cite{b7}. E-Pupuk menyempurnakan pendekatan ini dengan menghubungkan kuota RDKK terhadap validasi batas luas lahan secara langsung pada saat pengajuan diajukan oleh petani.
 
 \subsection{Arsitektur Perangkat Lunak Web RESTful dan Asynchronous API}
-Pengembangan aplikasi layanan publik modern mensyaratkan arsitektur yang tangguh, responsif, dan mudah dipelihara. Pola arsitektur terpisah (\textit{decoupled architecture}) memisahkan antarmuka pengguna (\textit{frontend}) dan penyedia layanan data (\textit{backend}) melalui antarmuka pertukaran data standar RESTful API \cite{b8}, \cite{b9}. Framework FastAPI dipilih dalam riset ini karena kemampuannya mengeksekusi komputasi konkurensi asinkron (\textit{asynchronous I/O}) berbasis standar ASGI Python, menyajikan performa latensi sangat rendah, serta menyediakan validasi tipe data otomatis melalui skema Pydantic \cite{b8}. Pada sisi antarmuka, library React.js yang dipadukan dengan bahasa TypeScript memberikan keandalan dalam merender antarmuka pengguna berbasis komponen reaktif secara cepat, menjamin kerapian kode skala besar, serta memfasilitasi interaksi pengguna yang adaptif terhadap perangkat seluler maupun desktop \cite{b9}, \cite{b15}.
+Pengembangan aplikasi layanan publik modern mensyaratkan arsitektur yang tangguh, responsif, dan mudah dipelihara. Decoupled architecture memisahkan \textit{frontend} dan \textit{backend} melalui antarmuka pertukaran data standar RESTful API \cite{b8}, \cite{b9}. Framework FastAPI dipilih dalam riset ini karena kemampuannya mengeksekusi \textit{asynchronous I/O} berbasis standar ASGI Python, menyajikan performa latensi sangat rendah, serta menyediakan validasi tipe data otomatis melalui skema Pydantic \cite{b8}. Pada sisi antarmuka, library React.js yang dipadukan dengan bahasa TypeScript memberikan keandalan dalam merender antarmuka pengguna berbasis komponen reaktif secara cepat, menjamin kerapian kode skala besar, serta memfasilitasi interaksi pengguna yang adaptif terhadap perangkat seluler maupun desktop \cite{b9}, \cite{b15}.
 
 \subsection{Keamanan Sistem dan Role-Based Access Control (RBAC)}
-Sistem informasi tata kelola pemerintahan yang melibatkan berbagai entitas pengguna wajib mengimplementasikan kontrol otorisasi yang ketat. Standar keamanan National Institute of Standards and Technology (NIST) mendefinisikan \textit{Role-Based Access Control} (RBAC) sebagai metodologi penetapan izin akses berdasarkan peran fungsional pengguna dalam suatu organisasi \cite{b10}. Dalam E-Pupuk, RBAC diimplementasikan secara granular untuk membedakan hak akses antara Petani, Petugas Penyuluh Lapangan (PPL), Admin Kecamatan, dan Kepala Dinas Pertanian. Untuk menjamin komunikasi data yang nir-status (\textit{stateless}), sistem menerapkan standar tokenisasi \textit{JSON Web Token} (JWT) dengan enkripsi berbasis algoritma SHA-256 yang dikombinasikan dengan teknik \textit{hashing} kata sandi menggunakan pustaka Bcrypt, sehingga privasi dan integritas data pengguna terlindungi dari ancaman penyusupan tidak sah \cite{b11}.
+Sistem informasi tata kelola pemerintahan yang melibatkan berbagai entitas pengguna wajib mengimplementasikan kontrol otorisasi yang ketat. Standar keamanan National Institute of Standards and Technology (NIST) mendefinisikan \textit{Role-Based Access Control} (RBAC) sebagai metodologi penetapan izin akses berdasarkan peran fungsional pengguna dalam suatu organisasi \cite{b10}. Dalam E-Pupuk, RBAC diimplementasikan secara granular untuk membedakan hak akses antara Petani, Petugas Penyuluh Lapangan (PPL), Admin Kecamatan, dan Kepala Dinas Pertanian. Untuk menjamin stateless communication, sistem menerapkan standar tokenisasi \textit{JSON Web Token} (JWT) dengan enkripsi berbasis algoritma SHA-256 yang dikombinasikan dengan \textit{password hashing} menggunakan pustaka Bcrypt, sehingga privasi dan integritas data pengguna terlindungi dari ancaman penyusupan tidak sah \cite{b11}.
 
 \subsection{Verifikasi Geospasial dan Validasi Transaksi QR Code}
-Validasi faktual keberadaan lahan pertanian menjadi faktor penentu dalam mencegah penyalahgunaan subsidi pupuk. Pemanfaatan koordinat geospasial (\textit{geotagging}) pada peta digital interaktif memungkinkan petugas PPL memverifikasi lokasi fisik lahan yang didaftarkan petani secara objektif \cite{b7}. Selain itu, teknologi kode respons cepat (\textit{QR Code}) terbukti efektif sebagai media verifikasi fisik yang cepat, murah, dan akurat dalam rantai pelacakan logistik maupun bukti transaksi resmi \cite{b12}. E-Pupuk mengimplementasikan generasi QR Code yang memuat tanda tangan kriptografis unik pada setiap lembar bukti alokasi yang telah disetujui, sehingga pihak kios penyalur dapat melakukan validasi keaslian dokumen secara instan dan mencegah penebusan berulang atas kuota yang sama \cite{b12}.
+Validasi faktual keberadaan lahan pertanian menjadi faktor penentu dalam mencegah penyalahgunaan subsidi pupuk. Pemanfaatan \textit{geotagging} pada peta digital interaktif memungkinkan petugas PPL memverifikasi lokasi fisik lahan yang didaftarkan petani secara objektif \cite{b7}. Selain itu, \textit{QR Code} terbukti efektif sebagai media verifikasi fisik yang cepat, murah, dan akurat dalam rantai pelacakan logistik maupun bukti transaksi resmi \cite{b12}. E-Pupuk mengimplementasikan generasi QR Code yang memuat tanda tangan kriptografis unik pada setiap lembar bukti alokasi yang telah disetujui, sehingga pihak kios penyalur dapat melakukan validasi keaslian dokumen secara instan dan mencegah penebusan berulang atas kuota yang sama \cite{b12}.
 
 \subsection{Metodologi Pengujian dan Evaluasi Usabilitas Sistem}
-Untuk menjamin kualitas dan keandalan sistem sebelum diterapkan secara luas, diperlukan metodologi rekayasa perangkat lunak yang sistematis. Pressman dan Maxim menjelaskan bahwa metode pengujian kotak hitam (\textit{Black Box Testing}) merupakan pendekatan esensial untuk memverifikasi fungsionalitas antarmuka dan keluaran sistem berdasarkan spesifikasi kebutuhan tanpa harus menganalisis kode internal secara langsung \cite{b13}. Di samping pengujian fungsional, penerimaan sistem oleh pengguna akhir dievaluasi menggunakan instrumen \textit{System Usability Scale} (SUS) yang dikembangkan oleh Brooke \cite{b14}. Instrumen SUS telah terbukti secara empiris sebagai alat ukur usabilitas standar industri dengan keandalan tinggi untuk menilai kemudahan belajar, efisiensi interaksi, dan tingkat kepuasan pengguna \cite{b14}, \cite{b16}. Prinsip-prinsip desain antarmuka responsif yang ramah pengguna juga diterapkan sesuai panduan Nielsen untuk memastikan petani dengan variasi literasi digital dapat mengoperasikan sistem tanpa kendala berarti \cite{b15}.
+Untuk menjamin kualitas dan keandalan sistem sebelum diterapkan secara luas, diperlukan metodologi rekayasa perangkat lunak yang sistematis. Pressman dan Maxim menjelaskan bahwa metode \textit{Black-box testing} merupakan pendekatan esensial untuk memverifikasi fungsionalitas antarmuka dan keluaran sistem berdasarkan spesifikasi kebutuhan tanpa harus menganalisis kode internal secara langsung \cite{b13}. Di samping pengujian fungsional, penerimaan sistem oleh pengguna akhir dievaluasi menggunakan instrumen \textit{System Usability Scale} (SUS) yang dikembangkan oleh Brooke \cite{b14}. Instrumen SUS telah terbukti secara empiris sebagai alat ukur usability standar industri dengan keandalan tinggi untuk menilai kemudahan belajar, efisiensi interaksi, dan tingkat kepuasan pengguna \cite{b14}, \cite{b16}. Prinsip-prinsip desain antarmuka responsif yang ramah pengguna juga diterapkan sesuai panduan Nielsen untuk memastikan petani dengan variasi literasi digital dapat mengoperasikan sistem tanpa kendala berarti \cite{b15}.
 
 \subsection{Posisi dan Kebaharuan Sistem E-Pupuk}
-Berdasarkan sintesis terhadap berbagai studi terdahulu, sistem E-Pupuk menempati posisi strategis yang menjembatani kesenjangan antara ketersediaan data terbuka pemerintah dengan otomatisasi alur kerja verifikasi lapangan di sektor pertanian. Perbandingan terhadap sistem konvensional menunjukkan bahwa E-Pupuk tidak sekadar mendigitalkan formulir pengajuan, melainkan menghadirkan kebaharuan integrasi validasi kuota otomatis terhubung dataset e-RDKK, pengecekan spasial lahan, pelacakan status berjenjang terverifikasi PPL, hingga penerbitan token tebus QR Code anti-pemalsuan. Integrasi menyeluruh ini menghadirkan ekosistem tata kelola distribusi pupuk bersubsidi Kabupaten Mojokerto yang akuntabel, transparan, dan terukur.
+Berdasarkan sintesis terhadap berbagai studi terdahulu, sistem E-Pupuk menempati posisi strategis yang menjembatani kesenjangan antara ketersediaan Open Government Data dengan otomatisasi alur kerja verifikasi lapangan di sektor pertanian. Perbandingan terhadap sistem konvensional menunjukkan bahwa E-Pupuk tidak sekadar mendigitalkan formulir pengajuan, melainkan menghadirkan kebaharuan integrasi validasi kuota otomatis terhubung dataset e-RDKK, pengecekan spasial lahan, pelacakan status berjenjang terverifikasi PPL, hingga penerbitan token tebus QR Code anti-pemalsuan. Integrasi menyeluruh ini menghadirkan ekosistem tata kelola distribusi pupuk bersubsidi Kabupaten Mojokerto yang akuntabel, transparan, dan terukur.
+
+
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Arsitektur Sistem dan Alur Pemrosesan Kasus}
+Arsitektur sistem E-Pupuk dibangun mengadopsi pola \textit{decoupled multi-tier architecture} yang memisahkan antarmuka pengguna (\textit{frontend}), logika bisnis \textit{backend REST API}, modul inferensi kecerdasan artifisial, serta penyimpanan data terpusat \cite{b1}, \cite{b14}, \cite{b15}. Alur pemrosesan kasus pengajuan subsidi pupuk dan validasi laporan operasional dirancang mengikuti siklus terstruktur yang terdiri atas lima tahapan utama:
+\begin{enumerate}
+    \item \textbf{Inisiasi dan Input Berkas Kasus:} Pengguna mengunggah data permohonan melalui antarmuka web reaktif \cite{b14} atau aplikasi mobile berbasis formulir terstruktur dengan validasi skema data seketika menggunakan Pydantic \cite{b18}. Data mencakup nomor identitas kependudukan (NIK), keanggotaan kelompok tani (Poktan), komoditas tanaman, serta koordinat poligon batas lahan pertanian via Leaflet GIS \cite{b16}.
+    \item \textbf{Sinkronisasi dan Validasi Rule-based Kuota e-RDKK:} Sistem memproses data masukan terhadap dataset terbuka pemerintah alokasi RDKK tingkat kecamatan. Mesin aturan (\textit{rule engine}) melakukan verifikasi batas kuota pupuk (Urea dan NPK) berdasarkan luas baku lahan yang diajukan untuk mendeteksi potensi anomali volume permohonan \cite{b17}.
+    \item \textbf{Disposisi dan Verifikasi Lapangan (PPL):} Kasus permohonan yang lolos validasi awal diteruskan ke dasbor kerja Petugas Penyuluh Lapangan (PPL). Petugas melakukan survei faktual di lapangan, mencocokkan koordinat geospasial lahan, memeriksa kondisi riil vegetasi tanaman, dan memberikan rekomendasi persetujuan (\textit{approval}) atau penolakan dengan catatan revisi berjenjang.
+    \item \textbf{Otorisasi Eksekutif dan Penerbitan Token Kriptografis:} Permohonan yang disetujui PPL divalidasi oleh Dinas Pertanian untuk kemudian diterbitkan bukti alokasi digital memuat \textit{dynamic QR Code token} berbasis enkripsi SHA-256 dan protokol stateless JWT \cite{b2}. Token ini mengunci identitas penerima dan kuota tebus guna mencegah klaim ganda di tingkat kios penyalur.
+    \item \textbf{Pencatatan Transaksi dan Audit Trail:} Seluruh riwayat perubahan status kasus disimpan ke dalam basis data relasional PostgreSQL dengan pencatatan stempel waktu (\textit{timestamp}) dan jejak audit (\textit{audit trail}) yang transparan \cite{b13}.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \setlength{\fboxsep}{10pt}
+    \fbox{
+        \begin{minipage}[c][5.2cm][c]{0.88\columnwidth}
+            \centering
+            \textbf{[Space Kosong Gambar]}\\[0.25cm]
+            \footnotesize \textbf{Arsitektur Sistem E-Pupuk}\\
+            \textit{(Space disediakan untuk gambar diagram arsitektur sistem E-Pupuk)}
+        \end{minipage}
+    }
+    \caption{Arsitektur Sistem E-Pupuk}
+    \label{fig:arsitektur_epupuk}
+\end{figure}
+
+\subsection{Rancangan User Flow Pelaporan Siswa}
+Modul pelaporan dalam sistem E-Pupuk mengakomodasi peran siswa magang, mahasiswa peneliti vokasi pertanian (siswa pelapor lapangan), serta petani dalam menyampaikan laporan kendala operasional, laporan penyaluran pupuk, maupun pengaduan anomali data di wilayah kerja Kabupaten Mojokerto. Rancangan \textit{user flow} pelaporan dirancang responsif dan intuitif sesuai sepuluh prinsip heuristik usabilitas Nielsen \cite{b12}:
+\begin{enumerate}
+    \item \textbf{Tahap Autentikasi dan Pemilihan Modul:} Pengguna melakukan proses masuk (\textit{login}) dengan pengamanan RBAC dan token JWT \cite{b2}. Pada menu pelaporan, sistem menyajikan opsi kategori: (a) Pelaporan Lapangan / Survei Mandiri Siswa, (b) Pengaduan Kendala Kuota Petani, dan (c) Pelaporan Ketidaksesuaian Distribusi Kios.
+    \item \textbf{Pengisian Formulir dan Bukti Geospasial:} Antarmuka menyajikan alur langkah (\textit{stepper wizard}) untuk memandu pengisian kronologi kasus, deskripsi narasi laporan, unggah foto bukti lapangan faktual, serta penandaan titik koordinat GPS interaktif \cite{b16}.
+    \item \textbf{Pra-validasi dan Deteksi Anomali Seketika:} Sebelum laporan dikirim, sistem secara otomatis menjalankan sanitasi masukan teks, validasi format gambar, dan pemeriksaan duplikasi berkas laporan aktif guna menjamin integritas data pengaduan.
+    \item \textbf{Konfirmasi Pengiriman dan Pelacakan Tiket:} Setelah laporan terkirim, sistem menghasilkan nomor tiket laporan unik (\textit{Report Tracking ID}). Siswa atau pelapor dapat memantau status tindak lanjut penanganan kasus (Diterima, Sedang Diverifikasi, Ditindaklanjuti, Selesai) secara transparan melalui lini masa (\textit{timeline}) status interaktif.
+\end{enumerate}
+
+\begin{figure}[htbp]
+    \centering
+    \setlength{\fboxsep}{10pt}
+    \fbox{
+        \begin{minipage}[c][5.2cm][c]{0.88\columnwidth}
+            \centering
+            \textbf{[Space Kosong Gambar]}\\[0.25cm]
+            \footnotesize \textbf{Diagram Alur Pengguna (\textit{User Flow})}\\
+            \textit{(Space disediakan untuk gambar diagram alur pengguna pelaporan)}
+        \end{minipage}
+    }
+    \caption{Diagram Alur Pengguna (\textit{User Flow}) Pelaporan Sistem E-Pupuk}
+    \label{fig:user_flow_pelaporan}
+\end{figure}
+
+\subsection{AI Pipeline}
+Untuk mempercepat penanganan volume laporan dan mendeteksi anomali pada kasus pengajuan subsidi, E-Pupuk mengintegrasikan saluran pipa kecerdasan artifisial (\textit{AI Pipeline}) terotomatisasi yang terdiri dari tiga tahapan pemrosesan data:
+\begin{enumerate}
+    \item \textbf{Text Processing dan Klasifikasi Kategori Laporan (NLP Stage):} Deskripsi teks pengaduan atau catatan survei lapangan diproses melalui tahapan \textit{case folding}, pembersihan karakter, dan tokenisasi. Representasi vektor teks diekstraksi memanfaatkan model \textit{bidirectional encoder} berbasis arsitektur Transformer \cite{b3}, \cite{b4} dan RoBERTa \cite{b9}. Model kemudian mengklasifikasikan tiket laporan ke dalam departemen penanganan yang relevan secara otomatis menggunakan algoritma pembelajaran mesin terawasi \cite{b8}, \cite{b17}.
+    \item \textbf{Computer Vision dan Validasi Bukti Fisik (CV Stage):} Citra dokumentasi lapangan atau foto surat tanda kepemilikan lahan dianalisis menggunakan jaringan saraf tiruan konvolusional (Convolutional Neural Networks / ResNet) \cite{b6}, \cite{b7}. Tahap ini memverifikasi kejelasan visual bukti dokumentasi lahan pertanian serta mendeteksi potensi kecurangan atau gambar berulang (\textit{duplicate image submission}).
+    \item \textbf{Knowledge Retrieval dan Generasi Solusi Penanganan (RAG Stage):} Untuk membantu petugas dinas merumuskan respons penanganan laporan kasus secara cepat dan sesuai regulasi, diimplementasikan kerangka kerja \textit{Retrieval-Augmented Generation} (RAG) \cite{b11}. Mesin pencarian semantik (\textit{dense retrieval}) berbasis representasi kalimat \cite{b10} menelusuri basis pengetahuan regulasi perundang-undangan pupuk bersubsidi, kemudian model generatif merangkum draf rekomendasi solusi tindak lanjut bagi pengambil kebijakan \cite{b5}.
+\end{enumerate}
+
 
 \begin{thebibliography}{00}
-\bibitem{b1} R. Heeks, \textit{Implementing and Managing e-Government: An International Text}. London: SAGE Publications, 2006.
-\bibitem{b2} M. Janssen, Y. Charalabidis, and A. Zuiderwijk, `Benefits, adoption barriers and myths of open data and open government,'' \textit{Information Systems Management}, vol. 29, no. 4, pp. 258--268, 2012.
-\bibitem{b3} J. Attard, F. Orlandi, S. Scerri, and S. Auer, `A systematic review of open government data initiatives,'' \textit{Government Information Quarterly}, vol. 32, no. 4, pp. 399--418, 2015.
-\bibitem{b4} Kementerian Pertanian Republik Indonesia, `Pedoman Pengelolaan Sistem Elektronik Rencana Definitif Kebutuhan Kelompok (e-RDKK),'' Kementerian Pertanian RI, Jakarta, 2021.
-\bibitem{b5} Dinas Pertanian Kabupaten Mojokerto, `Laporan Evaluasi Penyaluran Pupuk Bersubsidi Kabupaten Mojokerto,'' Dinas Pertanian Kab. Mojokerto, Mojokerto, 2024.
-\bibitem{b6} A. S. Ahmad, `Pemanfaatan Open Government Data untuk Transparansi Layanan Publik di Sektor Pertanian,'' \textit{Jurnal Teknologi dan Governance}, vol. 8, no. 1, pp. 45--56, 2023.
-\bibitem{b7} R. Suryanto, H. Wibowo, dan M. Firdaus, `Rancang Bangun Sistem Informasi Distribusi Pupuk Bersubsidi Berbasis Web dan Geospasial,'' \textit{Jurnal RESTI (Rekayasa Sistem dan Teknologi Informasi)}, vol. 6, no. 3, pp. 412--419, 2022.
-\bibitem{b8} M. S. L. Tiangolo, `FastAPI: Modern, High-Performance Web Framework for Python,'' 2023. [Online]. Available: https://fastapi.tiangolo.com/
-\bibitem{b9} A. Freeman, \textit{Pro React 18: Intensive Modern Web Development}. New York: Apress, 2023.
-\bibitem{b10} D. F. Ferraiolo, R. Sandhu, S. Gavrila, D. R. Kuhn, and R. Chandramouli, `Proposed NIST Standard for Role-Based Access Control,'' \textit{ACM Transactions on Information and System Security}, vol. 4, no. 3, pp. 224--274, 2001.
-\bibitem{b11} M. B. Jones, J. Bradley, and N. Sakimura, `JSON Web Token (JWT),'' \textit{RFC 7519, Internet Engineering Task Force (IETF)}, 2015.
-\bibitem{b12} T. Gao, D. Liu, and Y. Zhang, `Application of QR Code Technology in Traceability and Verification Systems,'' \textit{IEEE Access}, vol. 8, pp. 128450--128461, 2020.
-\bibitem{b13} R. S. Pressman and B. R. Maxim, \textit{Software Engineering: A Practitioner's Approach}, 9th ed. New York: McGraw-Hill Education, 2020.
-\bibitem{b14} J. Brooke, `SUS: A 'Quick and Dirty' Usability Scale,'' in \textit{Usability Evaluation in Industry}, P. W. Jordan, B. Thomas, I. L. McClelland, and B. Weerdmeester, Eds. London: Taylor \& Francis, 1996, pp. 189--194.
-\bibitem{b15} J. Nielsen and R. Budiu, \textit{Mobile Usability: Usability Engineering in the Era of Responsive Design}. Berkeley: New Riders, 2013.
-\bibitem{b16} D. Pramudita dan M. Muslikh, `Analisis Penerimaan Sistem Informasi Pertanian Digital Menggunakan Model Evaluasi Usabilitas,'' \textit{Jurnal Sistem Cerdas}, vol. 5, no. 2, pp. 98--109, 2022.
+\bibitem{b1} M. S. L. Tiangolo, ``FastAPI: Modern, High-Performance Web Framework for Python,'' 2023. [Online]. Available: https://fastapi.tiangolo.com/
+\bibitem{b2} M. B. Jones, J. Bradley, and N. Sakimura, ``JSON Web Token (JWT),'' \textit{RFC 7519, Internet Engineering Task Force (IETF)}, 2015. [Online]. Available: https://datatracker.ietf.org/doc/html/rfc7519
+\bibitem{b3} A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, L. Kaiser, and I. Polosukhin, ``Attention Is All You Need,'' in \textit{Advances in Neural Information Processing Systems (NeurIPS)}, vol. 30, 2017. [Online]. Available: https://arxiv.org/abs/1706.03762
+\bibitem{b4} J. Devlin, M. W. Chang, K. Lee, and K. Toutanova, ``BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding,'' in \textit{Proc. NAACL-HLT}, 2019, pp. 4171--4186. [Online]. Available: https://arxiv.org/abs/1810.04805
+\bibitem{b5} A. Radford, J. Wu, R. Child, D. Luan, D. Amodei, and I. Sutskever, ``Language Models are Unsupervised Multitask Learners,'' OpenAI Technical Report, 2019. [Online]. Available: https://cdn.openai.com/better-language-models/language\_models\_are\_unsupervised\_multitask\_learners.pdf
+\bibitem{b6} Y. Kim, ``Convolutional Neural Networks for Sentence Classification,'' in \textit{Proc. EMNLP}, 2014, pp. 1746--1751. [Online]. Available: https://arxiv.org/abs/1408.5882
+\bibitem{b7} K. He, X. Zhang, S. Ren, and J. Sun, ``Deep Residual Learning for Image Recognition,'' in \textit{Proc. IEEE CVPR}, 2016, pp. 770--778. [Online]. Available: https://arxiv.org/abs/1512.03385
+\bibitem{b8} A. Joulin, E. Grave, P. Bojanowski, and T. Mikolov, ``Bag of Tricks for Efficient Text Classification,'' in \textit{Proc. EACL}, 2017, pp. 427--431. [Online]. Available: https://arxiv.org/abs/1607.01759
+\bibitem{b9} Y. Liu, M. Ott, N. Goyal, J. Du, M. Joshi, D. Chen, O. Levy, M. Lewis, L. Zettlemoyer, and V. Stoyanov, ``RoBERTa: A Robustly Optimized BERT Pretraining Approach,'' arXiv preprint arXiv:1907.11692, 2019. [Online]. Available: https://arxiv.org/abs/1907.11692
+\bibitem{b10} N. Reimers and I. Gurevych, ``Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks,'' in \textit{Proc. EMNLP-IJCNLP}, 2019, pp. 3982--3992. [Online]. Available: https://arxiv.org/abs/1908.10084
+\bibitem{b11} P. Lewis, E. Perez, A. Piktus, F. Petroni, V. Karpukhin, N. Goyal, H. Kuttler, M. Lewis, W. Yih, T. Rockt\"{a}schel, S. Riedel, and D. Kiela, ``Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,'' in \textit{Advances in Neural Information Processing Systems (NeurIPS)}, vol. 33, 2020, pp. 9459--9474. [Online]. Available: https://arxiv.org/abs/2005.11401
+\bibitem{b12} J. Nielsen, ``10 Usability Heuristics for User Interface Design,'' Nielsen Norman Group, 2020. [Online]. Available: https://www.nngroup.com/articles/ten-usability-heuristics/
+\bibitem{b13} PostgreSQL Global Development Group, ``PostgreSQL 16 Documentation,'' 2023. [Online]. Available: https://www.postgresql.org/docs/current/index.html
+\bibitem{b14} Meta Open Source, ``React: The Library for Web and Native User Interfaces,'' 2023. [Online]. Available: https://react.dev/
+\bibitem{b15} Docker Inc., ``Docker Documentation: Accelerated Container Application Development,'' 2023. [Online]. Available: https://docs.docker.com/
+\bibitem{b16} V. Agafonkin, ``Leaflet: An Open-Source JavaScript Library for Mobile-Friendly Interactive Maps,'' 2023. [Online]. Available: https://leafletjs.com/
+\bibitem{b17} F. Pedregosa et al., ``Scikit-learn: Machine Learning in Python,'' \textit{Journal of Machine Learning Research}, vol. 12, pp. 2825--2830, 2011. [Online]. Available: https://scikit-learn.org/stable/
+\bibitem{b18} S. Colvin et al., ``Pydantic: Data Validation using Python Type Hints,'' 2023. [Online]. Available: https://docs.pydantic.dev/
 \end{thebibliography}
 
 % ==================== PERALIHAN KE 1 KOLOM & LEMBAR BARU ====================
@@ -322,7 +450,7 @@ Design system E-Pupuk merancang visual konsisten, komponen antarmuka modular, sk
 \section{Arsitektur sistem}
 \label{sec:arsitektur_sistem}
 
-Arsitektur sistem E-Pupuk mengintegrasikan komponen frontend (React Web App), backend REST API (Python FastAPI), serta basis data terpusat (MySQL). Data terbuka pemerintah dimanfaatkan melalui modul data-seeding untuk memberikan informasi baseline kuota RDKK dan luas lahan.
+Arsitektur sistem E-Pupuk mengintegrasikan komponen frontend (React Web App), backend REST API (Python FastAPI), serta basis data terpusat (MySQL). Open Government Data dimanfaatkan melalui data-seeding untuk memberikan informasi baseline kuota RDKK dan luas lahan.
 
 \begin{figure}[htbp]
     \centering
@@ -334,15 +462,15 @@ Arsitektur sistem E-Pupuk mengintegrasikan komponen frontend (React Web App), ba
 \clearpage
 
 % ==================== BAB V ====================
-\section{Mockup UI}
+\section{UI Mockups}
 \label{sec:mockup_ui}
 
-Bab ini menyajikan 5 rancangan antarmuka (\textit{Mockup UI}) utama sistem E-Pupuk dari folder \textit{Frontend} yang mencakup alur proses pengguna dari halaman utama, pengajuan petani, verifikasi PPL, hingga monitoring eksekutif Dinas Pertanian.
+Bab ini menyajikan 5 UI mockups utama sistem E-Pupuk dari folder \textit{Frontend} yang mencakup \textit{user flow} dari halaman utama, pengajuan petani, verifikasi PPL, hingga monitoring eksekutif Dinas Pertanian.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth,height=0.65\textheight,keepaspectratio]{{Frontend/Beranda E-Pupuk Mojokerto - Agri-Gov Blue}.png}
-    \caption{Mockup UI -- Halaman Utama / Beranda E-Pupuk Kabupaten Mojokerto}
+    \caption{UI Mockup -- Halaman Utama / Beranda E-Pupuk Kabupaten Mojokerto}
     \label{fig:mockup_beranda}
 \end{figure}
 
@@ -351,7 +479,7 @@ Bab ini menyajikan 5 rancangan antarmuka (\textit{Mockup UI}) utama sistem E-Pup
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth,height=0.65\textheight,keepaspectratio]{{Frontend/Dashboard Petani - Agri-Gov Blue}.png}
-    \caption{Mockup UI -- Dashboard Petani (Informasi Kuota RDKK dan Status Lahan)}
+    \caption{UI Mockup -- Dashboard Petani (Informasi Kuota RDKK dan Status Lahan)}
     \label{fig:mockup_dashboard_petani}
 \end{figure}
 
@@ -360,7 +488,7 @@ Bab ini menyajikan 5 rancangan antarmuka (\textit{Mockup UI}) utama sistem E-Pup
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth,height=0.65\textheight,keepaspectratio]{{Frontend/Ajukan Kebutuhan Pupuk - Agri-Gov Blue}.png}
-    \caption{Mockup UI -- Form Pengajuan Kebutuhan Pupuk Subsidi oleh Petani}
+    \caption{UI Mockup -- Form Pengajuan Kebutuhan Pupuk Subsidi oleh Petani}
     \label{fig:mockup_pengajuan}
 \end{figure}
 
@@ -369,7 +497,7 @@ Bab ini menyajikan 5 rancangan antarmuka (\textit{Mockup UI}) utama sistem E-Pup
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth,height=0.65\textheight,keepaspectratio]{{Frontend/Detail Verifikasi Pengajuan - PPL Mojokerto}.png}
-    \caption{Mockup UI -- Halaman Verifikasi Pengajuan Pupuk oleh Petugas Penyuluh Lapangan (PPL)}
+    \caption{UI Mockup -- Halaman Verifikasi Pengajuan Pupuk oleh Petugas Penyuluh Lapangan (PPL)}
     \label{fig:mockup_verifikasi_ppl}
 \end{figure}
 
@@ -378,7 +506,7 @@ Bab ini menyajikan 5 rancangan antarmuka (\textit{Mockup UI}) utama sistem E-Pup
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth,height=0.65\textheight,keepaspectratio]{{Frontend/Dashboard Monitoring Eksekutif - E-Pupuk Mojokerto}.png}
-    \caption{Mockup UI -- Dashboard Monitoring Eksekutif Dinas Pertanian}
+    \caption{UI Mockup -- Dashboard Monitoring Eksekutif Dinas Pertanian}
     \label{fig:mockup_dashboard_eksekutif}
 \end{figure}
 
@@ -406,7 +534,7 @@ Design system E-Pupuk merancang visual konsisten, komponen antarmuka modular, sk
 \section{Arsitektur sistem}
 \label{sec:arsitektur_sistem}
 
-Arsitektur sistem E-Pupuk mengintegrasikan komponen frontend (React Web App), backend REST API (Python FastAPI), serta basis data terpusat (MySQL). Data terbuka pemerintah dimanfaatkan melalui modul data-seeding untuk memberikan informasi baseline kuota RDKK dan luas lahan.
+Arsitektur sistem E-Pupuk mengintegrasikan komponen frontend (React Web App), backend REST API (Python FastAPI), serta basis data terpusat (MySQL). Open Government Data dimanfaatkan melalui data-seeding untuk memberikan informasi baseline kuota RDKK dan luas lahan.
 
 \begin{figure}[htbp]
     \centering
@@ -418,15 +546,15 @@ Arsitektur sistem E-Pupuk mengintegrasikan komponen frontend (React Web App), ba
 \clearpage
 
 % ==================== BAB V ====================
-\section{Mockup UI}
+\section{UI Mockups}
 \label{sec:mockup_ui}
 
-Bab ini menyajikan 5 rancangan antarmuka (\textit{Mockup UI}) utama sistem E-Pupuk dari folder \textit{Frontend} yang mencakup alur proses pengguna dari halaman utama, pengajuan petani, verifikasi PPL, hingga monitoring eksekutif Dinas Pertanian.
+Bab ini menyajikan 5 UI mockups utama sistem E-Pupuk dari folder \textit{Frontend} yang mencakup \textit{user flow} dari halaman utama, pengajuan petani, verifikasi PPL, hingga monitoring eksekutif Dinas Pertanian.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth,height=0.65\textheight,keepaspectratio]{{Frontend/Beranda E-Pupuk Mojokerto - Agri-Gov Blue}.png}
-    \caption{Mockup UI -- Halaman Utama / Beranda E-Pupuk Kabupaten Mojokerto}
+    \caption{UI Mockup -- Halaman Utama / Beranda E-Pupuk Kabupaten Mojokerto}
     \label{fig:mockup_beranda}
 \end{figure}
 
@@ -435,7 +563,7 @@ Bab ini menyajikan 5 rancangan antarmuka (\textit{Mockup UI}) utama sistem E-Pup
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth,height=0.65\textheight,keepaspectratio]{{Frontend/Dashboard Petani - Agri-Gov Blue}.png}
-    \caption{Mockup UI -- Dashboard Petani (Informasi Kuota RDKK dan Status Lahan)}
+    \caption{UI Mockup -- Dashboard Petani (Informasi Kuota RDKK dan Status Lahan)}
     \label{fig:mockup_dashboard_petani}
 \end{figure}
 
@@ -444,7 +572,7 @@ Bab ini menyajikan 5 rancangan antarmuka (\textit{Mockup UI}) utama sistem E-Pup
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth,height=0.65\textheight,keepaspectratio]{{Frontend/Ajukan Kebutuhan Pupuk - Agri-Gov Blue}.png}
-    \caption{Mockup UI -- Form Pengajuan Kebutuhan Pupuk Subsidi oleh Petani}
+    \caption{UI Mockup -- Form Pengajuan Kebutuhan Pupuk Subsidi oleh Petani}
     \label{fig:mockup_pengajuan}
 \end{figure}
 
@@ -453,7 +581,7 @@ Bab ini menyajikan 5 rancangan antarmuka (\textit{Mockup UI}) utama sistem E-Pup
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth,height=0.65\textheight,keepaspectratio]{{Frontend/Detail Verifikasi Pengajuan - PPL Mojokerto}.png}
-    \caption{Mockup UI -- Halaman Verifikasi Pengajuan Pupuk oleh Petugas Penyuluh Lapangan (PPL)}
+    \caption{UI Mockup -- Halaman Verifikasi Pengajuan Pupuk oleh Petugas Penyuluh Lapangan (PPL)}
     \label{fig:mockup_verifikasi_ppl}
 \end{figure}
 
@@ -462,7 +590,7 @@ Bab ini menyajikan 5 rancangan antarmuka (\textit{Mockup UI}) utama sistem E-Pup
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth,height=0.65\textheight,keepaspectratio]{{Frontend/Dashboard Monitoring Eksekutif - E-Pupuk Mojokerto}.png}
-    \caption{Mockup UI -- Dashboard Monitoring Eksekutif Dinas Pertanian}
+    \caption{UI Mockup -- Dashboard Monitoring Eksekutif Dinas Pertanian}
     \label{fig:mockup_dashboard_eksekutif}
 \end{figure}
 
