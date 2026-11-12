@@ -24,6 +24,10 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Kamera digunakan untuk memindai QR dan mengambil foto karung pupuk.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Foto karung pupuk digunakan sebagai bukti pembukaan di lahan.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

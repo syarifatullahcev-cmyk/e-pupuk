@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db
-from app.core.dependencies import get_current_user, require_role, log_audit_action
+from app.core.dependencies import require_role, log_audit_action
 from app.models.models import (
     User, Application, ApplicationStatus, FieldSurvey, Notification
 )
@@ -38,15 +38,21 @@ def get_assigned_tasks(
 @router.post("/applications/{id}/start-survey")
 def start_survey(
     id: int,
-    current_user: User = Depends(require_role("PPL", "ADMIN")),
+    current_user: User = Depends(require_role("PPL")),
     db: Session = Depends(get_db)
 ):
     app = db.query(Application).filter(Application.id == id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Pengajuan tidak ditemukan")
 
-    if current_user.role == "PPL" and app.assigned_ppl_id != current_user.id:
+    if app.assigned_ppl_id != current_user.id:
         raise HTTPException(status_code=403, detail="Tugas ini bukan untuk Anda")
+
+    if app.status not in (
+        ApplicationStatus.DITUGASKAN_KE_PPL,
+        ApplicationStatus.SURVEI_LAPANGAN,
+    ):
+        raise HTTPException(status_code=409, detail="Pengajuan tidak dapat memulai survei pada status ini")
 
     app.status = ApplicationStatus.SURVEI_LAPANGAN
     db.commit()
@@ -61,15 +67,18 @@ from app.core.geo import validate_and_normalize_polygon, calculate_geodesic_poly
 def submit_survey(
     id: int,
     data: FieldSurveyCreate,
-    current_user: User = Depends(require_role("PPL", "ADMIN")),
+    current_user: User = Depends(require_role("PPL")),
     db: Session = Depends(get_db)
 ):
     app = db.query(Application).filter(Application.id == id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Pengajuan tidak ditemukan")
 
-    if current_user.role == "PPL" and app.assigned_ppl_id != current_user.id:
+    if app.assigned_ppl_id != current_user.id:
         raise HTTPException(status_code=403, detail="Tugas ini bukan untuk Anda")
+
+    if app.status != ApplicationStatus.SURVEI_LAPANGAN:
+        raise HTTPException(status_code=409, detail="Mulai survei sebelum mengirim hasil")
 
     # 1. Validasi Geospasial Poligon jika disediakan
     polygon_json_str = None

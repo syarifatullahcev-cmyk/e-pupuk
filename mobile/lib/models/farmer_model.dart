@@ -10,7 +10,8 @@ class FarmerModel {
   final String? desa;
   final String? kecamatan;
   final String poktan;
-  final String statusVerifikasi; // 'Menunggu', 'Dalam Proses', 'Perlu Perbaikan', 'Terverifikasi'
+  final String
+      statusVerifikasi; // 'Menunggu', 'Dalam Proses', 'Perlu Perbaikan', 'Terverifikasi'
   final int jumlahLahan;
   final double totalLuasHa;
   final String diperbarui;
@@ -27,10 +28,10 @@ class FarmerModel {
     this.desa,
     this.kecamatan,
     required this.poktan,
-    this.statusVerifikasi = 'Menunggu',
-    this.jumlahLahan = 1,
-    this.totalLuasHa = 0.8,
-    this.diperbarui = '12 Feb 2025',
+    this.statusVerifikasi = 'Belum diverifikasi',
+    this.jumlahLahan = 0,
+    this.totalLuasHa = 0,
+    this.diperbarui = 'Belum tersedia',
     this.fotoKtpUrl,
     this.lands = const [],
   });
@@ -61,34 +62,35 @@ class FarmerModel {
     for (var l in parsedLands) {
       totalM2 += l.luasM2;
     }
-    final double calculatedHa = totalM2 > 0 ? (totalM2 / 10000.0) : 0.8;
+    final double calculatedHa = totalM2 / 10000.0;
 
-    final String alamatStr = json['alamat'] ?? 'Kabupaten Mojokerto';
-    String extractedDesa = 'Tanjungrejo';
-    String extractedKec = 'Mojosari';
+    final String alamatStr = json['alamat'] ?? 'Belum tersedia';
+    String? extractedDesa;
+    String? extractedKec;
     if (alamatStr.contains('Ds. ') || alamatStr.contains('Desa ')) {
       final match = RegExp(r'(?:Ds\.|Desa)\s*([^,]+)').firstMatch(alamatStr);
-      if (match != null) extractedDesa = match.group(1)?.trim() ?? 'Mojosari';
+      extractedDesa = match?.group(1)?.trim();
     }
     if (alamatStr.contains('Kec. ') || alamatStr.contains('Kecamatan ')) {
-      final match = RegExp(r'(?:Kec\.|Kecamatan)\s*([^,]+)').firstMatch(alamatStr);
-      if (match != null) extractedKec = match.group(1)?.trim() ?? 'Mojosari';
+      final match =
+          RegExp(r'(?:Kec\.|Kecamatan)\s*([^,]+)').firstMatch(alamatStr);
+      extractedKec = match?.group(1)?.trim();
     }
 
     return FarmerModel(
       id: json['id'] ?? 0,
       userId: json['user_id'] ?? 0,
-      nama: json['nama'] ?? 'Petani',
-      nik: json['nik'] ?? '3516080000000000',
-      kontak: json['kontak'] ?? '0812-3456-78XX',
+      nama: json['nama'] ?? 'Nama belum tersedia',
+      nik: json['nik'] ?? '',
+      kontak: json['kontak'] ?? 'Belum tersedia',
       alamat: alamatStr,
       desa: extractedDesa,
       kecamatan: extractedKec,
-      poktan: group['nama_kelompok'] ?? 'Poktan Sumber Makmur',
-      statusVerifikasi: json['status_verifikasi'] ?? 'Menunggu',
-      jumlahLahan: parsedLands.isNotEmpty ? parsedLands.length : 1,
+      poktan: group['nama_kelompok'] ?? 'Belum tersedia',
+      statusVerifikasi: json['status_verifikasi'] ?? 'Belum diverifikasi',
+      jumlahLahan: parsedLands.length,
       totalLuasHa: calculatedHa,
-      diperbarui: json['diperbarui'] ?? '12 Feb 2025',
+      diperbarui: json['diperbarui'] ?? 'Belum tersedia',
       fotoKtpUrl: json['foto_ktp_url'],
       lands: parsedLands,
     );

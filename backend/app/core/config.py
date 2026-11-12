@@ -41,8 +41,8 @@ class Settings:
     LAHAN_DIR: Path = UPLOAD_DIR / "lahan"
     SURVEI_DIR: Path = UPLOAD_DIR / "survei"
     SERTIFIKAT_DIR: Path = UPLOAD_DIR / "sertifikat"
+    PUPUK_DIR: Path = UPLOAD_DIR / "pupuk"
     MAX_FILE_SIZE_BYTES: int = 5 * 1024 * 1024  # 5MB
     ALLOWED_MIME_TYPES: list = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
 
 settings = Settings()
-

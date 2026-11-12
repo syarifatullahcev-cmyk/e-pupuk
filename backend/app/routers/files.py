@@ -17,6 +17,12 @@ async def upload_file_endpoint(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if category == "pupuk" and file.content_type not in {"image/jpeg", "image/png", "image/webp"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Foto pupuk harus berupa JPG, PNG, atau WEBP.",
+        )
+
     url = await save_upload_file(file, category)
     log_audit_action(
         db,
@@ -78,3 +84,12 @@ def get_sertifikat_file(filename: str):
     ext = Path(filename).suffix.lower()
     media_type = "application/pdf" if ext == ".pdf" else "image/jpeg"
     return FileResponse(path=str(file_path), media_type=media_type, filename=filename)
+
+@router.get("/files/pupuk/{filename}")
+def get_pupuk_file(filename: str):
+    if Path(filename).name != filename:
+        raise HTTPException(status_code=400, detail="Nama file tidak valid")
+    file_path = settings.PUPUK_DIR / filename
+    if not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Foto pupuk tidak ditemukan")
+    return FileResponse(path=str(file_path), filename=filename)

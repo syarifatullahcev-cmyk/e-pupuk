@@ -3,6 +3,7 @@ import '../../config/theme.dart';
 import '../../models/ppl_task_model.dart';
 import '../../models/user_model.dart';
 import '../../services/ppl_service.dart';
+import '../../widgets/ppl_notifications_button.dart';
 import 'ppl_detail_tugas_screen.dart';
 import 'ppl_peta_lahan_screen.dart';
 
@@ -18,6 +19,7 @@ class PPLDaftarTugasScreen extends StatefulWidget {
 class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
   List<PPLTaskModel> _tasks = [];
   bool _isLoading = true;
+  String? _loadError;
   String _activeFilter = 'Semua';
   final TextEditingController _searchController = TextEditingController();
 
@@ -36,12 +38,22 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
 
   Future<void> _loadTasks() async {
     setState(() => _isLoading = true);
-    final tasks = await PPLService.getAssignedTasks();
-    if (mounted) {
-      setState(() {
-        _tasks = tasks;
-        _isLoading = false;
-      });
+    try {
+      final tasks = await PPLService.getAssignedTasks();
+      if (mounted) {
+        setState(() {
+          _tasks = tasks;
+          _loadError = null;
+          _isLoading = false;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _loadError = error.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -86,7 +98,8 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
                 color: AppTheme.lightGreen,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.assignment_outlined, color: AppTheme.primaryGreen, size: 20),
+              child: const Icon(Icons.assignment_outlined,
+                  color: AppTheme.primaryGreen, size: 20),
             ),
             const SizedBox(width: 10),
             Column(
@@ -114,16 +127,17 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_outlined, color: AppTheme.textPrimary),
-            onPressed: () {},
-          ),
+          const PPLNotificationsButton(),
           Padding(
             padding: const EdgeInsets.only(right: 16, left: 4),
             child: CircleAvatar(
               radius: 16,
               backgroundColor: AppTheme.darkGreen,
-              child: const Text('AH', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              child: const Text('AH',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -154,9 +168,12 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
                 const Center(
                   child: Padding(
                     padding: EdgeInsets.all(40),
-                    child: CircularProgressIndicator(color: AppTheme.primaryGreen),
+                    child:
+                        CircularProgressIndicator(color: AppTheme.primaryGreen),
                   ),
                 )
+              else if (_loadError != null)
+                _buildLoadError()
               else if (_filteredTasks.isEmpty)
                 _buildEmptyState()
               else
@@ -173,6 +190,31 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
               const SizedBox(height: 30),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const Icon(Icons.cloud_off_outlined,
+                color: Color(0xFFB91C1C), size: 36),
+            const SizedBox(height: 8),
+            Text(
+              'Gagal memuat tugas: $_loadError',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFFB91C1C)),
+            ),
+            TextButton.icon(
+              onPressed: _loadTasks,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Coba lagi'),
+            ),
+          ],
         ),
       ),
     );
@@ -206,7 +248,8 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
           if (_searchController.text.isNotEmpty)
             GestureDetector(
               onTap: () => setState(() => _searchController.clear()),
-              child: const Icon(Icons.clear, size: 18, color: AppTheme.textMuted),
+              child:
+                  const Icon(Icons.clear, size: 18, color: AppTheme.textMuted),
             ),
         ],
       ),
@@ -320,7 +363,8 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: statusBg,
                   borderRadius: BorderRadius.circular(20),
@@ -387,12 +431,14 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
           // Detail Lahan & Lokasi
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, size: 16, color: AppTheme.textMuted),
+              const Icon(Icons.location_on_outlined,
+                  size: 16, color: AppTheme.textMuted),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   task.desaKecamatan,
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                  style: const TextStyle(
+                      fontSize: 12, color: AppTheme.textSecondary),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -401,7 +447,8 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.crop_square, size: 16, color: AppTheme.primaryGreen),
+              const Icon(Icons.crop_square,
+                  size: 16, color: AppTheme.primaryGreen),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -419,11 +466,13 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.grass_outlined, size: 16, color: AppTheme.primaryGreen),
+              const Icon(Icons.grass_outlined,
+                  size: 16, color: AppTheme.primaryGreen),
               const SizedBox(width: 6),
               Text(
                 'Komoditas: ${task.komoditas}',
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                style: const TextStyle(
+                    fontSize: 12, color: AppTheme.textSecondary),
               ),
               const Spacer(),
               Text(
@@ -453,7 +502,8 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
                   },
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppTheme.border),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   child: const Text(
@@ -477,7 +527,8 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.map_outlined, size: 16, color: Colors.white),
+                  icon: const Icon(Icons.map_outlined,
+                      size: 16, color: Colors.white),
                   label: const Text(
                     'Peta Lahan',
                     style: TextStyle(
@@ -489,7 +540,8 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryGreen,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
@@ -512,11 +564,15 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
       ),
       child: Column(
         children: const [
-          Icon(Icons.assignment_turned_in_outlined, size: 54, color: AppTheme.textMuted),
+          Icon(Icons.assignment_turned_in_outlined,
+              size: 54, color: AppTheme.textMuted),
           SizedBox(height: 12),
           Text(
             'Tidak ada tugas survei ditemukan',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary),
           ),
           SizedBox(height: 4),
           Text(

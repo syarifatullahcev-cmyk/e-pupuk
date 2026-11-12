@@ -9,8 +9,8 @@ import {
   Briefcase, 
   ArrowRight, 
   Building2, 
-  ArrowLeft,
   Eye,
+  ArrowLeft,
   EyeOff
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -94,7 +94,7 @@ const PORTAL_CONFIG = {
       }
     ],
     showRegister: false
-  }
+  },
 };
 
 export default function Login() {
@@ -245,7 +245,7 @@ export default function Login() {
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
                   PILIH PORTAL MASUK:
                 </p>
-                <div className="grid grid-cols-3 gap-1.5 p-1 bg-[#f1f5f9] rounded-xl border border-slate-200/60">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 p-1 bg-[#f1f5f9] rounded-xl border border-slate-200/60">
                   {Object.values(PORTAL_CONFIG).map((p) => {
                     const Icon = p.icon;
                     const isActive = activePortal === p.id;
@@ -459,6 +459,3 @@ export default function Login() {
     </div>
   );
 }
-
-
-

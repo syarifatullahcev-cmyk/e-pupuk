@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin, Navigation } from 'lucide-react';
@@ -44,44 +44,43 @@ function LocationMarker({ position, setPosition, readOnly }) {
   ) : null;
 }
 
+function MapCenterUpdater({ position }) {
+  const map = useMapEvents({});
+
+  useEffect(() => {
+    if (position) map.setView(position);
+  }, [map, position]);
+
+  return null;
+}
+
 export default function MapPicker({
-  initialLat = -7.4726,
-  initialLng = 112.4381,
+  latitude,
+  longitude,
   onChange,
   readOnly = false,
   height = '260px',
 }) {
-  const [position, setPosition] = useState(
-    initialLat && initialLng ? [parseFloat(initialLat), parseFloat(initialLng)] : [-7.4726, 112.4381]
-  );
-
-  useEffect(() => {
-    if (initialLat && initialLng) {
-      setPosition([parseFloat(initialLat), parseFloat(initialLng)]);
-    }
-  }, [initialLat, initialLng]);
+  const hasCoordinates = latitude != null && longitude != null
+    && Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude));
+  const position = hasCoordinates ? [Number(latitude), Number(longitude)] : null;
 
   const handlePositionChange = (newPos) => {
-    setPosition(newPos);
     if (onChange) {
-      onChange({
-        latitude: parseFloat(newPos[0].toFixed(7)),
-        longitude: parseFloat(newPos[1].toFixed(7)),
-      });
+      onChange(parseFloat(newPos[0].toFixed(7)), parseFloat(newPos[1].toFixed(7)));
     }
   };
 
   const handleUseCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          handlePositionChange([pos.coords.latitude, pos.coords.longitude]);
-        },
-        () => {
-          alert('Tidak dapat mendeteksi lokasi saat ini. Silakan tentukan pin langsung pada peta.');
-        }
-      );
+    if (!navigator.geolocation) {
+      alert('Perangkat atau browser ini tidak mendukung GPS. Silakan tentukan pin langsung pada peta.');
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => handlePositionChange([pos.coords.latitude, pos.coords.longitude]),
+      () => alert('Tidak dapat mendeteksi lokasi saat ini. Silakan tentukan pin langsung pada peta.')
+    );
   };
 
   return (
@@ -107,11 +106,12 @@ export default function MapPicker({
         style={{ height }}
       >
         <MapContainer
-          center={position}
+          center={position || [-7.4726, 112.4381]}
           zoom={13}
           scrollWheelZoom={false}
           style={{ height: '100%', width: '100%' }}
         >
+          <MapCenterUpdater position={position} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -126,8 +126,8 @@ export default function MapPicker({
 
       <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
         <span>
-          Lat: <strong className="text-slate-700">{formatCoord(position[0], 6)}</strong> | Lng:{' '}
-          <strong className="text-slate-700">{formatCoord(position[1], 6)}</strong>
+          Lat: <strong className="text-slate-700">{formatCoord(position?.[0], 6)}</strong> | Lng:{' '}
+          <strong className="text-slate-700">{formatCoord(position?.[1], 6)}</strong>
         </span>
         {!readOnly && <span>Klik atau geser penanda untuk memilih titik lahan</span>}
       </div>

@@ -2,11 +2,12 @@ from typing import List, Optional
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, log_audit_action
 from app.models.models import (
     User, Farmer, Land, Application, ApplicationStatus,
-    Fertilizer, Notification, FieldSurvey
+    Fertilizer, Notification, FieldSurvey, Distribution
 )
 from app.schemas.schemas import (
     ApplicationCreate, ApplicationResponse, DashboardStatsPetani
@@ -35,8 +36,11 @@ def get_applications(
         query = query.filter(Application.farmer_id == farmer.id)
     elif current_user.role == "PPL":
         query = query.filter(Application.assigned_ppl_id == current_user.id)
-    elif farmer_id:
-        query = query.filter(Application.farmer_id == farmer_id)
+    elif current_user.role == "ADMIN":
+        if farmer_id:
+            query = query.filter(Application.farmer_id == farmer_id)
+    else:
+        raise HTTPException(status_code=403, detail="Akses daftar pengajuan ditolak")
 
     if status_filter:
         query = query.filter(Application.status == status_filter)
@@ -60,8 +64,8 @@ def get_petani_stats(
             disetujui=0,
             tersalurkan=0,
             total_lahan=0,
-            kuota_tersedia_urea=Decimal("500"),
-            kuota_tersedia_npk=Decimal("400")
+            kuota_tersedia_urea=Decimal("0"),
+            kuota_tersedia_npk=Decimal("0")
         )
 
     apps = db.query(Application).filter(Application.farmer_id == farmer.id).all()
@@ -79,6 +83,31 @@ def get_petani_stats(
     ])
     disetujui = sum(1 for a in apps if a.status in [ApplicationStatus.DISETUJUI, ApplicationStatus.DIJADWALKAN_DISTRIBUSI])
     tersalurkan = sum(1 for a in apps if a.status == ApplicationStatus.TERSALURKAN)
+    used_by_application = dict(
+        db.query(
+            Distribution.application_id,
+            func.coalesce(func.sum(Distribution.jumlah_disalurkan), 0),
+        )
+        .join(Application)
+        .filter(
+            Application.farmer_id == farmer.id,
+            Distribution.status_penyaluran == "SELESAI",
+        )
+        .group_by(Distribution.application_id)
+        .all()
+    )
+    remaining_by_fertilizer = {"urea": Decimal("0"), "npk": Decimal("0")}
+    for application in apps:
+        if application.jumlah_disetujui is None or application.fertilizer is None:
+            continue
+        fertilizer_name = application.fertilizer.nama_pupuk.upper()
+        key = "urea" if "UREA" in fertilizer_name else "npk" if "NPK" in fertilizer_name else None
+        if key:
+            remaining_by_fertilizer[key] += max(
+                Decimal("0"),
+                application.jumlah_disetujui
+                - used_by_application.get(application.id, Decimal("0")),
+            )
 
     return DashboardStatsPetani(
         total_pengajuan=total_pengajuan,
@@ -86,8 +115,8 @@ def get_petani_stats(
         disetujui=disetujui,
         tersalurkan=tersalurkan,
         total_lahan=lands_count,
-        kuota_tersedia_urea=Decimal("500"),
-        kuota_tersedia_npk=Decimal("400")
+        kuota_tersedia_urea=remaining_by_fertilizer["urea"],
+        kuota_tersedia_npk=remaining_by_fertilizer["npk"]
     )
 
 @router.get("/{id}", response_model=ApplicationResponse)
@@ -110,6 +139,11 @@ def get_application_detail(
         farmer = db.query(Farmer).filter(Farmer.user_id == current_user.id).first()
         if not farmer or app.farmer_id != farmer.id:
             raise HTTPException(status_code=403, detail="Akses pengajuan ditolak")
+    elif current_user.role == "PPL":
+        if app.assigned_ppl_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Akses pengajuan ditolak")
+    elif current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Akses pengajuan ditolak")
 
     return app
 
@@ -119,6 +153,8 @@ def create_application(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    if current_user.role != "PETANI":
+        raise HTTPException(status_code=403, detail="Hanya petani yang dapat membuat pengajuan")
     farmer = db.query(Farmer).filter(Farmer.user_id == current_user.id).first()
     if not farmer:
         raise HTTPException(status_code=400, detail="Profil petani tidak ditemukan")
@@ -126,6 +162,16 @@ def create_application(
     land = db.query(Land).filter(Land.id == data.land_id, Land.farmer_id == farmer.id).first()
     if not land:
         raise HTTPException(status_code=400, detail="Lahan tidak valid atau bukan milik Anda")
+    if not farmer.foto_ktp_url:
+        raise HTTPException(
+            status_code=400,
+            detail="Unggah foto KTP di Profil sebelum mengajukan subsidi.",
+        )
+    if not land.foto_lahan_url:
+        raise HTTPException(
+            status_code=400,
+            detail="Unggah foto lahan pada Data Lahan sebelum mengajukan subsidi.",
+        )
 
     fertilizer = db.query(Fertilizer).filter(Fertilizer.id == data.fertilizer_id).first()
     if not fertilizer:
@@ -137,7 +183,7 @@ def create_application(
         land_id=land.id,
         fertilizer_id=fertilizer.id,
         jumlah_diajukan=data.jumlah_diajukan,
-        kuota_maksimal=Decimal("500.00"),
+        kuota_maksimal=None,
         status=ApplicationStatus.MENUNGGU_VERIFIKASI_BERKAS,
         foto_ktp_snapshot_url=farmer.foto_ktp_url,
         foto_lahan_snapshot_url=land.foto_lahan_url,

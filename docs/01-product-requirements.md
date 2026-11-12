@@ -23,7 +23,6 @@ Proses pengajuan dan distribusi pupuk bersubsidi saat ini masih rawan terhadap: 
 - Distribusi pupuk sulit dilacak sampai ke titik serah terima.
 - Tidak ada mekanisme untuk mendeteksi pupuk kedaluwarsa di titik distribusi.
 - Tidak ada indikator awal untuk potensi penimbunan/penyalahgunaan pupuk subsidi.
-- Pimpinan dinas tidak memiliki dashboard monitoring realtime yang terpusat.
 
 ### 1.5 Solusi yang Diusulkan
 Sistem web terintegrasi (React.js + FastAPI + MySQL) dengan alur baku dua tahap verifikasi: **pengajuan + unggah berkas identitas (KTP, foto lahan, alamat, koordinat, tanggal) → verifikasi berkas oleh Admin → penugasan survei lapangan ke PPL oleh Admin → survei fisik bahan/lahan oleh PPL dengan upload foto bukti lapangan → persetujuan akhir oleh Admin → distribusi → scan QR saat serah terima → monitoring**, ditambah pengayaan dashboard melalui API/data terbuka (cuaca, geospasial, data pertanian).
@@ -54,15 +53,10 @@ Menyediakan satu platform terpadu untuk pengajuan, verifikasi berkas dan lapanga
 - Memonitor distribusi dan status QR secara terpusat.
 - Menerima alert atas anomali (expired, duplikasi scan, indikasi penimbunan).
 
-### 2.5 Tujuan untuk Pimpinan
-- Melihat KPI dan capaian realisasi subsidi secara ringkas.
-- Mengakses peta sebaran distribusi dan laporan periodik.
-- Mengambil keputusan berbasis data yang termutakhirkan.
-
 ## 3. Ruang Lingkup
 
 ### 3.1 In Scope
-- Autentikasi & manajemen peran (Petani, PPL, Admin, Pimpinan).
+- Autentikasi & manajemen peran (Petani, PPL, Admin).
 - Pendataan petani (termasuk foto KTP, alamat, tanggal pendaftaran), lahan (foto lahan, koordinat GPS, alamat lahan), kelompok tani, dan komoditas.
 - Pengajuan subsidi pupuk beserta upload berkas wajib: foto KTP, foto lahan, alamat lengkap, titik koordinat lokasi, tanggal pengajuan.
 - Verifikasi berkas administratif pengajuan oleh Admin (termasuk status PERLU_PERBAIKAN_BERKAS).
@@ -73,7 +67,7 @@ Menyediakan satu platform terpadu untuk pengajuan, verifikasi berkas dan lapanga
 - Distribusi pupuk dan pencatatan batch.
 - Scan QR untuk validasi penerimaan, expired check, dan duplicate check.
 - Deteksi indikasi penimbunan berbasis riwayat transaksi.
-- Dashboard monitoring untuk Admin dan Pimpinan, termasuk peta dan grafik.
+- Dashboard monitoring operasional untuk Admin, termasuk peta dan grafik.
 - Integrasi API/data terbuka (cuaca, geospasial, data pertanian pemerintah) sebagai pengayaan dashboard.
 - Audit log dan notifikasi.
 
@@ -93,9 +87,6 @@ Penyuluh yang menerima penugasan dari Admin Dinas untuk melakukan survei fisik l
 
 ### 4.3 Admin Dinas
 Pengelola data master, verifikasi berkas pengajuan, disposisi penugasan PPL, persetujuan akhir distribusi, dan pemantauan operasional harian.
-
-### 4.4 Pimpinan Dinas
-Pengambil keputusan yang memerlukan ringkasan capaian dan laporan strategis.
 
 ## 5. Permasalahan yang Diselesaikan
 
@@ -121,7 +112,7 @@ Validasi tanggal kedaluwarsa saat scan QR di titik distribusi.
 Deteksi pola transaksi tidak wajar (frekuensi/volume di luar kuota atau kewajaran) sebagai indikator awal — bukan mekanisme pencegahan mutlak.
 
 ### 5.8 Monitoring
-Dashboard realtime untuk Admin dan Pimpinan dengan KPI, peta, dan grafik.
+Dashboard operasional realtime untuk Admin dengan KPI, peta, dan grafik.
 
 ## 6. User Story
 
@@ -148,9 +139,6 @@ Dashboard realtime untuk Admin dan Pimpinan dengan KPI, peta, dan grafik.
 - Sebagai admin, saya ingin mengelola data batch pupuk agar setiap QR terhubung ke data yang valid.
 - Sebagai admin, saya ingin menerima alert saat ada indikasi penimbunan agar dapat menindaklanjuti.
 
-### 6.4 User Story Pimpinan
-- Sebagai pimpinan, saya ingin melihat KPI realisasi subsidi pupuk agar dapat mengevaluasi capaian program.
-
 ## 7. Functional Requirements
 
 | ID | Kebutuhan |
@@ -168,7 +156,7 @@ Dashboard realtime untuk Admin dan Pimpinan dengan KPI, peta, dan grafik.
 | FR-11 | Validasi Expired — pengecekan tanggal kedaluwarsa saat scan |
 | FR-12 | Deteksi Indikasi Penimbunan — flag transaksi berdasarkan pola riwayat |
 | FR-13 | Distribusi — pencatatan penyaluran per batch dan penerima |
-| FR-14 | Dashboard — KPI, grafik, dan peta untuk Admin/Pimpinan |
+| FR-14 | Dashboard operasional — KPI, grafik, dan peta untuk Admin |
 | FR-15 | API/Data Integration — pengayaan dashboard dari data terbuka/eksternal |
 
 ## 8. Non-Functional Requirements
@@ -191,7 +179,7 @@ Alur pengajuan dan verifikasi dirancang minim langkah, dengan istilah yang famil
 - Setiap distribusi didasarkan pada persetujuan akhir Admin yang bersumber dari laporan survei lapangan PPL.
 - Kuota terhitung otomatis dan konsisten dengan data lahan.
 - Setiap distribusi memiliki jejak scan QR (waktu, lokasi logis, status validasi).
-- Dashboard Admin/Pimpinan menampilkan data mendekati realtime.
+- Dashboard Admin menampilkan data mendekati realtime.
 - Tersedia log audit untuk seluruh aksi verifikasi berkas, penugasan PPL, survei lapangan, dan distribusi.
 
 ## 10. Limitations

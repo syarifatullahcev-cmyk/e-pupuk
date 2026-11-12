@@ -142,7 +142,7 @@ CREATE TABLE applications (
 -- 8. field_surveys (Survei Lapangan PPL)
 CREATE TABLE field_surveys (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  application_id INT UNIQUE NOT NULL,
+  application_id INT NOT NULL,
   ppl_id INT NOT NULL,
   tanggal_survei TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   kondisi_fisik_lahan ENUM('BAIK','CUKUP','TIDAK_LAYAK') NOT NULL,
@@ -191,6 +191,7 @@ CREATE TABLE qr_scans (
   scan_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   latitude DECIMAL(10,7),
   longitude DECIMAL(10,7),
+  foto_pupuk_url VARCHAR(500) NULL,
   validation_status ENUM('VALID','EXPIRED','ALREADY_CLAIMED','INVALID') NOT NULL,
   FOREIGN KEY (distribution_id) REFERENCES distributions(id) ON DELETE CASCADE,
   FOREIGN KEY (scanner_user_id) REFERENCES users(id)

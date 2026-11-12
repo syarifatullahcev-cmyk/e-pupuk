@@ -16,7 +16,7 @@ class ApiConfig {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return 'http://10.0.2.2:8000/api';
+        return 'http://192.168.1.14:8000/api';
       case TargetPlatform.windows:
       case TargetPlatform.linux:
       case TargetPlatform.macOS:
@@ -34,7 +34,8 @@ class ApiConfig {
   // Petani & Lahan
   static String get farmersUrl => '$baseUrl/farmers';
   static String farmerDetailUrl(int id) => '$baseUrl/farmers/$id';
-  static String farmerLandsUrl(int farmerId) => '$baseUrl/lands?farmer_id=$farmerId';
+  static String farmerLandsUrl(int farmerId) =>
+      '$baseUrl/lands?farmer_id=$farmerId';
   static String get farmerProfileUrl => '$baseUrl/farmers/me';
   static String get farmerMeUrl => '$baseUrl/farmers/me';
   static String get landsUrl => '$baseUrl/lands';
@@ -52,6 +53,9 @@ class ApiConfig {
   static String get myDistributionsUrl => '$baseUrl/distributions/my';
   static String get scanQrUrl => '$baseUrl/distributions/scan-qr';
   static String get myScansUrl => '$baseUrl/distributions/scans/my';
+  static String get notificationsUrl => '$baseUrl/notifications';
+  static String notificationReadUrl(int id) =>
+      '$baseUrl/notifications/$id/read';
 
   // PPL Lapangan & Survei
   static String get pplTasksUrl => '$baseUrl/ppl/assigned-tasks';

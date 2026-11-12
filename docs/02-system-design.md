@@ -25,7 +25,7 @@ Penyimpanan berkas foto (KTP, lahan, survei lapangan) menggunakan layanan penyim
 Sumber data pelengkap: data terbuka pemerintah (mis. referensi RDKK/pertanian), API cuaca, dan API geospasial/peta — dipanggil oleh backend, bukan langsung oleh frontend.
 
 ### 2.6 Authentication
-JWT (JSON Web Token) dengan role-based access control (RBAC) untuk empat peran: Petani, PPL, Admin, Pimpinan.
+JWT (JSON Web Token) dengan role-based access control (RBAC) untuk tiga peran: Petani, PPL, dan Admin.
 
 ## 3. Technology Stack
 
@@ -65,7 +65,7 @@ Business Logic
       └──► File Storage (berkas foto)
       │
       ▼
-Dashboard (Admin/Pimpinan)
+Dashboard (Admin)
 ```
 
 Diagram arsitektur yang lebih rinci (termasuk arsitektur modul, data, dan keamanan) ada di `06-system-architecture.md`.
@@ -74,11 +74,10 @@ Diagram arsitektur yang lebih rinci (termasuk arsitektur modul, data, dan keaman
 - **Petani** — pengaju subsidi, penerima pupuk, pelaku scan QR, pengunggah KTP dan foto lahan.
 - **PPL** — penerima penugasan survei lapangan dari Admin, verifikator fisik kondisi lahan dan bahan/tanaman, pengunggah foto bukti lapangan dan laporan survei.
 - **Admin Dinas** — verifikator berkas administratif, pemberi penugasan PPL (disposisi), pemberi persetujuan akhir distribusi, pengelola data master dan distribusi, penerima alert.
-- **Pimpinan Dinas** — pemantau KPI dan laporan strategis.
 
 ## 6. Role & Permission
 
-| Modul | Petani | PPL | Admin | Pimpinan |
+| Modul | Petani | PPL | Admin |
 |---|---|---|---|---|
 | Profil & Lahan Sendiri | CRUD | Read | CRUD | Read |
 | Upload Berkas (KTP, Foto Lahan) | Create (milik sendiri) | Read (untuk penugasan) | Read | — |
@@ -104,10 +103,7 @@ Login → lihat daftar tugas survei lapangan → buka detail tugas (data petani,
 ### 7.3 Admin
 Login → kelola data master → **verifikasi berkas pengajuan petani** (periksa KTP, foto lahan, alamat, koordinat) → **tugaskan PPL wilayah untuk survei lapangan** → terima laporan survei PPL → **berikan persetujuan akhir & jadwalkan distribusi** → pantau distribusi & status QR → tindak lanjuti alert.
 
-### 7.4 Pimpinan
-Login → lihat dashboard KPI → lihat peta distribusi & grafik → unduh/lihat laporan periodik.
-
-### 7.5 Alur Lengkap Pengajuan (5-Stage Lifecycle)
+### 7.4 Alur Lengkap Pengajuan (5-Stage Lifecycle)
 
 ```
 [PETANI]              [ADMIN]                   [PPL]                    [ADMIN]

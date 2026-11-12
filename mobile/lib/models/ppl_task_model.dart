@@ -24,7 +24,8 @@ class PPLTaskModel {
   final String jadwal;
   final String poktan;
   final String desaKecamatan;
-  final String statusLabel; // 'Menunggu Survei', 'Dalam Proses', 'Perlu Tindak Lanjut'
+  final String
+      statusLabel; // 'Menunggu Survei', 'Dalam Proses', 'Perlu Tindak Lanjut'
   final dynamic polygonCoords;
   final double? luasHasilUkurM2;
   final String? rekomendasi;
@@ -49,10 +50,10 @@ class PPLTaskModel {
     required this.longitude,
     required this.komoditas,
     required this.hasSurvey,
-    this.taskIdCode = 'SRV-2025-014',
-    this.jadwal = '14 Feb 2025 • Pagi',
-    this.poktan = 'Poktan Tani Makmur Wilbin',
-    this.desaKecamatan = 'Desa Tanjungrejo, Kec. Mojosari',
+    this.taskIdCode = 'Pengajuan',
+    this.jadwal = 'Jadwal belum tersedia',
+    this.poktan = 'Belum tersedia',
+    this.desaKecamatan = 'Belum tersedia',
     this.statusLabel = 'Menunggu Survei',
     this.polygonCoords,
     this.luasHasilUkurM2,
@@ -115,37 +116,35 @@ class PPLTaskModel {
     final survey = json['survey'] ?? {};
 
     final int rawId = json['id'] ?? 0;
-    final String rawStatus = json['status'] ?? 'DITUGASKAN_KE_PPL';
+    final String rawStatus = json['status'] ?? 'STATUS_TIDAK_DIKETAHUI';
 
     // Format Task ID seperti SRV-2025-014
-    final String taskCode = 'SRV-2025-${rawId.toString().padLeft(3, '0')}';
+    final String taskCode = 'Pengajuan #$rawId';
 
     // Status label selaras dengan kartu UI referensi
-    String displayStatus = 'Menunggu Survei';
-    String displayJadwal = '14 Feb 2025 • Pagi';
+    String displayStatus =
+        rawStatus == 'DITUGASKAN_KE_PPL' ? 'Menunggu Survei' : rawStatus;
+    String displayJadwal = json['assigned_at']?.toString() ??
+        json['tanggal_pengajuan']?.toString() ??
+        'Jadwal belum tersedia';
     if (rawStatus == 'SURVEI_LAPANGAN') {
       displayStatus = 'Dalam Proses';
-      displayJadwal = '15 Feb 2025 • Siang';
-    } else if (rawStatus == 'MENUNGGU_PERSETUJUAN_AKHIR' || rawStatus == 'DISETUJUI') {
+      displayJadwal = json['updated_at']?.toString() ?? displayJadwal;
+    } else if (rawStatus == 'MENUNGGU_PERSETUJUAN_AKHIR' ||
+        rawStatus == 'DISETUJUI') {
       displayStatus = 'Selesai Survei';
-      displayJadwal = '16 Feb 2025';
-    } else if (rawStatus == 'PERLU_PERBAIKAN_BERKAS' || rawStatus == 'DITOLAK_LAPANGAN') {
+      displayJadwal = json['final_approved_at']?.toString() ?? displayJadwal;
+    } else if (rawStatus == 'PERLU_PERBAIKAN_BERKAS' ||
+        rawStatus == 'DITOLAK_LAPANGAN') {
       displayStatus = 'Perlu Tindak Lanjut';
-      displayJadwal = '17 Feb 2025';
+      displayJadwal = json['updated_at']?.toString() ?? displayJadwal;
     }
 
-    final String farmerName = farmer['nama'] ?? 'Petani';
-    if (farmerName.toLowerCase().contains('dewi')) {
-      displayStatus = 'Perlu Tindak Lanjut';
-      displayJadwal = '17 Feb 2025';
-    } else if (farmerName.toLowerCase().contains('joko')) {
-      displayStatus = 'Dalam Proses';
-      displayJadwal = '15 Feb 2025 • Siang';
-    }
+    final String farmerName = farmer['nama'] ?? 'Nama petani belum tersedia';
 
     final double landLuas = (land['luas_m2'] is num)
         ? (land['luas_m2'] as num).toDouble()
-        : double.tryParse('${land['luas_m2']}') ?? 8000.0;
+        : double.tryParse('${land['luas_m2']}') ?? 0.0;
 
     final double? surveyLuas = survey['luas_lahan_aktual_m2'] != null
         ? double.tryParse('${survey['luas_lahan_aktual_m2']}')
@@ -164,24 +163,25 @@ class PPLTaskModel {
       status: rawStatus,
       catatanPenugasan: json['catatan_penugasan'],
       namaPetani: farmerName,
-      nikPetani: farmer['nik'] ?? '3516080000000000',
-      kontakPetani: farmer['kontak'] ?? '0812-3456-78XX',
-      namaPupuk: fert['nama_pupuk'] ?? 'Pupuk Bersubsidi',
-      lokasiLahan: land['lokasi_deskripsi'] ?? 'Sawah Blok Timur Kebondalem',
-      alamatLahan: land['alamat_lahan'] ?? farmer['alamat'] ?? 'Kecamatan Mojosari',
+      nikPetani: farmer['nik'] ?? '',
+      kontakPetani: farmer['kontak'] ?? 'Belum tersedia',
+      namaPupuk: fert['nama_pupuk'] ?? 'Pupuk belum tersedia',
+      lokasiLahan: land['lokasi_deskripsi'] ?? 'Lokasi lahan belum tersedia',
+      alamatLahan:
+          land['alamat_lahan'] ?? farmer['alamat'] ?? 'Alamat belum tersedia',
       luasLahanM2: landLuas,
       latitude: land['latitude'] != null
-          ? double.tryParse('${land['latitude']}') ?? -7.526412
-          : -7.526412,
+          ? double.tryParse('${land['latitude']}') ?? 0.0
+          : 0.0,
       longitude: land['longitude'] != null
-          ? double.tryParse('${land['longitude']}') ?? 112.534218
-          : 112.534218,
-      komoditas: commodity['nama_komoditas'] ?? 'Padi Inpari 32',
+          ? double.tryParse('${land['longitude']}') ?? 0.0
+          : 0.0,
+      komoditas: commodity['nama_komoditas'] ?? 'Komoditas belum tersedia',
       hasSurvey: json['survey'] != null,
       taskIdCode: taskCode,
       jadwal: displayJadwal,
-      poktan: farmer['farmer_group']?['nama_kelompok'] ?? 'Poktan Tani Makmur Wilbin',
-      desaKecamatan: farmer['alamat'] ?? 'Desa Tanjungrejo, Kec. Mojosari',
+      poktan: farmer['farmer_group']?['nama_kelompok'] ?? 'Belum tersedia',
+      desaKecamatan: farmer['alamat'] ?? 'Belum tersedia',
       statusLabel: displayStatus,
       polygonCoords: survey['polygon_coords'] ?? land['polygon_coords'],
       luasHasilUkurM2: surveyLuas,

@@ -5,8 +5,9 @@ import {
   Eye, MapPin, Tractor, Plus, SlidersHorizontal,
   RefreshCw, ShieldAlert, Users, LandPlot,
   PackageCheck, BarChart3, ClipboardList, UserCog, Database,
-  Search, LayoutGrid, History, TrendingUp
+  Search, LayoutGrid, History, TrendingUp, QrCode
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import { adminApi, applicationsApi, farmersApi, landsApi } from '../services/api';
 import KPICard from '../components/KPICard';
@@ -14,12 +15,20 @@ import StatusBadge from '../components/StatusBadge';
 import ProgressStepper from '../components/ProgressStepper';
 import PhotoViewerModal from '../components/PhotoViewerModal';
 import { formatCoord } from '../utils/format';
+import {
+  ADMIN_REPORT_TYPES,
+  buildAdminReport,
+  escapeReportHtml,
+  getAdminReportRegions,
+  toCsvCell,
+} from '../utils/adminReports';
 
 const ADMIN_TAB_PATHS = {
   dashboard: '/admin',
   verifikasi: '/admin/verifikasi',
   penugasan: '/admin/penugasan',
   approval: '/admin/approval',
+  qr: '/admin/qr',
   petani: '/admin/petani',
   lahan: '/admin/lahan',
   monitoring: '/admin/monitoring',
@@ -36,14 +45,19 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [applications, setApplications] = useState([]);
+  const [distributions, setDistributions] = useState([]);
   const [pplOfficers, setPplOfficers] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [farmersList, setFarmersList] = useState([]);
   const [landsList, setLandsList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reportStartDate, setReportStartDate] = useState('');
+  const [reportEndDate, setReportEndDate] = useState('');
+  const [reportRegion, setReportRegion] = useState('');
 
   // Selected item for actions
   const [selectedApp, setSelectedApp] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [actionNotes, setActionNotes] = useState('');
   const [selectedPplId, setSelectedPplId] = useState('');
   const [approvedKg, setApprovedKg] = useState('');
@@ -70,13 +84,14 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [sRes, aRes, pRes, lRes, fRes, landRes] = await Promise.all([
+      const [sRes, aRes, pRes, lRes, fRes, landRes, dRes] = await Promise.all([
         adminApi.getStats(),
         applicationsApi.getAll(),
         adminApi.getPplOfficers(),
         adminApi.getAuditLogs(),
         farmersApi.getAll(),
         landsApi.getAll(),
+        adminApi.getDistributions(),
       ]);
 
       const applicationsData = Array.isArray(aRes?.data) ? aRes.data : [];
@@ -84,6 +99,7 @@ export default function AdminDashboard() {
       const auditData = Array.isArray(lRes?.data) ? lRes.data : [];
       const farmerData = Array.isArray(fRes?.data) ? fRes.data : [];
       const landData = Array.isArray(landRes?.data) ? landRes.data : [];
+      const distributionData = Array.isArray(dRes?.data) ? dRes.data : [];
 
       setStats(sRes?.data || {});
       setApplications(applicationsData);
@@ -91,6 +107,7 @@ export default function AdminDashboard() {
       setAuditLogs(auditData);
       setFarmersList(farmerData);
       setLandsList(landData);
+      setDistributions(distributionData);
 
       if (pplData.length > 0) {
         setSelectedPplId(String(pplData[0].id));
@@ -178,6 +195,27 @@ export default function AdminDashboard() {
   );
   const uniqueFarmers = farmersList;
   const uniqueLands = landsList;
+  const reportRegions = getAdminReportRegions(farmersList);
+  const userRows = [
+    ...uniqueFarmers.map((farmer) => ({
+      id: farmer.id,
+      name: farmer.nama,
+      username: farmer.user?.username,
+      email: farmer.user?.email,
+      contact: farmer.kontak,
+      nik: farmer.nik,
+      role: 'PETANI',
+      isActive: farmer.user?.is_active,
+    })),
+    ...pplOfficers.map((officer) => ({
+      id: officer.id,
+      name: officer.nama || officer.username,
+      username: officer.username,
+      email: officer.email,
+      role: 'PPL LAPANGAN',
+      isActive: true,
+    })),
+  ];
   const totalLandAreaM2 = uniqueLands.reduce((total, land) => total + Number(land.luas_m2 || 0), 0);
   const farmersWithoutGroup = uniqueFarmers.filter((farmer) => !farmer.farmer_group_id).length;
   const landsAwaitingSurvey = uniqueLands.filter((land) =>
@@ -190,6 +228,7 @@ export default function AdminDashboard() {
     { id: 'verifikasi', label: 'Verifikasi Berkas', icon: FileText, count: pendingVerifyApps.length },
     { id: 'penugasan', label: 'Penugasan PPL', icon: UserCheck, count: pendingAssignApps.length },
     { id: 'approval', label: 'Persetujuan Akhir', icon: Award, count: pendingFinalApps.length },
+    { id: 'qr', label: 'QR Karung Pupuk', icon: QrCode },
     { id: 'petani', label: 'Data Petani', icon: Users },
     { id: 'lahan', label: 'Data Lahan', icon: LandPlot },
     { id: 'monitoring', label: 'Monitoring', icon: BarChart3 },
@@ -201,6 +240,93 @@ export default function AdminDashboard() {
     const path = ADMIN_TAB_PATHS[tab];
     if (!path) return;
     navigate(applicationId ? `${path}?applicationId=${applicationId}` : path);
+  };
+
+  const getReport = (reportKey) => {
+    if (reportStartDate && reportEndDate && reportStartDate > reportEndDate) {
+      toast.error('Tanggal mulai tidak boleh melewati tanggal akhir.');
+      return null;
+    }
+
+    return buildAdminReport(reportKey, {
+      farmers: farmersList,
+      lands: landsList,
+      applications,
+      distributions,
+    }, {
+      startDate: reportStartDate,
+      endDate: reportEndDate,
+      region: reportRegion,
+    });
+  };
+
+  const handleExportCsv = (reportKey) => {
+    const report = getReport(reportKey);
+    if (!report) return;
+
+    const csv = [report.headers, ...report.rows]
+      .map((row) => row.map(toCsvCell).join(','))
+      .join('\r\n');
+    const url = URL.createObjectURL(
+      new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }),
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${reportKey}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success(`CSV laporan berhasil diunduh (${report.rows.length} baris).`);
+  };
+
+  const handlePrintReport = (reportKey) => {
+    const report = getReport(reportKey);
+    if (!report) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Jendela cetak diblokir browser. Izinkan pop-up lalu coba lagi.');
+      return;
+    }
+
+    const tableRows = report.rows.map((row) => (
+      `<tr>${row.map((cell) => `<td>${escapeReportHtml(cell)}</td>`).join('')}</tr>`
+    )).join('');
+    const period = [
+      reportStartDate && `Mulai: ${reportStartDate}`,
+      reportEndDate && `Sampai: ${reportEndDate}`,
+      reportRegion && `Wilayah: ${reportRegion}`,
+    ].filter(Boolean).join(' | ') || 'Semua tanggal dan wilayah';
+
+    printWindow.document.write(`<!doctype html>
+      <html lang="id">
+        <head>
+          <meta charset="utf-8">
+          <title>${escapeReportHtml(report.title)}</title>
+          <style>
+            body { font: 12px Arial, sans-serif; color: #0f172a; padding: 24px; }
+            h1 { font-size: 20px; margin: 0 0 8px; }
+            p { color: #475569; margin: 0 0 16px; }
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #cbd5e1; padding: 6px; text-align: left; vertical-align: top; }
+            th { background: #f1f5f9; }
+            tr { break-inside: avoid; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <h1>${escapeReportHtml(report.title)}</h1>
+          <p>E-Pupuk Kabupaten Mojokerto · ${escapeReportHtml(period)} · ${report.rows.length} baris</p>
+          <table>
+            <thead><tr>${report.headers.map((cell) => `<th>${escapeReportHtml(cell)}</th>`).join('')}</tr></thead>
+            <tbody>${tableRows || `<tr><td colspan="${report.headers.length}">Tidak ada data untuk filter ini.</td></tr>`}</tbody>
+          </table>
+        </body>
+      </html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   };
 
   // Verification Actions
@@ -247,6 +373,11 @@ export default function AdminDashboard() {
       const parsedKg = approvedKg !== '' && approvedKg !== null && approvedKg !== undefined
         ? parseFloat(String(approvedKg).replace(',', '.'))
         : null;
+
+      if (action === 'APPROVE' && (!Number.isFinite(parsedKg) || parsedKg <= 0 || parsedKg % 25 !== 0)) {
+        toast.error('Jumlah persetujuan harus kelipatan 25 kg (satu QR untuk satu karung).', { id: toastId });
+        return;
+      }
 
       await adminApi.finalApprove(selectedApp.id, {
         action,
@@ -325,8 +456,8 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 pb-16">
-      <aside className="hidden lg:flex lg:w-60 shrink-0 flex-col self-start sticky top-24 bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs">
+    <div className={`flex flex-col lg:flex-row gap-6 pb-16 ${activeTab === 'qr' ? 'qr-print-active' : ''}`}>
+      <aside className="qr-print-sidebar hidden lg:flex lg:w-60 shrink-0 flex-col self-start sticky top-24 bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs">
         <div className="px-3 py-2 mb-2 border-b border-slate-100">
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">RUANG KERJA</p>
           <p className="text-sm font-black text-slate-900 mt-0.5 mb-1">Admin Dinas</p>
@@ -335,6 +466,7 @@ export default function AdminDashboard() {
           {[
             ['UTAMA', ['dashboard']],
             ['PENGAJUAN', ['verifikasi', 'penugasan', 'approval']],
+            ['DISTRIBUSI', ['qr']],
             ['DATA', ['petani', 'lahan']],
             ['MONITORING', ['monitoring', 'laporan']],
             ['SISTEM', ['pengguna', 'audit']],
@@ -370,7 +502,7 @@ export default function AdminDashboard() {
       </aside>
 
       <div className="min-w-0 flex-1 space-y-6">
-        <div className="lg:hidden">
+        <div className="qr-print-button lg:hidden">
           <label htmlFor="admin-section" className="sr-only">Bagian dashboard admin</label>
           <select id="admin-section" value={activeTab} onChange={(event) => navigateToAdminTab(event.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 outline-hidden focus:border-emerald-500">
             {adminMenu.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
@@ -531,6 +663,54 @@ export default function AdminDashboard() {
                 </section>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'qr' && (
+          <div className="qr-print-content space-y-5">
+            <style>{`
+              @media print {
+                .qr-print-active { display: block !important; padding: 0 !important; }
+                .qr-print-sidebar, .qr-print-button, .qr-print-action { display: none !important; }
+                .qr-print-grid { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+                .qr-print-card { break-inside: avoid; border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
+              }
+            `}</style>
+            <div className="flex flex-col gap-3 rounded-2xl bg-slate-950 p-6 text-white sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-black">QR Karung Pupuk</h1>
+                <p className="mt-1 text-sm text-slate-300">Satu QR unik untuk setiap karung 25 kg yang telah dialokasikan.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="qr-print-action inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-400"
+              >
+                <QrCode className="h-4 w-4" /> Cetak QR Aktif
+              </button>
+            </div>
+            <div className="qr-print-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {distributions.filter((distribution) =>
+                distribution.status_penyaluran === 'MENUNGGU_PENGAMBILAN' && distribution.qr_code_hash
+              ).map((distribution) => (
+                <article key={distribution.id} className="qr-print-card flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <QRCodeSVG value={distribution.qr_code_hash} size={112} level="M" />
+                  <div className="min-w-0">
+                    <p className="font-black text-slate-900">Pengajuan #{distribution.application_id}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-700">{distribution.application?.farmer?.nama || 'Petani'}</p>
+                    <p className="text-xs text-slate-500">{distribution.application?.fertilizer?.nama_pupuk || 'Pupuk'} · 25 kg</p>
+                    <p className="mt-2 break-all font-mono text-[10px] text-slate-400">{distribution.qr_code_hash}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+            {distributions.every((distribution) =>
+              distribution.status_penyaluran !== 'MENUNGGU_PENGAMBILAN' || !distribution.qr_code_hash
+            ) && (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+                Belum ada QR karung yang menunggu penyaluran.
+              </div>
+            )}
           </div>
         )}
 
@@ -1414,8 +1594,8 @@ export default function AdminDashboard() {
                 <strong className="block text-xl font-black text-emerald-600 mt-1">{totalApprovedKg} kg</strong>
               </div>
               <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PUPUK TERPANTAU</span>
-                <strong className="block text-xl font-black text-blue-600 mt-1">100% Sah</strong>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TRANSAKSI DISTRIBUSI</span>
+                <strong className="block text-xl font-black text-blue-600 mt-1">{distributions.length}</strong>
               </div>
             </div>
 
@@ -1451,24 +1631,25 @@ export default function AdminDashboard() {
               <p className="text-xs text-slate-400 mt-0.5">Ekspor berkas laporan resmi untuk pelaporan instansi dan dinas ketahanan pangan.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <input type="date" className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium" />
+              <label className="sr-only" htmlFor="report-start-date">Tanggal mulai laporan</label>
+              <input id="report-start-date" type="date" value={reportStartDate} onChange={(event) => setReportStartDate(event.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium" />
               <span className="text-xs text-slate-400 font-semibold">sampai</span>
-              <input type="date" className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium" />
-              <select className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-semibold">
-                <option>Semua Kecamatan</option>
-                <option>Trowulan</option>
-                <option>Mojosari</option>
-                <option>Puri</option>
+              <label className="sr-only" htmlFor="report-end-date">Tanggal akhir laporan</label>
+              <input id="report-end-date" type="date" value={reportEndDate} onChange={(event) => setReportEndDate(event.target.value)} className="px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-medium" />
+              <label className="sr-only" htmlFor="report-region">Filter wilayah laporan</label>
+              <select id="report-region" value={reportRegion} onChange={(event) => setReportRegion(event.target.value)} className="px-3.5 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-700 font-semibold">
+                <option value="">Semua Wilayah</option>
+                {reportRegions.map((region) => <option key={region} value={region}>{region}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-              {['Data Petani Terdaftar', 'Register Bidang Lahan', 'Pengajuan & Verifikasi Berkas', 'Hasil Survei Lapangan PPL', 'Surat Keputusan Persetujuan', 'Distribusi Pupuk Bersubsidi'].map((report) => (
-                <div key={report} className="border border-slate-200/90 rounded-2xl p-4.5 bg-slate-50/50 hover:bg-white transition-all shadow-2xs">
+              {ADMIN_REPORT_TYPES.map(({ key, title }) => (
+                <div key={key} className="border border-slate-200/90 rounded-2xl p-4.5 bg-slate-50/50 hover:bg-white transition-all shadow-2xs">
                   <ClipboardList className="w-5 h-5 text-emerald-600 mb-2.5" />
-                  <h4 className="text-xs font-bold text-slate-900">{report}</h4>
+                  <h4 className="text-xs font-bold text-slate-900">{title}</h4>
                   <div className="flex gap-2.5 mt-3.5 pt-3 border-t border-slate-100">
-                    <button onClick={() => toast.success(`Laporan ${report} diekspor ke PDF`)} className="text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer">Export PDF</button>
-                    <button onClick={() => toast.success(`Laporan ${report} diekspor ke Excel`)} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer">Export Excel</button>
+                    <button onClick={() => handlePrintReport(key)} className="text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer">Cetak / Simpan PDF</button>
+                    <button onClick={() => handleExportCsv(key)} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer">Unduh CSV</button>
                   </div>
                 </div>
               ))}
@@ -1484,7 +1665,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-bold text-slate-900">Manajemen Pengguna Sistem</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Kelola hak akses untuk Petani, Petugas PPL Lapangan, dan Staf Dinas.</p>
+                <p className="text-xs text-slate-400 mt-0.5">Lihat informasi akun Petani dan Petugas PPL yang tersedia pada sistem.</p>
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -1499,18 +1680,53 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {[...uniqueFarmers.map((f) => ({ name: f.nama, username: f.user?.username || f.nik, role: 'PETANI' })), ...pplOfficers.map((p) => ({ name: p.username, username: p.username, role: 'PPL LAPANGAN' }))].map((person, idx) => (
-                    <tr key={person.role + idx} className="hover:bg-slate-50/60">
-                      <td className="py-3 px-4 font-bold text-slate-900">{person.name}</td>
-                      <td className="py-3 px-4 font-mono text-slate-500">{person.username}</td>
+                  {userRows.map((person) => (
+                    <tr key={`${person.role}-${person.id}`} className="hover:bg-slate-50/60">
+                      <td className="py-3 px-4 font-bold text-slate-900">{person.name || 'Nama belum tersedia'}</td>
+                      <td className="py-3 px-4 font-mono text-slate-500">{person.username || 'Belum tersedia'}</td>
                       <td className="py-3 px-4"><span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">{person.role}</span></td>
-                      <td className="py-3 px-4"><span className="text-emerald-600 font-bold">Aktif</span></td>
-                      <td className="py-3 px-4 text-center"><button onClick={() => toast.success(`Detail akun ${person.name}`)} className="text-emerald-700 font-bold hover:underline cursor-pointer">Detail</button></td>
+                      <td className="py-3 px-4">
+                        <span className={person.isActive === true ? 'text-emerald-600 font-bold' : person.isActive === false ? 'text-rose-600 font-bold' : 'text-slate-400'}>
+                          {person.isActive === true ? 'Aktif' : person.isActive === false ? 'Nonaktif' : 'Tidak tersedia'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center"><button onClick={() => setSelectedUser(person)} className="text-emerald-700 font-bold hover:underline cursor-pointer">Detail</button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {selectedUser && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4" role="presentation" onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedUser(null);
+          }}>
+            <section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="account-detail-title">
+              <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <h2 id="account-detail-title" className="text-base font-bold text-slate-900">Detail Akun</h2>
+                  <p className="mt-1 text-xs text-slate-500">{selectedUser.name || 'Nama belum tersedia'}</p>
+                </div>
+                <button onClick={() => setSelectedUser(null)} className="rounded-lg px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100">Tutup</button>
+              </div>
+              <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                {[
+                  ['Peran', selectedUser.role],
+                  ['Username', selectedUser.username || 'Belum tersedia pada data API'],
+                  ['Email', selectedUser.email || 'Belum tersedia pada data API'],
+                  ['Kontak', selectedUser.contact || 'Belum tersedia'],
+                  ['NIK', selectedUser.nik || 'Belum tersedia'],
+                  ['Status akun', selectedUser.isActive === true ? 'Aktif' : selectedUser.isActive === false ? 'Nonaktif' : 'Belum tersedia pada data API'],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl bg-slate-50 p-3">
+                    <dt className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</dt>
+                    <dd className="mt-1 break-words font-semibold text-slate-800">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
           </div>
         )}
 
@@ -1576,11 +1792,18 @@ export default function AdminDashboard() {
               const ktpUrl = selectedApp.foto_ktp_snapshot_url || farmer?.foto_ktp_url;
               const landPhotoUrl = selectedApp.foto_lahan_snapshot_url || land?.foto_lahan_url;
               const needsRevision = selectedApp.status === 'PERLU_PERBAIKAN_BERKAS';
+              const documentsUpdated = selectedApp.catatan_admin_berkas?.includes('diperbarui oleh petani');
               const documentStatus = (url) => (
-                needsRevision ? 'Perlu Perbaikan' : url ? 'Lengkap' : 'Belum Ada'
+                needsRevision
+                  ? 'Perlu Perbaikan'
+                  : documentsUpdated
+                    ? 'Menunggu Tinjau Ulang'
+                    : url
+                      ? 'Lengkap'
+                      : 'Belum Ada'
               );
               const statusClass = (url) => (
-                needsRevision
+                needsRevision || documentsUpdated
                   ? 'bg-amber-50 text-amber-700 border-amber-200'
                   : url
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -1600,6 +1823,11 @@ export default function AdminDashboard() {
 
               return (
                 <div className="space-y-4">
+                  {documentsUpdated && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                      Dokumen diperbarui oleh petani. Periksa foto terbaru sebelum memutuskan verifikasi berkas.
+                    </div>
+                  )}
                   <section className="rounded-xl border border-slate-200 p-4 space-y-2">
                     <h4 className="text-xs font-bold uppercase tracking-wide text-slate-700">Data Pemohon</h4>
                     <p className="text-xs text-slate-600">
@@ -1690,7 +1918,7 @@ export default function AdminDashboard() {
                           <div className="flex items-center justify-between gap-2">
                             <h4 className="text-xs font-bold uppercase tracking-wide text-slate-700">Dokumen Sertifikat Tanah / SPPT PBB</h4>
                             <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold ${statusClass(sertifikatUrl)}`}>
-                              {sertifikatUrl ? 'Tersedia' : 'Belum Ada'}
+                              {documentStatus(sertifikatUrl)}
                             </span>
                           </div>
                           {sertifikatUrl ? (
@@ -1947,12 +2175,14 @@ export default function AdminDashboard() {
               </label>
               <input
                 type="number"
+                min="25"
+                step="25"
                 value={approvedKg}
                 onChange={(e) => setApprovedKg(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:border-purple-500 outline-hidden"
               />
               <span className="text-[10px] text-slate-400 mt-0.5 block">
-                Permintaan awal: {selectedApp.jumlah_diajukan} kg
+                Permintaan awal: {selectedApp.jumlah_diajukan} kg. Masukkan kelipatan 25 kg; setiap karung memiliki QR unik.
               </span>
             </div>
 

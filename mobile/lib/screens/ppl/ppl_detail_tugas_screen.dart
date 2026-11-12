@@ -17,6 +17,7 @@ class PPLDetailTugasScreen extends StatefulWidget {
 class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
   late PPLTaskModel _task;
   bool _isStarting = false;
+  String? _startError;
 
   @override
   void initState() {
@@ -26,23 +27,39 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
 
   Future<void> _handleStartSurvey() async {
     setState(() => _isStarting = true);
-    final success = await PPLService.startSurvey(_task.id);
-    if (mounted) {
-      setState(() => _isStarting = false);
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Status tugas telah diperbarui menjadi SURVEI LAPANGAN'),
-            backgroundColor: AppTheme.primaryGreen,
-          ),
-        );
+    try {
+      final success = await PPLService.startSurvey(_task.id);
+      if (mounted) {
+        setState(() {
+          _isStarting = false;
+          _startError =
+              success ? null : 'Server tidak mengonfirmasi pembaruan status.';
+        });
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('Status tugas telah diperbarui menjadi SURVEI LAPANGAN'),
+              backgroundColor: AppTheme.primaryGreen,
+            ),
+          );
+        }
+        if (success) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PPLPetaLahanScreen(task: _task),
+            ),
+          );
+        }
       }
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PPLPetaLahanScreen(task: _task),
-        ),
-      );
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _isStarting = false;
+          _startError = error.toString();
+        });
+      }
     }
   }
 
@@ -122,6 +139,18 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
 
             // Tombol Aksi Utama
             _buildActionButtons(),
+            if (_startError != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Pembaruan status survei gagal: $_startError',
+                style: const TextStyle(color: Color(0xFFB91C1C)),
+              ),
+              TextButton.icon(
+                onPressed: _isStarting ? null : _handleStartSurvey,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba lagi'),
+              ),
+            ],
             const SizedBox(height: 24),
           ],
         ),
@@ -196,18 +225,22 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.phone_outlined, size: 16, color: AppTheme.textMuted),
+              const Icon(Icons.phone_outlined,
+                  size: 16, color: AppTheme.textMuted),
               const SizedBox(width: 8),
               Text(
                 _task.kontakPetani,
-                style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+                style:
+                    const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
               ),
               const Spacer(),
-              const Icon(Icons.calendar_today_outlined, size: 16, color: AppTheme.textMuted),
+              const Icon(Icons.calendar_today_outlined,
+                  size: 16, color: AppTheme.textMuted),
               const SizedBox(width: 6),
               Text(
                 _task.jadwal,
-                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                style: const TextStyle(
+                    fontSize: 12, color: AppTheme.textSecondary),
               ),
             ],
           ),
@@ -230,7 +263,8 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
         children: [
           Row(
             children: const [
-              Icon(Icons.landscape_outlined, size: 18, color: AppTheme.primaryGreen),
+              Icon(Icons.landscape_outlined,
+                  size: 18, color: AppTheme.primaryGreen),
               SizedBox(width: 8),
               Text(
                 'Data Bidang Lahan & Permohonan Pupuk',
@@ -243,13 +277,22 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          _buildInfoRow('Kode Bidang Lahan', 'PLN-001 (Blok Kebondalem)'),
+          _buildInfoRow(
+            'Kode Bidang Lahan',
+            _task.landId > 0 ? 'Lahan #${_task.landId}' : 'Belum tersedia',
+          ),
           _buildInfoRow('Deskripsi Lahan', _task.lokasiLahan),
           _buildInfoRow('Alamat Lokasi', _task.alamatLahan),
-          _buildInfoRow('Luas Permohonan (RDKK)', '${luasHa.toStringAsFixed(2)} Ha (${_task.luasLahanM2.toInt()} m²)'),
+          _buildInfoRow('Luas Permohonan (RDKK)',
+              '${luasHa.toStringAsFixed(2)} Ha (${_task.luasLahanM2.toInt()} m²)'),
           _buildInfoRow('Komoditas Aktual', _task.komoditas),
-          _buildInfoRow('Pupuk Diajukan', '${_task.namaPupuk} • ${_task.jumlahDiajukan.toInt()} Kg'),
-          _buildInfoRow('Titik Acuan Petani', '${_task.latitude.toStringAsFixed(6)}, ${_task.longitude.toStringAsFixed(6)}'),
+          _buildInfoRow('Pupuk Diajukan',
+              '${_task.namaPupuk} • ${_task.jumlahDiajukan.toInt()} Kg'),
+          _buildInfoRow(
+              'Titik Acuan Petani',
+              _task.latitude == 0 && _task.longitude == 0
+                  ? 'Belum tersedia'
+                  : '${_task.latitude.toStringAsFixed(6)}, ${_task.longitude.toStringAsFixed(6)}'),
         ],
       ),
     );
@@ -265,7 +308,8 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
             width: 140,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              style:
+                  const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             ),
           ),
           Expanded(
@@ -297,7 +341,8 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
         children: [
           Row(
             children: const [
-              Icon(Icons.alt_route_rounded, size: 18, color: AppTheme.primaryGreen),
+              Icon(Icons.alt_route_rounded,
+                  size: 18, color: AppTheme.primaryGreen),
               SizedBox(width: 8),
               Text(
                 'Tahapan Survei Lapangan',
@@ -310,61 +355,19 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildStepItem(1, 'Verifikasi Berkas Administrasi', 'Disetujui Admin Dinas', true),
-          _buildStepItem(2, 'Disposisi Petugas PPL Wilbin', 'Diterima oleh PPL Lapangan', true),
-          _buildStepItem(3, 'Kunjungan Fisik & Validasi Petani', 'Pemeriksaan KTP & keberadaan petak', true),
-          _buildStepItem(4, 'Citra Satelit & Plotting Poligon GIS', 'Tahap 4: Pengukuran batas tapak sawah', false, isCurrent: true),
-          _buildStepItem(5, 'Sinkronisasi & Rekomendasi RDKK', 'Penerbitan surat rekomendasi alokasi pupuk', false),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStepItem(int step, String title, String subtitle, bool isDone, {bool isCurrent = false}) {
-    Color circleColor = const Color(0xFFE2E8F0);
-    Color textColor = AppTheme.textMuted;
-    Widget icon = Text('$step', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textColor));
-
-    if (isDone) {
-      circleColor = AppTheme.primaryGreen;
-      icon = const Icon(Icons.check, size: 14, color: Colors.white);
-      textColor = AppTheme.textPrimary;
-    } else if (isCurrent) {
-      circleColor = AppTheme.primaryGreen;
-      icon = Text('$step', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white));
-      textColor = AppTheme.primaryGreen;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 12,
-            backgroundColor: circleColor,
-            child: icon,
+          _buildInfoRow('Status tugas', _task.statusLabel),
+          _buildInfoRow(
+            'Data survei',
+            _task.hasSurvey ? 'Tersimpan' : 'Belum tersedia',
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: isCurrent || isDone ? FontWeight.bold : FontWeight.w500,
-                    color: isCurrent ? AppTheme.primaryGreen : AppTheme.textPrimary,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                ),
-              ],
-            ),
+          _buildInfoRow(
+            'Batas poligon',
+            _task.parsedPolygonPoints.length >= 3
+                ? '${_task.parsedPolygonPoints.length} titik tersimpan'
+                : 'Belum tersedia',
           ),
+          if (_task.rekomendasi?.isNotEmpty == true)
+            _buildInfoRow('Rekomendasi', _task.rekomendasi!),
         ],
       ),
     );
@@ -381,7 +384,8 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline, color: AppTheme.primaryGreen, size: 20),
+          const Icon(Icons.info_outline,
+              color: AppTheme.primaryGreen, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -397,9 +401,11 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _task.catatanPenugasan ??
-                      'Mohon pastikan patok batas sawah sisi saluran irigasi dicek langsung dengan pemilik petak berbatasan. Catat koordinat poligon minimal 4 titik batas tertutup WGS84.',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF166534), height: 1.4),
+                  _task.catatanPenugasan?.trim().isNotEmpty == true
+                      ? _task.catatanPenugasan!
+                      : 'Tidak ada catatan penugasan dari Admin.',
+                  style: const TextStyle(
+                      fontSize: 11, color: Color(0xFF166534), height: 1.4),
                 ),
               ],
             ),
@@ -421,11 +427,15 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
                   )
-                : const Icon(Icons.satellite_alt_rounded, color: Colors.white, size: 18),
+                : const Icon(Icons.satellite_alt_rounded,
+                    color: Colors.white, size: 18),
             label: Text(
-              _isStarting ? 'Memulai Survei...' : 'Buka Citra Satelit & Lokasi Lahan',
+              _isStarting
+                  ? 'Memulai Survei...'
+                  : 'Buka Citra Satelit & Lokasi Lahan',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -435,7 +445,8 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryGreen,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ),
@@ -452,7 +463,8 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
                 ),
               );
             },
-            icon: const Icon(Icons.edit_note, color: AppTheme.primaryGreen, size: 20),
+            icon: const Icon(Icons.edit_note,
+                color: AppTheme.primaryGreen, size: 20),
             label: const Text(
               'Formulir Hasil Survei Fisik',
               style: TextStyle(
@@ -463,7 +475,8 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
             ),
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: AppTheme.primaryGreen),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ),

@@ -146,6 +146,10 @@ export default function Register() {
                 </p>
               </div>
 
+              <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs leading-relaxed text-emerald-900">
+                Setelah membuat akun, unggah foto KTP di menu Profil dan foto lahan serta sertifikat/SPPT di Data Lahan. Dokumen dapat diganti kembali jika salah, lalu pengajuan yang menunggu akan ditinjau ulang Admin.
+              </div>
+
               {/* Register Form */}
               <form onSubmit={handleRegister} className="space-y-3.5">
                 
@@ -373,5 +377,4 @@ export default function Register() {
     </div>
   );
 }
-
 

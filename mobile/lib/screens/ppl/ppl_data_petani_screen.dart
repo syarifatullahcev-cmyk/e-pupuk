@@ -3,6 +3,7 @@ import '../../config/theme.dart';
 import '../../models/farmer_model.dart';
 import '../../models/user_model.dart';
 import '../../services/ppl_service.dart';
+import '../../widgets/ppl_notifications_button.dart';
 import 'ppl_detail_petani_screen.dart';
 
 class PPLDataPetaniScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class PPLDataPetaniScreen extends StatefulWidget {
 class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
   List<FarmerModel> _farmers = [];
   bool _isLoading = true;
+  String? _loadError;
   String _selectedDesa = 'Semua Desa';
   String _selectedStatus = 'Status Verifikasi';
   final TextEditingController _searchController = TextEditingController();
@@ -46,16 +48,26 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
 
   Future<void> _loadFarmers() async {
     setState(() => _isLoading = true);
-    final data = await PPLService.getFarmers(
-      search: _searchController.text,
-      desa: _selectedDesa,
-      status: _selectedStatus,
-    );
-    if (mounted) {
-      setState(() {
-        _farmers = data;
-        _isLoading = false;
-      });
+    try {
+      final data = await PPLService.getFarmers(
+        search: _searchController.text,
+        desa: _selectedDesa,
+        status: _selectedStatus,
+      );
+      if (mounted) {
+        setState(() {
+          _farmers = data;
+          _loadError = null;
+          _isLoading = false;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _loadError = error.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -75,7 +87,8 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
           onRefresh: _loadFarmers,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -148,10 +161,7 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
         ),
         Row(
           children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_none, color: AppTheme.textPrimary, size: 24),
-              onPressed: () {},
-            ),
+            const PPLNotificationsButton(),
             Container(
               width: 36,
               height: 36,
@@ -162,7 +172,10 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
               alignment: Alignment.center,
               child: const Text(
                 'AH',
-                style: TextStyle(color: AppTheme.primaryGreen, fontWeight: FontWeight.bold, fontSize: 13),
+                style: TextStyle(
+                    color: AppTheme.primaryGreen,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13),
               ),
             ),
           ],
@@ -211,7 +224,8 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
         decoration: InputDecoration(
           hintText: 'Cari nama, NIK, atau desa...',
           hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
-          prefixIcon: const Icon(Icons.search, color: AppTheme.textMuted, size: 20),
+          prefixIcon:
+              const Icon(Icons.search, color: AppTheme.textMuted, size: 20),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear, size: 18),
@@ -222,7 +236,8 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         ),
         onChanged: (val) {
           _loadFarmers();
@@ -248,8 +263,12 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
               child: DropdownButton<String>(
                 value: _selectedDesa,
                 isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: AppTheme.textSecondary),
-                style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+                icon: const Icon(Icons.keyboard_arrow_down,
+                    size: 18, color: AppTheme.textSecondary),
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.w500),
                 items: _desaOptions.map((String d) {
                   return DropdownMenuItem<String>(
                     value: d,
@@ -280,8 +299,12 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
               child: DropdownButton<String>(
                 value: _selectedStatus,
                 isExpanded: true,
-                icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: AppTheme.textSecondary),
-                style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+                icon: const Icon(Icons.keyboard_arrow_down,
+                    size: 18, color: AppTheme.textSecondary),
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.w500),
                 items: _statusOptions.map((String s) {
                   return DropdownMenuItem<String>(
                     value: s,
@@ -344,6 +367,32 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
       );
     }
 
+    if (_loadError != null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF2F2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFFECACA)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              'Gagal memuat data petani: $_loadError',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFFB91C1C)),
+            ),
+            TextButton.icon(
+              onPressed: _loadFarmers,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Coba lagi'),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (_farmers.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
@@ -378,6 +427,10 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
     Color badgeBg = AppTheme.warningBg;
     IconData badgeIcon = Icons.hourglass_top_outlined;
     String badgeText = farmer.statusVerifikasi;
+    final locality = [
+      if (farmer.desa?.isNotEmpty == true) 'Desa ${farmer.desa}',
+      if (farmer.kecamatan?.isNotEmpty == true) 'Kec. ${farmer.kecamatan}',
+    ].join(', ');
 
     if (farmer.statusVerifikasi.toLowerCase().contains('proses')) {
       avatarBg = AppTheme.infoBg;
@@ -393,7 +446,9 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
       badgeBg = AppTheme.warningBg;
       badgeIcon = Icons.warning_amber_rounded;
       badgeText = 'Perlu Perbaikan';
-    } else if (farmer.statusVerifikasi.toLowerCase().contains('terverifikasi')) {
+    } else if (farmer.statusVerifikasi
+        .toLowerCase()
+        .contains('terverifikasi')) {
       avatarBg = AppTheme.lightGreen;
       avatarText = AppTheme.primaryGreen;
       badgeColor = AppTheme.primaryGreen;
@@ -401,8 +456,6 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
       badgeIcon = Icons.check_circle_outline;
       badgeText = 'Terverifikasi';
     } else {
-      // Default Menunggu
-      badgeText = 'Menunggu';
       badgeIcon = Icons.hourglass_top_outlined;
     }
 
@@ -458,13 +511,15 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.verified, color: AppTheme.primaryGreen, size: 16),
+                        const Icon(Icons.verified,
+                            color: AppTheme.primaryGreen, size: 16),
                       ],
                     ),
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        const Icon(Icons.lock_outline, size: 13, color: AppTheme.textSecondary),
+                        const Icon(Icons.lock_outline,
+                            size: 13, color: AppTheme.textSecondary),
                         const SizedBox(width: 4),
                         Text(
                           farmer.maskedNik,
@@ -515,11 +570,12 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.location_on_outlined, size: 15, color: AppTheme.primaryGreen),
+                    const Icon(Icons.location_on_outlined,
+                        size: 15, color: AppTheme.primaryGreen),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Desa ${farmer.desa ?? "Tanjungrejo"}, Kec. ${farmer.kecamatan ?? "Mojosari"}',
+                        locality.isEmpty ? 'Wilayah belum tersedia' : locality,
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppTheme.textPrimary,
@@ -534,7 +590,8 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.crop_landscape, size: 15, color: AppTheme.primaryGreen),
+                        const Icon(Icons.crop_landscape,
+                            size: 15, color: AppTheme.primaryGreen),
                         const SizedBox(width: 6),
                         Text(
                           '${farmer.jumlahLahan} Lahan (${farmer.totalLuasHa.toString().replaceAll('.', ',')} Ha total)',
@@ -547,7 +604,8 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
                       ],
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(6),
@@ -581,7 +639,8 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => PPLDetailPetaniScreen(farmer: farmer),
+                      builder: (context) =>
+                          PPLDetailPetaniScreen(farmer: farmer),
                     ),
                   );
                 },
@@ -596,7 +655,8 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
                       ),
                     ),
                     SizedBox(width: 4),
-                    Icon(Icons.arrow_forward, size: 14, color: AppTheme.primaryGreen),
+                    Icon(Icons.arrow_forward,
+                        size: 14, color: AppTheme.primaryGreen),
                   ],
                 ),
               ),

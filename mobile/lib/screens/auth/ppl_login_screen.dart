@@ -1,9 +1,9 @@
+import '../../widgets/app_logo.dart';
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../ppl/ppl_dashboard_screen.dart';
-import 'login_screen.dart';
 
 class PPLLoginScreen extends StatefulWidget {
   const PPLLoginScreen({super.key});
@@ -88,6 +88,16 @@ class _PPLLoginScreenState extends State<PPLLoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
+      appBar: Navigator.canPop(context)
+          ? AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                onPressed: () => Navigator.pop(context),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -345,40 +355,6 @@ class _PPLLoginScreenState extends State<PPLLoginScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
-
-                  // Link Beralih ke Portal Petani
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      const Text(
-                        'Bukan Petugas Lapangan? ',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginScreen(),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          'Masuk sebagai Petani',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.primaryGreen,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -392,29 +368,7 @@ class _PPLLoginScreenState extends State<PPLLoginScreen> {
     return Column(
       children: [
         // Emblem Logo E-Pupuk Mojokerto
-        Container(
-          width: 76,
-          height: 76,
-          decoration: BoxDecoration(
-            color: AppTheme.lightGreen,
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFF86EFAC), width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryGreen.withOpacity(0.12),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.agriculture_rounded,
-              size: 42,
-              color: AppTheme.primaryGreen,
-            ),
-          ),
-        ),
+        const AppLogo(size: 76, borderRadius: 22),
         const SizedBox(height: 14),
 
         // Badge Kabupaten Mojokerto

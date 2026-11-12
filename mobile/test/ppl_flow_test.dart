@@ -15,11 +15,14 @@ void main() {
 
     test('1. Validasi poligon: Minimal 3 titik sudut untuk poligon sah', () {
       expect(GeoCalcService.calculateGeodesicArea([]), equals(0.0));
-      expect(GeoCalcService.calculateGeodesicArea([const LatLng(-7.5, 112.5)]), equals(0.0));
-      expect(GeoCalcService.calculateGeodesicArea([
-        const LatLng(-7.5, 112.5),
-        const LatLng(-7.5, 112.6),
-      ]), equals(0.0));
+      expect(GeoCalcService.calculateGeodesicArea([const LatLng(-7.5, 112.5)]),
+          equals(0.0));
+      expect(
+          GeoCalcService.calculateGeodesicArea([
+            const LatLng(-7.5, 112.5),
+            const LatLng(-7.5, 112.6),
+          ]),
+          equals(0.0));
 
       final valLess = GeoCalcService.validatePolygon([
         const LatLng(-7.5, 112.5),
@@ -29,7 +32,9 @@ void main() {
       expect(valLess.message, contains('minimal 3 titik'));
     });
 
-    test('2. Validasi rentang koordinat: Latitude & Longitude tidak sah ditolak', () {
+    test(
+        '2. Validasi rentang koordinat: Latitude & Longitude tidak sah ditolak',
+        () {
       final invalidLat = [
         const LatLng(-95.0, 112.5), // Lat invalid
         const LatLng(-7.5, 112.6),
@@ -49,7 +54,9 @@ void main() {
       expect(valLon.message, contains('Longitude tidak valid'));
     });
 
-    test('3. Validasi titik duplikat: Titik berturut-turut yang identik ditolak', () {
+    test(
+        '3. Validasi titik duplikat: Titik berturut-turut yang identik ditolak',
+        () {
       final duplicatePoints = [
         const LatLng(-7.526210, 112.534015),
         const LatLng(-7.526210, 112.534015), // Duplikat
@@ -61,7 +68,8 @@ void main() {
       expect(valDup.message, contains('identik atau terlalu dekat'));
     });
 
-    test('4. Validasi Self-Intersection: Poligon menyilang (Bowtie) ditolak', () {
+    test('4. Validasi Self-Intersection: Poligon menyilang (Bowtie) ditolak',
+        () {
       // Titik bersilangan (P1 ke P3, P2 ke P4 menyilang)
       final bowtiePoints = [
         const LatLng(-7.526000, 112.534000), // P1 Kiri Atas
@@ -80,10 +88,12 @@ void main() {
       expect(valValid.message, isNull);
     });
 
-    test('6. Benchmark Luas Geodesik pada Lahan Uji 1 Hektare (100m x 100m)', () {
+    test('6. Benchmark Luas Geodesik pada Lahan Uji 1 Hektare (100m x 100m)',
+        () {
       // Bidang tanah bujur sangkar tepat 100m x 100m di sekitar ekuator
       // Pada latitude 0, 1 derajat lat ~ 111.319,5 m, 100m ~ 0.000898315 derajat
-      const double dDeg = 100.0 / (GeoCalcService.earthRadius * (3.141592653589793 / 180.0));
+      const double dDeg =
+          100.0 / (GeoCalcService.earthRadius * (3.141592653589793 / 180.0));
       final test1HaPoints = [
         const LatLng(0.0, 0.0),
         const LatLng(0.0, dDeg),
@@ -96,25 +106,32 @@ void main() {
       expect(area, greaterThan(9900.0));
       expect(area, lessThan(10100.0));
 
-      final ellipsoidalArea = GeoCalcService.calculateEllipsoidalArea(test1HaPoints);
+      final ellipsoidalArea =
+          GeoCalcService.calculateEllipsoidalArea(test1HaPoints);
       expect(ellipsoidalArea, greaterThan(9900.0));
       expect(ellipsoidalArea, lessThan(10100.0));
     });
 
-    test('7. Uji dinamis: Mengubah koordinat titik benar-benar mengubah luas (Bukan Hardcoded)', () {
+    test(
+        '7. Uji dinamis: Mengubah koordinat titik benar-benar mengubah luas (Bukan Hardcoded)',
+        () {
       final initialArea = GeoCalcService.calculateGeodesicArea(mojosariPoints);
 
       // Geser titik P2 lebih ke timur (+0.00100 derajat longitude ~ 110 meter)
       final modifiedPoints = [
         mojosariPoints[0],
-        LatLng(mojosariPoints[1].latitude, mojosariPoints[1].longitude + 0.00100),
+        LatLng(
+            mojosariPoints[1].latitude, mojosariPoints[1].longitude + 0.00100),
         mojosariPoints[2],
         mojosariPoints[3],
       ];
 
       final newArea = GeoCalcService.calculateGeodesicArea(modifiedPoints);
       expect(newArea, isNot(equals(initialArea)));
-      expect(newArea, greaterThan(initialArea)); // Area harus bertambah karena batas diperlebar
+      expect(
+          newArea,
+          greaterThan(
+              initialArea)); // Area harus bertambah karena batas diperlebar
     });
 
     test('8. Jarak Haversine dan Keliling Poligon (Perimeter)', () {
@@ -126,18 +143,23 @@ void main() {
       expect(dist, lessThan(100.0));
 
       final perimeter = GeoCalcService.calculatePerimeter(mojosariPoints);
-      expect(perimeter, greaterThan(300.0)); // Keliling 4 sisi sawah Blok Kebondalem
+      expect(perimeter,
+          greaterThan(300.0)); // Keliling 4 sisi sawah Blok Kebondalem
       expect(perimeter, lessThan(450.0));
     });
 
-    test('9. Geofencing Ray-Casting: Deteksi posisi di dalam vs di luar poligon', () {
+    test(
+        '9. Geofencing Ray-Casting: Deteksi posisi di dalam vs di luar poligon',
+        () {
       // Titik di tengah-tengah poligon sawah Mojosari
       final insidePoint = const LatLng(-7.526600, 112.534400);
-      expect(GeoCalcService.isPointInPolygon(insidePoint, mojosariPoints), isTrue);
+      expect(
+          GeoCalcService.isPointInPolygon(insidePoint, mojosariPoints), isTrue);
 
       // Titik jauh di luar lahan (misal di alun-alun Mojosari)
       final outsidePoint = const LatLng(-7.520000, 112.530000);
-      expect(GeoCalcService.isPointInPolygon(outsidePoint, mojosariPoints), isFalse);
+      expect(GeoCalcService.isPointInPolygon(outsidePoint, mojosariPoints),
+          isFalse);
     });
 
     test('10. PPLTaskModel parsing dan mask NIK', () {
@@ -163,7 +185,25 @@ void main() {
 
       expect(task.initials, equals('SA'));
       expect(task.maskedNik, contains('******'));
-      expect(task.taskIdCode, equals('SRV-2025-014'));
+      expect(task.taskIdCode, equals('Pengajuan'));
+    });
+
+    test('11. Data PPL yang tidak dikirim API tidak diisi dengan data contoh',
+        () {
+      final task = PPLTaskModel.fromJson({
+        'id': 42,
+        'farmer': <String, dynamic>{},
+        'land': <String, dynamic>{},
+        'fertilizer': <String, dynamic>{},
+      });
+
+      expect(task.taskIdCode, equals('Pengajuan #42'));
+      expect(task.namaPetani, equals('Nama petani belum tersedia'));
+      expect(task.nikPetani, isEmpty);
+      expect(task.latitude, 0);
+      expect(task.longitude, 0);
+      expect(task.luasLahanM2, 0);
+      expect(task.parsedPolygonPoints, isEmpty);
     });
   });
 }

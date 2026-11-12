@@ -130,7 +130,10 @@ def run_tests():
         "polygon_coords": sample_polygon,
         "catatan_ppl": "Pengukuran batas pematang sawah menggunakan citra satelit resolusi tinggi.",
         "rekomendasi": "SETUJU",
-        "foto_survei_urls": ["/files/survei/sample_survey.jpg"]
+        "foto_survei_urls": [
+            "/files/survei/sample_survey.jpg",
+            "/files/survei/sample_boundary.jpg",
+        ]
     }
 
     status, survey_data = api_request(

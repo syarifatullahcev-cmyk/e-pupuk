@@ -2,17 +2,17 @@ import datetime
 import uuid
 from decimal import Decimal
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role, log_audit_action
 from app.models.models import (
-    User, Farmer, Land, Application, ApplicationStatus,
+    User, Farmer, Land, Application, ApplicationStatus, Fertilizer,
     Distribution, Notification, AuditLog, FieldSurvey, FertilizerBatch
 )
 from app.schemas.schemas import (
-    DashboardStatsAdmin, ApplicationResponse,
+    DashboardStatsAdmin, ApplicationResponse, DistributionResponse,
     ApplicationAdminVerifyRequest, ApplicationAssignPPLRequest,
     ApplicationFinalApproveRequest, UserResponse, AuditLogResponse
 )
@@ -43,6 +43,20 @@ def get_admin_stats(
 
     total_petani = db.query(Farmer).count()
     total_lahan_m2_res = db.query(func.sum(Land.luas_m2)).scalar() or Decimal("0")
+    urea_stock = (
+        db.query(func.coalesce(func.sum(FertilizerBatch.stok_kg), 0))
+        .join(Fertilizer)
+        .filter(func.upper(Fertilizer.nama_pupuk).like("%UREA%"))
+        .filter(FertilizerBatch.expired_date >= datetime.date.today())
+        .scalar()
+    )
+    npk_stock = (
+        db.query(func.coalesce(func.sum(FertilizerBatch.stok_kg), 0))
+        .join(Fertilizer)
+        .filter(func.upper(Fertilizer.nama_pupuk).like("%NPK%"))
+        .filter(FertilizerBatch.expired_date >= datetime.date.today())
+        .scalar()
+    )
 
     return DashboardStatsAdmin(
         total_pengajuan=total_pengajuan,
@@ -53,10 +67,9 @@ def get_admin_stats(
         ditolak=ditolak,
         total_petani=total_petani,
         total_lahan_m2=total_lahan_m2_res,
-        kuota_urea_kg=Decimal("150000.00"),
-        kuota_npk_kg=Decimal("120000.00")
+        kuota_urea_kg=urea_stock or Decimal("0"),
+        kuota_npk_kg=npk_stock or Decimal("0")
     )
-
 @router.get("/ppl-officers")
 def get_ppl_officers(
     current_user: User = Depends(require_role("ADMIN")),
@@ -78,6 +91,23 @@ def get_ppl_officers(
         })
     return result
 
+
+@router.get("/distributions", response_model=List[DistributionResponse])
+def get_distributions_for_qr_printing(
+    current_user: User = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db),
+):
+    return (
+        db.query(Distribution)
+        .options(
+            joinedload(Distribution.application).joinedload(Application.farmer),
+            joinedload(Distribution.application).joinedload(Application.land),
+            joinedload(Distribution.application).joinedload(Application.fertilizer),
+        )
+        .order_by(Distribution.created_at.desc(), Distribution.id.desc())
+        .all()
+    )
+
 @router.post("/applications/{id}/verify-docs")
 def verify_application_docs(
     id: int,
@@ -88,6 +118,12 @@ def verify_application_docs(
     app = db.query(Application).filter(Application.id == id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Pengajuan tidak ditemukan")
+
+    if app.status not in (
+        ApplicationStatus.DIAJUKAN,
+        ApplicationStatus.MENUNGGU_VERIFIKASI_BERKAS,
+    ):
+        raise HTTPException(status_code=409, detail="Status pengajuan tidak dapat diverifikasi berkas")
 
     app.admin_verifier_id = current_user.id
     app.admin_verified_at = datetime.datetime.now()
@@ -150,7 +186,14 @@ def assign_ppl(
     if not app:
         raise HTTPException(status_code=404, detail="Pengajuan tidak ditemukan")
 
-    ppl = db.query(User).filter(User.id == data.ppl_id, User.role == "PPL").first()
+    if app.status != ApplicationStatus.BERKAS_TERVERIFIKASI:
+        raise HTTPException(status_code=409, detail="Berkas harus terverifikasi sebelum penugasan PPL")
+
+    ppl = db.query(User).filter(
+        User.id == data.ppl_id,
+        User.role == "PPL",
+        User.is_active.is_(True),
+    ).first()
     if not ppl:
         raise HTTPException(status_code=400, detail="Petugas PPL tidak valid")
 
@@ -201,45 +244,75 @@ def final_approve_application(
     if not app:
         raise HTTPException(status_code=404, detail="Pengajuan tidak ditemukan")
 
-    app.final_approver_id = current_user.id
-    app.final_approved_at = datetime.datetime.now()
-    app.catatan_final_admin = data.catatan
+    if app.status != ApplicationStatus.MENUNGGU_PERSETUJUAN_AKHIR:
+        raise HTTPException(status_code=409, detail="Pengajuan belum menunggu keputusan akhir")
 
     farmer_user_id = app.farmer.user_id if app.farmer else None
 
     if data.action == "APPROVE":
-        app.status = ApplicationStatus.DISETUJUI
-        app.jumlah_disetujui = data.jumlah_disetujui or app.jumlah_diajukan
+        if not app.survey or app.survey.rekomendasi != "SETUJU":
+            raise HTTPException(status_code=409, detail="Survei PPL belum memberikan rekomendasi setuju")
 
-        # Keep distribution allocation separate from the physical bag QR.
-        existing_dist = db.query(Distribution).filter(Distribution.application_id == app.id).first()
-        farmer_name_clean = "".join(c for c in (app.farmer.nama if app.farmer and app.farmer.nama else "PETANI") if c.isalnum()).upper()[:6]
-        qr_token = f"EPUPUK-{app.id}-{farmer_name_clean}-{uuid.uuid4().hex[:6].upper()}"
-        batch = db.query(FertilizerBatch).filter(FertilizerBatch.fertilizer_id == app.fertilizer_id).first()
-
-        if not existing_dist:
-            dist = Distribution(
-                application_id=app.id,
-                batch_id=batch.id if batch else None,
-                jumlah_disalurkan=app.jumlah_disetujui,
-                status_penyaluran="MENUNGGU_PENGAMBILAN",
-                qr_code_hash=qr_token
+        approved_amount = data.jumlah_disetujui
+        if approved_amount is None:
+            approved_amount = app.jumlah_diajukan
+        if approved_amount <= 0 or approved_amount > app.jumlah_diajukan:
+            raise HTTPException(
+                status_code=400,
+                detail="Jumlah persetujuan harus lebih dari 0 dan tidak melebihi jumlah pengajuan",
             )
-            db.add(dist)
-            app.status = ApplicationStatus.DIJADWALKAN_DISTRIBUSI
-        else:
-            existing_dist.jumlah_disalurkan = app.jumlah_disetujui
-            if not existing_dist.qr_code_hash:
-                existing_dist.qr_code_hash = qr_token
-            if not existing_dist.batch_id and batch:
-                existing_dist.batch_id = batch.id
-            app.status = ApplicationStatus.DIJADWALKAN_DISTRIBUSI
+        if approved_amount % Decimal("25") != 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Jumlah persetujuan harus kelipatan 25 kg agar sesuai jumlah karung",
+            )
+        if db.query(Distribution.id).filter(Distribution.application_id == app.id).first():
+            raise HTTPException(status_code=409, detail="QR untuk pengajuan ini sudah pernah dibuat")
+
+        batches = (
+            db.query(FertilizerBatch)
+            .filter(
+                FertilizerBatch.fertilizer_id == app.fertilizer_id,
+                FertilizerBatch.expired_date >= datetime.date.today(),
+                FertilizerBatch.stok_kg >= Decimal("25"),
+            )
+            .order_by(FertilizerBatch.expired_date, FertilizerBatch.id)
+            .with_for_update()
+            .all()
+        )
+        bag_count = int(approved_amount / Decimal("25"))
+        allocated_distributions = []
+        batch_index = 0
+        for _ in range(bag_count):
+            while (
+                batch_index < len(batches)
+                and batches[batch_index].stok_kg < Decimal("25")
+            ):
+                batch_index += 1
+            if batch_index >= len(batches):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Stok pupuk yang masih berlaku tidak mencukupi untuk seluruh karung",
+                )
+            batch = batches[batch_index]
+            batch.stok_kg -= Decimal("25")
+            allocated_distributions.append(Distribution(
+                application_id=app.id,
+                batch_id=batch.id,
+                jumlah_disalurkan=Decimal("25"),
+                status_penyaluran="MENUNGGU_PENGAMBILAN",
+                qr_code_hash=f"EPUPUK-{uuid.uuid4().hex}",
+            ))
+
+        app.jumlah_disetujui = approved_amount
+        app.status = ApplicationStatus.DIJADWALKAN_DISTRIBUSI
+        db.add_all(allocated_distributions)
 
         if farmer_user_id:
             db.add(Notification(
                 user_id=farmer_user_id,
                 judul="Pengajuan Subsidi Disetujui!",
-                pesan=f"Selamat! Pengajuan subsidi pupuk #{app.id} telah disetujui untuk kuota {app.jumlah_disetujui} kg. Pembukaan pupuk menggunakan QR pada karung pupuk.",
+                pesan=f"Pengajuan pupuk #{app.id} disetujui sebanyak {approved_amount} kg dalam {bag_count} karung, masing-masing 25 kg.",
                 tipe="SUCCESS"
             ))
 
@@ -254,6 +327,10 @@ def final_approve_application(
             ))
     else:
         raise HTTPException(status_code=400, detail="Aksi tidak valid (APPROVE / REJECT)")
+
+    app.final_approver_id = current_user.id
+    app.final_approved_at = datetime.datetime.now()
+    app.catatan_final_admin = data.catatan
 
     db.commit()
     db.refresh(app)

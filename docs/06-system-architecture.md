@@ -12,7 +12,6 @@ Dokumen ini melengkapi `02-system-design.md` dengan gambaran arsitektur yang leb
                          │  Petani (upload KTP, foto lahan)  │
                          │  PPL    (survei lapangan fisik)   │
                          │  Admin  (verif berkas, disp. PPL) │
-                         │  Pimpinan (dashboard KPI)         │
                          └────────────────┬──────────────────┘
                                           │
                                           ▼
@@ -92,7 +91,7 @@ Dokumen ini melengkapi `02-system-design.md` dengan gambaran arsitektur yang leb
 
 ### 1.1 Alur Utama
 
-**1) Pengguna mengakses frontend.** Petani mengakses untuk mengisi form pengajuan dan mengunggah KTP, foto lahan, alamat, dan koordinat GPS. PPL mengakses untuk melihat tugas survei dan mengisi form laporan lapangan. Admin memverifikasi berkas, menugaskan PPL, dan memberikan persetujuan akhir. Pimpinan memonitor KPI.
+**1) Pengguna mengakses frontend.** Petani mengakses untuk mengisi form pengajuan dan mengunggah KTP, foto lahan, alamat, dan koordinat GPS. PPL mengakses untuk melihat tugas survei dan mengisi form laporan lapangan. Admin memverifikasi berkas, menugaskan PPL, memberikan persetujuan akhir, dan memonitor KPI operasional.
 
 **2) Frontend berkomunikasi dengan FastAPI.**
 ```
@@ -325,9 +324,9 @@ Frontend **tidak pernah** memanggil API eksternal secara langsung, dan **tidak p
                    │
        ┌───────────┼───────────┬──────────────┐
        ▼           ▼           ▼              ▼
-   PETANI         PPL        ADMIN         PIMPINAN
-       │           │           │              │
-       ▼           ▼           ▼              ▼
+   PETANI         PPL        ADMIN
+       │           │           │
+       ▼           ▼           ▼
   Pengajuan    Tugas       Verifikasi     Dashboard
   Upload KTP   Survei      Berkas         KPI
   Foto Lahan   Laporan     Penugasan PPL  Laporan
@@ -355,7 +354,6 @@ Frontend **tidak pernah** memanggil API eksternal secara langsung, dan **tidak p
 | Petani | Profil, lahan, pengajuan (milik sendiri), QR, status |
 | PPL | Tugas survei wilayahnya, data petani terkait (NIK tersamar), foto referensi, submit laporan survei |
 | Admin | Kelola data, verifikasi berkas (akses KTP penuh), penugasan PPL, approval akhir, distribusi, monitoring |
-| Pimpinan | Dashboard dan laporan |
 
 Lapisan keamanan tambahan: validasi input di setiap endpoint, validasi MIME type dan ukuran berkas di backend sebelum disimpan, audit log untuk aksi sensitif (verifikasi berkas, akses KTP, penugasan PPL, laporan survei, distribusi, perubahan data master), serta penyamaran data sensitif (NIK) untuk peran yang tidak berwenang.
 
@@ -412,7 +410,7 @@ Petani     Frontend     Backend      File Storage    MySQL       Admin       PPL
 Untuk menghasilkan visual arsitektur sistem (bukan mockup UI — untuk mockup UI lihat `03-ui-ux-design.md` §11), gunakan prompt berikut:
 
 **Prompt Arsitektur Sistem Lengkap:**
-"Buatkan diagram arsitektur sistem berlapis (layered architecture diagram) untuk aplikasi web bernama 'E-Pupuk'. Gaya: clean, teknis, kotak-kotak dengan panah vertikal dan horizontal menghubungkan antar layer dan komponen, palet warna hijau-abu profesional. Layer dari atas ke bawah: (1) 'Pengguna Sistem' berisi empat ikon aktor — Petani (upload KTP & foto lahan), PPL (survei lapangan), Admin (verifikasi berkas & penugasan PPL), Pimpinan; (2) 'Frontend - React.js' berisi enam modul: Login, Dashboard Petani (upload KTP/lahan + map picker), Dashboard Admin (verifikasi berkas + penugasan PPL + approval akhir), Dashboard PPL (tugas survei + form laporan), QR Scanner, Status Pengajuan; (3) 'Backend - FastAPI' berisi delapan modul dalam grid: Authentication/JWT, File Storage Service, Admin Verification Service, PPL Assignment Dispatcher, Field Survey Service, Quota Engine, QR Validation & Stockpiling, Distribution Management; (4) tiga kotak sejajar di bawah backend: 'MySQL Database' (daftar tabel: users, farmers, lands, applications, field_surveys, distributions), 'File Storage' (berisi ikon folder: /uploads/ktp, /uploads/lahan, /uploads/survei), dan 'External API' (Weather API, Map API, Open Data). Hubungkan tiap layer dengan panah berlabel, tambahkan panah horizontal dari Backend ke File Storage berlabel 'Akses Aman via Proxy' dan dari Backend ke External API berlabel 'Server-side Call'."
+"Buatkan diagram arsitektur sistem berlapis (layered architecture diagram) untuk aplikasi web bernama 'E-Pupuk'. Gaya: clean, teknis, kotak-kotak dengan panah vertikal dan horizontal menghubungkan antar layer dan komponen, palet warna hijau-abu profesional. Layer dari atas ke bawah: (1) 'Pengguna Sistem' berisi tiga ikon aktor — Petani (upload KTP & foto lahan), PPL (survei lapangan), Admin (verifikasi berkas & penugasan PPL); (2) 'Frontend - React.js' berisi enam modul: Login, Dashboard Petani (upload KTP/lahan + map picker), Dashboard Admin (verifikasi berkas + penugasan PPL + approval akhir), Dashboard PPL (tugas survei + form laporan), QR Scanner, Status Pengajuan; (3) 'Backend - FastAPI' berisi delapan modul dalam grid: Authentication/JWT, File Storage Service, Admin Verification Service, PPL Assignment Dispatcher, Field Survey Service, Quota Engine, QR Validation & Stockpiling, Distribution Management; (4) tiga kotak sejajar di bawah backend: 'MySQL Database' (daftar tabel: users, farmers, lands, applications, field_surveys, distributions), 'File Storage' (berisi ikon folder: /uploads/ktp, /uploads/lahan, /uploads/survei), dan 'External API' (Weather API, Map API, Open Data). Hubungkan tiap layer dengan panah berlabel, tambahkan panah horizontal dari Backend ke File Storage berlabel 'Akses Aman via Proxy' dan dari Backend ke External API berlabel 'Server-side Call'."
 
 **Prompt Diagram Alur Verifikasi Bertahap:**
 "Buatkan flowchart horizontal berwarna hijau-abu untuk alur verifikasi pengajuan subsidi pupuk E-Pupuk dengan 5 tahap utama: (1) PETANI: isi form + upload KTP + upload foto lahan + isi alamat + pin koordinat GPS + tanggal → klik Ajukan; (2) ADMIN: review KTP + foto lahan + alamat + koordinat → 3 cabang: Berkas Valid → lanjut, Perlu Perbaikan → balik ke petani, Tolak Berkas → selesai; (3) ADMIN → PPL: tugaskan PPL wilayah (sistem auto-suggest PPL), isi batas waktu dan instruksi; (4) PPL: kunjungi lahan fisik, isi form laporan (kondisi lahan, kondisi bahan/tanaman, luas aktual, upload foto bukti min. 2 foto) → kirim rekomendasi Setuju/Tolak; (5) ADMIN: review laporan PPL → Setujui (atur volume akhir) → jadwalkan distribusi → QR scan serah terima → Tersalurkan, atau Tolak Lapangan → selesai. Gunakan warna hijau untuk jalur sukses, kuning untuk percabangan, merah untuk penolakan, dan abu-abu untuk koneksi antar aktor."

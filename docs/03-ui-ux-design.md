@@ -5,7 +5,7 @@
 - **Jelas dan sederhana** — istilah yang dipakai familiar bagi petani dan PPL, hindari jargon teknis.
 - **Transparan** — status pengajuan/distribusi selalu terlihat (progress step 6-tahap, bukan tersembunyi).
 - **Mobile-first untuk peran lapangan** — Petani dan PPL banyak mengakses dari HP, terutama saat upload foto, isi form survei, dan scan QR.
-- **Data-dense namun rapi untuk Admin/Pimpinan** — dashboard boleh padat informasi tapi tetap terstruktur (KPI di atas, detail di bawah).
+- **Data-dense namun rapi untuk Admin** — dashboard boleh padat informasi tapi tetap terstruktur (KPI di atas, detail di bawah).
 - **Kepercayaan dan keamanan visual** — Area yang menampilkan foto KTP dan data NIK diberi indikator visual "data sensitif" yang jelas serta pesan hak akses yang ditampilkan.
 
 ## 2. Design System
@@ -31,7 +31,7 @@ Ikon outline konsisten (mis. set Lucide/Heroicons) untuk navigasi, status, dan a
 
 ## 3. Global Components
 - **Navbar** — logo, nama sistem, profil/notifikasi.
-- **Sidebar** — menu navigasi sesuai peran (berbeda untuk Petani/PPL/Admin/Pimpinan).
+- **Sidebar** — menu navigasi sesuai peran (berbeda untuk Petani/PPL/Admin).
 - **Button** — primary, secondary, outline, danger.
 - **Card** — kontainer untuk ringkasan info (kuota, KPI, item pengajuan, detail survei).
 - **Badge** — status (Diajukan, Verifikasi Berkas, Perlu Perbaikan, Ditugaskan PPL, Survei Lapangan, Disetujui, Tersalurkan, Ditolak, Expired, dsb).
@@ -50,7 +50,6 @@ Ikon outline konsisten (mis. set Lucide/Heroicons) untuk navigasi, status, dan a
 Petani   : Dashboard → Lahan & Profil → Pengajuan Subsidi → Scan QR → Riwayat
 PPL      : Dashboard → Tugas Survei Lapangan → Riwayat Survei → Scan QR
 Admin    : Dashboard → Verifikasi Berkas → Penugasan PPL → Data Master → Distribusi → Monitoring QR → Laporan
-Pimpinan : Dashboard → Peta Distribusi → Grafik/KPI → Laporan
 ```
 
 ## 5. Dashboard User (Petani)
@@ -230,15 +229,10 @@ KPI ringkas (jumlah RDKK, realisasi, pengajuan masuk, menunggu verifikasi berkas
 └───────────────────────────────────────────────┘
 ```
 
-## 8. Dashboard Pimpinan
-
-### 8.1–8.5
-KPI strategis (realisasi vs target, jumlah petani terlayani, persentase verifikasi berkas selesai, jumlah survei PPL selesai), grafik tren pengajuan/distribusi per periode, peta sebaran distribusi kabupaten, panel data cuaca (konteks musim tanam), dan ringkasan analisis/insight otomatis.
-
-## 9. User Flow
+## 8. User Flow
 Login → (sesuai peran) landing dashboard → aksi utama peran tersebut → konfirmasi/hasil → notifikasi. Untuk Petani: alur linear pengajuan (beserta upload berkas wajib) → verifikasi berkas Admin → penugasan PPL → survei lapangan → persetujuan → distribusi → scan QR yang selalu terlihat sebagai progress 6-tahap agar petani tahu posisi pengajuannya.
 
-## 10. Responsive Design
+## 9. Responsive Design
 
 | Breakpoint | Perilaku |
 |---|---|
@@ -246,7 +240,7 @@ Login → (sesuai peran) landing dashboard → aksi utama peran tersebut → kon
 | Tablet | Sidebar collapsible, tabel scroll horizontal, panel verifikasi berkas satu kolom bertumpuk |
 | Mobile | Sidebar jadi bottom nav/hamburger, card bertumpuk vertikal, form upload foto full-screen, scan QR full-screen, map picker full-screen |
 
-## 11. Mockup Specification & Prompt Google Stitch
+## 10. Mockup Specification & Prompt Google Stitch
 Untuk membuat mockup visual awal (Google Stitch atau tools sejenis), gunakan prompt berikut per layar — sesuaikan warna/gaya sesuai palet di §2.2.
 
 **Prompt — Dashboard Petani:**
@@ -257,6 +251,3 @@ Untuk membuat mockup visual awal (Google Stitch atau tools sejenis), gunakan pro
 
 **Prompt — Dashboard Admin:**
 "Desain UI web dashboard admin untuk sistem distribusi pupuk subsidi. Layout: baris atas berisi 7 kartu KPI (Total RDKK, Realisasi, Pengajuan Masuk, Menunggu Verifikasi Berkas, Menunggu Penugasan PPL, Total Scan QR, Jumlah Alert); di bawahnya layout dua kolom — kiri peta distribusi, kanan panel informasi cuaca dan alert; di bawahnya sistem tab dengan tiga tab: 'Verifikasi Berkas' (tampilan dua panel: kiri preview foto KTP dan foto lahan, kanan data petani dan lahan dengan tombol aksi Berkas Valid/Perlu Perbaikan/Tolak), 'Penugasan PPL' (form disposisi tugas survei ke PPL wilayah), dan 'Distribusi' (tabel data pengajuan yang sudah disetujui)."
-
-**Prompt — Dashboard Pimpinan:**
-"Desain UI web dashboard eksekutif untuk pimpinan dinas pertanian. Gaya profesional, banyak white space, data visualization-forward. Tampilkan: kartu KPI besar di atas (realisasi vs target dalam persen, jumlah petani terlayani, persentase survei PPL selesai); grafik garis/batang tren distribusi pupuk per bulan; peta sebaran distribusi kabupaten dalam ukuran besar; panel kecil data cuaca terkini; ringkasan analisis/insight dalam bentuk poin singkat di bagian bawah."

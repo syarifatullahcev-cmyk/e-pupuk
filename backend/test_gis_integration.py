@@ -41,6 +41,10 @@ def run_gis_tests():
         "keterangan_tanaman": "Padi Inpari",
         "luas_lahan_aktual_m2": 5000.0,
         "rekomendasi": "SETUJU",
+        "foto_survei_urls": [
+            "/files/survei/sample_survey.jpg",
+            "/files/survei/sample_boundary.jpg",
+        ],
         "polygon_coords": [[-7.526210, 112.534015], [-7.526180, 112.534820]] # Hanya 2 titik!
     }
     try:
@@ -70,6 +74,10 @@ def run_gis_tests():
         "luas_lahan_aktual_m2": 8215.15,
         "catatan_ppl": "Pengukuran poligon WGS84 selesai dilakukan secara tertutup.",
         "rekomendasi": "SETUJU",
+        "foto_survei_urls": [
+            "/files/survei/sample_survey.jpg",
+            "/files/survei/sample_boundary.jpg",
+        ],
         "polygon_coords": valid_coords
     }
 
