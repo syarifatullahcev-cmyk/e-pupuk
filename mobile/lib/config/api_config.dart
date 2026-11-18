@@ -12,6 +12,10 @@ class ApiConfig {
       return customBaseUrl;
     }
     if (kIsWeb) {
+      final host = Uri.base.host;
+      if (host.isNotEmpty && host != 'localhost' && host != '127.0.0.1') {
+        return 'http://$host:8000/api';
+      }
       return 'http://127.0.0.1:8000/api';
     }
     switch (defaultTargetPlatform) {
