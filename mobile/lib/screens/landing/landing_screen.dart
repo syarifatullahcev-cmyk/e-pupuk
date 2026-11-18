@@ -95,34 +95,40 @@ class _LandingScreenState extends State<LandingScreen> {
       backgroundColor: Colors.white,
       elevation: 0.5,
       surfaceTintColor: Colors.transparent,
-      titleSpacing: 16,
-      toolbarHeight: 68,
+      titleSpacing: 10,
+      toolbarHeight: 64,
       title: Row(
         children: [
-          const AppLogo(size: 38),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Text(
-                'E-PUPUK',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: -0.5,
+          const AppLogo(size: 34, borderRadius: 9),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Text(
+                  'E-PUPUK',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF0F172A),
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
-              Text(
-                'Kabupaten Mojokerto',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF64748B),
+                Text(
+                  'Kab. Mojokerto',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF64748B),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -136,20 +142,21 @@ class _LandingScreenState extends State<LandingScreen> {
             );
           },
           style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            minimumSize: const Size(48, 36),
           ),
           child: const Text(
             'Masuk',
             style: TextStyle(
               color: Color(0xFF334155),
               fontWeight: FontWeight.w700,
-              fontSize: 13,
+              fontSize: 12.5,
             ),
           ),
         ),
         // Tombol Daftar Petani
         Padding(
-          padding: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.only(right: 4),
           child: ElevatedButton(
             onPressed: () {
               Navigator.push(
@@ -161,15 +168,16 @@ class _LandingScreenState extends State<LandingScreen> {
               backgroundColor: AppTheme.primaryGreen,
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: const Size(40, 32),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
             child: const Text(
               'Daftar',
               style: TextStyle(
-                fontSize: 12.5,
+                fontSize: 11.5,
                 fontWeight: FontWeight.w700,
               ),
             ),
