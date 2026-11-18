@@ -73,16 +73,21 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: Navigator.canPop(context)
-          ? AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
-                onPressed: () => Navigator.pop(context),
-              ),
-            )
-          : null,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textPrimary),
+          tooltip: 'Kembali ke Halaman Utama',
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacementNamed(context, '/');
+            }
+          },
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -95,22 +100,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Logo / Ikon Pertanian
-                    Center(
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: AppTheme.lightGreen,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF86EFAC), width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.eco_rounded,
-                          size: 40,
-                          color: AppTheme.primaryGreen,
-                        ),
-                      ),
+                    // Logo Resmi E-Pupuk Sprout
+                    const Center(
+                      child: AppLogo(size: 76, borderRadius: 22),
                     ),
                     const SizedBox(height: 16),
 

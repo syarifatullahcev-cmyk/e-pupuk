@@ -3,6 +3,7 @@ import '../../config/theme.dart';
 import '../../models/ppl_task_model.dart';
 import '../../models/user_model.dart';
 import '../../services/ppl_service.dart';
+import '../../widgets/app_logo.dart';
 import '../../widgets/ppl_notifications_button.dart';
 import 'ppl_detail_tugas_screen.dart';
 
@@ -57,15 +58,7 @@ class _PPLAktivitasScreenState extends State<PPLAktivitasScreen> {
         titleSpacing: 16,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppTheme.lightGreen,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.history,
-                  color: AppTheme.primaryGreen, size: 20),
-            ),
+            const AppLogo(size: 36, borderRadius: 10),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

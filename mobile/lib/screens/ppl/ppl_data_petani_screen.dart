@@ -3,6 +3,7 @@ import '../../config/theme.dart';
 import '../../models/farmer_model.dart';
 import '../../models/user_model.dart';
 import '../../services/ppl_service.dart';
+import '../../widgets/app_logo.dart';
 import '../../widgets/ppl_notifications_button.dart';
 import 'ppl_detail_petani_screen.dart';
 
@@ -121,19 +122,7 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
       children: [
         Row(
           children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppTheme.lightGreen,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.eco,
-                color: AppTheme.primaryGreen,
-                size: 22,
-              ),
-            ),
+            const AppLogo(size: 36, borderRadius: 10),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

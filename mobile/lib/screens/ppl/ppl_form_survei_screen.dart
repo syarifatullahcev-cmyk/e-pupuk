@@ -364,22 +364,19 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Row(
-                    children: const [
-                      Icon(Icons.arrow_back,
-                          size: 14, color: AppTheme.textSecondary),
-                      SizedBox(width: 4),
-                      Text(
-                        'Detail Tugas Survei',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.textSecondary,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
+                Row(
+                  children: const [
+                    Icon(Icons.assignment_turned_in_outlined,
+                        size: 14, color: AppTheme.primaryGreen),
+                    SizedBox(width: 4),
+                    Text(
+                      'Formulir Verifikasi Lapangan',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.textSecondary,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ],
                 ),
                 Container(
                   padding:

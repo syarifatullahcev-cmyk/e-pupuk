@@ -582,76 +582,34 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
       titleSpacing: 16,
       title: Row(
         children: [
-          // Logo Hijau Sprout Rounded Square
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: primaryGreen,
-              borderRadius: BorderRadius.circular(11),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryGreen.withValues(alpha: 0.25),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: const Center(
-              child: Icon(Icons.eco_rounded, color: Colors.white, size: 22),
-            ),
-          ),
+          // Logo Resmi E-Pupuk Sprout
+          const AppLogo(size: 36, borderRadius: 10),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Row(
-                  children: [
-                    const Text(
-                      'E-PUPUK',
-                      style: TextStyle(
-                        color: textDark,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14.5,
-                        letterSpacing: 0.4,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(5),
-                          border: Border.all(
-                              color: const Color(0xFF86EFAC), width: 0.8),
-                        ),
-                        child: const Text(
-                          'KAB. MOJOKERTO',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Color(0xFF166534),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 8.5,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 1.5),
-                const Text(
-                  'Sistem Subsidi & Distribusi Pupuk',
+              children: const [
+                Text(
+                  'E-PUPUK • KAB. MOJOKERTO',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Color(0xFF64748B),
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.8,
+                    color: Color(0xFF065F46),
+                  ),
+                ),
+                SizedBox(height: 1),
+                Text(
+                  'Beranda',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: textDark,
                   ),
                 ),
               ],
@@ -1952,46 +1910,55 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF00875A),
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'Ur',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF00875A),
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Ur',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'UREA BERSUBSIDI',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 12.5,
-                                  color: textDark),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'UREA BERSUBSIDI',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 12.5,
+                                      color: textDark),
+                                ),
+                                SizedBox(height: 1),
+                                Text(
+                                  'Pupuk Tunggal Nitrogen',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: Color(0xFF64748B), fontSize: 10),
+                                ),
+                              ],
                             ),
-                            SizedBox(height: 1),
-                            Text(
-                              'Pupuk Tunggal Nitrogen',
-                              style: TextStyle(
-                                  color: Color(0xFF64748B), fontSize: 10),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
@@ -2002,7 +1969,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                             color: const Color(0xFF86EFAC), width: 0.8),
                       ),
                       child: const Text(
-                        'Alokasi Musim Tanam',
+                        'Musim Tanam',
                         style: TextStyle(
                             color: Color(0xFF166534),
                             fontSize: 9.5,
@@ -2119,46 +2086,55 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2563EB),
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'NPK',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11.5),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2563EB),
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'NPK',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11.5),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'NPK PHONSKA',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 12.5,
-                                  color: textDark),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'NPK PHONSKA',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 12.5,
+                                      color: textDark),
+                                ),
+                                SizedBox(height: 1),
+                                Text(
+                                  'Pupuk Majemuk N-P-K',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: Color(0xFF64748B), fontSize: 10),
+                                ),
+                              ],
                             ),
-                            SizedBox(height: 1),
-                            Text(
-                              'Pupuk Majemuk N-P-K',
-                              style: TextStyle(
-                                  color: Color(0xFF64748B), fontSize: 10),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
@@ -2169,7 +2145,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                             color: const Color(0xFF93C5FD), width: 0.8),
                       ),
                       child: const Text(
-                        'Alokasi Musim Tanam',
+                        'Musim Tanam',
                         style: TextStyle(
                             color: Color(0xFF1E40AF),
                             fontSize: 9.5,

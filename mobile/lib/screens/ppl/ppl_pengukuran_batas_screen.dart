@@ -529,22 +529,19 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Breadcrumb Navigasi
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Row(
-                children: [
-                  const Icon(Icons.arrow_back,
-                      size: 14, color: AppTheme.textSecondary),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Peta & Lokasi Lahan (${_task.taskIdCode})',
-                    style: const TextStyle(
-                        fontSize: 11,
-                        color: AppTheme.textSecondary,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
+            Row(
+              children: [
+                const Icon(Icons.square_foot_outlined,
+                    size: 14, color: AppTheme.primaryGreen),
+                const SizedBox(width: 4),
+                Text(
+                  'Pengukuran Batas Spasial (${_task.taskIdCode})',
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
 
