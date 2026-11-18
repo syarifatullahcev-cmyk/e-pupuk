@@ -20,6 +20,7 @@ dependencies:
   geolocator: ^14.1.2
   mobile_scanner: ^6.0.7
   image_picker: ^1.2.4
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

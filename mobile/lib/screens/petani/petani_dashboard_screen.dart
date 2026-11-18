@@ -579,41 +579,35 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
         preferredSize: const Size.fromHeight(1),
         child: Container(color: const Color(0xFFF1F5F9), height: 1),
       ),
-      titleSpacing: 16,
+      titleSpacing: 12,
       title: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Logo Resmi E-Pupuk Sprout
           const AppLogo(size: 36, borderRadius: 10),
           const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Text(
-                  'E-PUPUK • KAB. MOJOKERTO',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
-                    color: Color(0xFF065F46),
-                  ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Text(
+                'E-PUPUK • KAB. MOJOKERTO',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                  color: Color(0xFF065F46),
                 ),
-                SizedBox(height: 1),
-                Text(
-                  'Beranda',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: textDark,
-                  ),
+              ),
+              Text(
+                'Beranda',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: textDark,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -657,35 +651,36 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
             ),
           ],
         ),
-        // Avatar Circle "(B)" persis Screenshot
-        Container(
-          width: 32,
-          height: 32,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFFDCFCE7),
-            shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFF86EFAC), width: 1),
-          ),
-          child: Center(
-            child: Text(
-              initialLetter,
-              style: const TextStyle(
-                color: Color(0xFF166534),
-                fontWeight: FontWeight.w900,
-                fontSize: 13,
+        // Avatar Circle "(B)" - ketuk untuk buka profil Akun persis PPL
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _bottomNavIndex = 4;
+              _activeNav = 1;
+            });
+          },
+          child: Container(
+            width: 34,
+            height: 34,
+            margin: const EdgeInsets.symmetric(horizontal: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDCFCE7),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF86EFAC), width: 1),
+            ),
+            child: Center(
+              child: Text(
+                initialLetter,
+                style: const TextStyle(
+                  color: Color(0xFF166534),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
         ),
-        // Logout Icon
-        IconButton(
-          icon: const Icon(Icons.logout_rounded,
-              color: Color(0xFF94A3B8), size: 20),
-          onPressed: _handleLogout,
-          tooltip: 'Keluar',
-        ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
       ],
     );
   }

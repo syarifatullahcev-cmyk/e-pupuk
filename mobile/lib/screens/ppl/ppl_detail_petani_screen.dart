@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/theme.dart';
 import '../../models/farmer_model.dart';
 import '../../models/ppl_task_model.dart';
@@ -628,6 +630,7 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
             statusColor: _farmer.fotoKtpUrl?.isNotEmpty == true
                 ? AppTheme.primaryGreen
                 : AppTheme.textMuted,
+            onViewDoc: _showKtpModal,
           ),
           if (landDocuments.isEmpty) ...[
             const Divider(height: 16, color: AppTheme.border),
@@ -648,6 +651,7 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
                     statusColor: AppTheme.primaryGreen,
                     note:
                         'Dokumen administratif tidak otomatis membuktikan batas GPS atau menghasilkan poligon.',
+                    onViewDoc: () => _showLandDocModal(land),
                   ),
                 ],
               ),
@@ -665,6 +669,7 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
     required String status,
     required Color statusColor,
     String? note,
+    VoidCallback? onViewDoc,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -725,11 +730,12 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
             ),
             const SizedBox(width: 8),
             TextButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Membuka arsip $title')),
-                );
-              },
+              onPressed: onViewDoc ??
+                  () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Membuka arsip $title')),
+                    );
+                  },
               child: const Text('Lihat Dokumen',
                   style: TextStyle(
                       fontSize: 11.5,
@@ -754,6 +760,455 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
           ),
         ],
       ],
+    );
+  }
+
+  void _showKtpModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.lightGreen,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.badge_outlined,
+                            color: AppTheme.primaryGreen, size: 22),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Arsip KTP Elektronik Petani',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            'Data kependudukan terverifikasi Dukcapil',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppTheme.textMuted),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(height: 24, color: AppTheme.border),
+              // Kartu e-KTP Digital
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0284C7), Color(0xFF0369A1)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x220284C7),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'REPUBLIK INDONESIA',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    const Text(
+                      'PROVINSI JAWA TIMUR • KABUPATEN MOJOKERTO',
+                      style: TextStyle(
+                        color: Color(0xFFBAE6FD),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 9.5,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(height: 1, color: Colors.white24),
+                    const SizedBox(height: 10),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _ktpRow('NIK', _farmer.nik,
+                                  isMono: true, isBold: true),
+                              const SizedBox(height: 4),
+                              _ktpRow('Nama', _farmer.nama.toUpperCase(),
+                                  isBold: true),
+                              const SizedBox(height: 4),
+                              _ktpRow('Alamat', _farmer.alamat),
+                              const SizedBox(height: 4),
+                              _ktpRow(
+                                  'Kel/Desa', _farmer.desa ?? 'Mojokerto'),
+                              const SizedBox(height: 4),
+                              _ktpRow('Kecamatan',
+                                  _farmer.kecamatan ?? 'Mojokerto'),
+                              const SizedBox(height: 4),
+                              _ktpRow('Poktan', _farmer.poktan),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          children: [
+                            Container(
+                              width: 64,
+                              height: 84,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDC2626),
+                                borderRadius: BorderRadius.circular(6),
+                                border:
+                                    Border.all(color: Colors.white, width: 1.5),
+                              ),
+                              child: const Icon(Icons.person,
+                                  color: Colors.white, size: 48),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'VERIFIED',
+                              style: TextStyle(
+                                color: Color(0xFF86EFAC),
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              // Status Badge
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppTheme.lightGreen,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF86EFAC)),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.check_circle,
+                        color: AppTheme.primaryGreen, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Status Berkas: Terverifikasi resmi Dinas Pertanian Kab. Mojokerto',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.darkGreen,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Tutup Pratinjau',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _ktpRow(String label, String value,
+      {bool isMono = false, bool isBold = false}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 60,
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFFE0F2FE),
+            ),
+          ),
+        ),
+        const Text(': ',
+            style: TextStyle(fontSize: 10, color: Color(0xFFE0F2FE))),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+              fontFamily: isMono ? 'monospace' : null,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showLandDocModal(LandModel land) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.lightGreen,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.description_outlined,
+                            color: AppTheme.primaryGreen, size: 22),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Arsip Dokumen Lahan Petani',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            'Surat Kepemilikan Lahan / SPPT PBB Terdaftar',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppTheme.textMuted),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(height: 24, color: AppTheme.border),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'SURAT BUKTI KEPEMILIKAN / PENGUASAAN LAHAN',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.darkGreen,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _landDocRow('Pemilik Lahan', _farmer.nama),
+                    _landDocRow('Lokasi Lahan', land.lokasiDeskripsi),
+                    _landDocRow('Luas Tercatat',
+                        '${(land.luasM2 / 10000).toStringAsFixed(2)} Ha (${land.luasM2.toStringAsFixed(0)} m²)'),
+                    _landDocRow('Komoditas',
+                        land.namaKomoditas ?? 'Padi Sawah / Jagung'),
+                    _landDocRow('Nomor SPPT/NOP',
+                        '35.16.${_farmer.id.toString().padLeft(3, '0')}.${land.id.toString().padLeft(4, '0')}'),
+                    _landDocRow(
+                        'Status Arsip', 'Tercatat di SIMLUHTAN Disperta'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppTheme.warningBg.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.info_outline,
+                        color: AppTheme.warningOrange, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Catatan: Bukti administratif memerlukan verifikasi fisik patok batas GPS pada tahap survei lapangan.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.warningOrange,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'Tutup Pratinjau',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _landDocRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 105,
+            child: Text(
+              label,
+              style: const TextStyle(
+                  fontSize: 11.5, color: AppTheme.textSecondary),
+            ),
+          ),
+          const Text(': ',
+              style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary)),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1007,13 +1462,7 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
           width: double.infinity,
           height: 44,
           child: TextButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text(
-                        'Menghubungi ${_farmer.nama} (${_farmer.kontak}) via WhatsApp...')),
-              );
-            },
+            onPressed: _hubungiPetaniWhatsApp,
             icon: const Icon(Icons.chat_outlined,
                 color: AppTheme.primaryGreen, size: 18),
             label: const Text(
@@ -1032,5 +1481,53 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _hubungiPetaniWhatsApp() async {
+    final rawPhone = _farmer.kontak.replaceAll(RegExp(r'[^0-9]'), '');
+    if (rawPhone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nomor telepon petani tidak tersedia.')),
+      );
+      return;
+    }
+
+    final phone = rawPhone.startsWith('0')
+        ? '62${rawPhone.substring(1)}'
+        : (rawPhone.startsWith('62') ? rawPhone : '62$rawPhone');
+
+    final message =
+        'Halo Bapak/Ibu ${_farmer.nama}, saya Petugas PPL Dinas Pertanian Kabupaten Mojokerto mengenai jadwal verifikasi lapangan dan alokasi pupuk bersubsidi.';
+    final whatsappUri = Uri.parse(
+        'https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+
+    try {
+      final launched = await launchUrl(
+        whatsappUri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        await launchUrl(whatsappUri, mode: LaunchMode.platformDefault);
+      }
+    } catch (_) {
+      try {
+        await launchUrl(whatsappUri, mode: LaunchMode.platformDefault);
+      } catch (err) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Gagal membuka WhatsApp. Salin nomor kontak: ${_farmer.kontak}'),
+              action: SnackBarAction(
+                label: 'Salin',
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: _farmer.kontak));
+                },
+              ),
+            ),
+          );
+        }
+      }
+    }
   }
 }
