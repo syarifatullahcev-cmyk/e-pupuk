@@ -134,7 +134,7 @@ class SubsidyService {
         Uri.parse(ApiConfig.landDetailUrl(landId)),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': '******',
+          'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
           'foto_lahan_url': fotoLahanUrl,

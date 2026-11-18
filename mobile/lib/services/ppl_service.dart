@@ -20,7 +20,7 @@ class PPLService {
 
     final response = await http.get(
       Uri.parse(ApiConfig.notificationsUrl),
-      headers: {'Authorization': '******'},
+      headers: {'Authorization': 'Bearer $token'},
     ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode != 200) {
@@ -43,7 +43,7 @@ class PPLService {
 
     final response = await http.put(
       Uri.parse(ApiConfig.notificationReadUrl(id)),
-      headers: {'Authorization': '******'},
+      headers: {'Authorization': 'Bearer $token'},
     ).timeout(const Duration(seconds: 10));
 
     if (response.statusCode != 200) {
