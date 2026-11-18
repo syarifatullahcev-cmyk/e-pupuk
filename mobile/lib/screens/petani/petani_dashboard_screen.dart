@@ -555,9 +555,10 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
     if (confirm == true) {
       await AuthService.logout();
       if (mounted) {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
         );
       }
     }
@@ -572,6 +573,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
         displayName.isNotEmpty ? displayName[0].toUpperCase() : 'B';
 
     return AppBar(
+      automaticallyImplyLeading: false,
       backgroundColor: Colors.white,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -579,9 +581,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
         preferredSize: const Size.fromHeight(1),
         child: Container(color: const Color(0xFFF1F5F9), height: 1),
       ),
-      titleSpacing: 12,
+      titleSpacing: 16,
       title: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           // Logo Resmi E-Pupuk Sprout
           const AppLogo(size: 36, borderRadius: 10),
@@ -3124,6 +3125,33 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           value: farmerAlamat,
           icon: Icons.location_on_outlined,
         ),
+        const SizedBox(height: 24),
+        // Tombol Keluar dari Akun (Persis seperti PPL)
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton.icon(
+            onPressed: _handleLogout,
+            icon: const Icon(Icons.logout_rounded,
+                color: Colors.white, size: 18),
+            label: const Text(
+              'Keluar dari Akun',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
       ],
     );
   }

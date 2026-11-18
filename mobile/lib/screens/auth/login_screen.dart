@@ -45,18 +45,20 @@ class _LoginScreenState extends State<LoginScreen> {
     if (result['success']) {
       final user = result['user'];
       if (user.role == 'PPL') {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
             builder: (context) => PPLDashboardScreen(user: user),
           ),
+          (route) => false,
         );
       } else {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
             builder: (context) => PetaniDashboardScreen(user: user),
           ),
+          (route) => false,
         );
       }
     } else {
