@@ -795,7 +795,10 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildSectionHeaderNumber(2, 'Koordinat & Lokasi Lapangan'),
+              Expanded(
+                child: _buildSectionHeaderNumber(2, 'Koordinat & Lokasi Lapangan'),
+              ),
+              const SizedBox(width: 8),
               const Text(
                 'Standby Lapangan',
                 style: TextStyle(
@@ -885,18 +888,22 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
                     const Icon(Icons.gps_fixed,
                         size: 16, color: AppTheme.primaryGreen),
                     const SizedBox(width: 6),
-                    const Text(
-                      'Koordinat Faktual Petugas PPL',
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary),
+                    const Expanded(
+                      child: Text(
+                        'Koordinat Faktual Petugas PPL',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary),
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     Text(
                       _isGpsRecorded
                           ? 'Telah direkam'
-                          : 'Koordinat belum direkam',
+                          : 'Belum direkam',
                       style: TextStyle(
                           fontSize: 10,
                           color: _isGpsRecorded
@@ -1044,7 +1051,10 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildSectionHeaderNumber(3, 'Dokumentasi Foto Lapangan'),
+              Expanded(
+                child: _buildSectionHeaderNumber(3, 'Dokumentasi Foto Lapangan'),
+              ),
+              const SizedBox(width: 8),
               Text(
                 '$countTaken/5 Terisi',
                 style: const TextStyle(
@@ -1414,12 +1424,16 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary),
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary),
+          ),
         ),
       ],
     );

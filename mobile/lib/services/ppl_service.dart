@@ -69,7 +69,7 @@ class PPLService {
             Uri.parse(ApiConfig.pplTasksUrl),
             headers: headers,
           )
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) {
         throw Exception(
@@ -110,7 +110,7 @@ class PPLService {
             Uri.parse(url),
             headers: headers,
           )
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) {
         throw Exception(
@@ -174,7 +174,7 @@ class PPLService {
             Uri.parse(ApiConfig.farmerDetailUrl(id)),
             headers: headers,
           )
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) {
         throw Exception(
@@ -219,7 +219,7 @@ class PPLService {
             Uri.parse(url),
             headers: headers,
           )
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode != 200) {
         throw Exception(
@@ -252,7 +252,7 @@ class PPLService {
             Uri.parse(ApiConfig.pplStartSurveyUrl(applicationId)),
             headers: headers,
           )
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 15));
       return response.statusCode == 200;
     } catch (e) {
       return false;
@@ -314,7 +314,7 @@ class PPLService {
             headers: headers,
             body: jsonEncode(bodyData),
           )
-          .timeout(const Duration(seconds: 6));
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);

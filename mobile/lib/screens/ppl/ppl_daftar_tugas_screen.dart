@@ -469,12 +469,16 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
               const Icon(Icons.grass_outlined,
                   size: 16, color: AppTheme.primaryGreen),
               const SizedBox(width: 6),
-              Text(
-                'Komoditas: ${task.komoditas}',
-                style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textSecondary),
+              Expanded(
+                child: Text(
+                  'Komoditas: ${task.komoditas}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 12, color: AppTheme.textSecondary),
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Text(
                 'Jadwal: ${task.jadwal}',
                 style: const TextStyle(

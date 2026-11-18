@@ -103,23 +103,30 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.arrow_back,
-                          size: 14, color: AppTheme.textSecondary),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Detail Tugas Survei (${_task.taskIdCode})',
-                        style: const TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.textSecondary,
-                            fontWeight: FontWeight.w600),
-                      ),
-                    ],
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.arrow_back,
+                            size: 14, color: AppTheme.textSecondary),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Detail Tugas Survei (${_task.taskIdCode})',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.textSecondary,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -434,20 +441,27 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: const [
-                    Icon(Icons.satellite_alt,
-                        size: 16, color: AppTheme.primaryGreen),
-                    SizedBox(width: 6),
-                    Text(
-                      'Citra Satelit • Persawahan Mojokerto',
-                      style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary),
-                    ),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: const [
+                      Icon(Icons.satellite_alt,
+                          size: 16, color: AppTheme.primaryGreen),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Citra Satelit • Persawahan Mojokerto',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () =>
                       setState(() => _isSatelliteLayer = !_isSatelliteLayer),

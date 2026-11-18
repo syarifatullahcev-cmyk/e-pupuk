@@ -3656,23 +3656,30 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Daftar Lahan Pertanian (${_lands.length})',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14.5,
-                      color: textDark),
-                ),
-                const SizedBox(height: 1),
-                const Text(
-                  'Data petak sawah terdaftar & status verifikasi PPL',
-                  style: TextStyle(color: Color(0xFF64748B), fontSize: 10.5),
-                ),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Daftar Lahan Pertanian (${_lands.length})',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14.5,
+                        color: textDark),
+                  ),
+                  const SizedBox(height: 1),
+                  const Text(
+                    'Data petak sawah terdaftar & status verifikasi PPL',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Color(0xFF64748B), fontSize: 10.5),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(width: 8),
             ElevatedButton.icon(
               icon: const Icon(Icons.add_location_alt_rounded,
                   size: 15, color: Colors.white),
@@ -3686,7 +3693,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
               onPressed: _showAddLandDialog,
             ),
@@ -4894,34 +4901,42 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFDCFCE7),
-                                borderRadius: BorderRadius.circular(10),
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDCFCE7),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.add_location_alt_rounded,
+                                    color: primaryGreen, size: 20),
                               ),
-                              child: const Icon(Icons.add_location_alt_rounded,
-                                  color: primaryGreen, size: 20),
-                            ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text('Tambah Lahan Pertanian',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                        color: textDark)),
-                                Text(
-                                    'Pendaftaran petak sawah untuk kuota subsidi pupuk',
-                                    style: TextStyle(
-                                        color: Color(0xFF64748B),
-                                        fontSize: 10.5)),
-                              ],
-                            ),
-                          ],
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text('Tambah Lahan Pertanian',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            color: textDark)),
+                                    Text(
+                                        'Pendaftaran petak sawah untuk kuota subsidi pupuk',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            color: Color(0xFF64748B),
+                                            fontSize: 10.5)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         IconButton(
                           icon: const Icon(Icons.close_rounded,
