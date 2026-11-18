@@ -92,10 +92,12 @@ class _LandingScreenState extends State<LandingScreen> {
   // ==========================================
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
+      automaticallyImplyLeading: false,
+      centerTitle: false,
       backgroundColor: Colors.white,
       elevation: 0.5,
       surfaceTintColor: Colors.transparent,
-      titleSpacing: 10,
+      titleSpacing: 12,
       toolbarHeight: 64,
       title: Row(
         children: [
