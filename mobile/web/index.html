@@ -29,8 +29,58 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>epupuk_mobile</title>
+  <title>e-Pupuk Kabupaten Mojokerto</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Polyfill modern Intl.Segmenter untuk menggantikan deprecated Intl.v8BreakIterator di Chromium -->
+  <script>
+    try {
+      if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+        Object.defineProperty(Intl, 'v8BreakIterator', {
+          value: function(locales, options) {
+            var type = options && options.type ? options.type : 'word';
+            var granularity = type === 'sentence' ? 'sentence' : (type === 'character' ? 'grapheme' : 'word');
+            var segmenter = new Intl.Segmenter(locales, { granularity: granularity });
+            var text = '';
+            var segments = [];
+            var index = 0;
+            return {
+              adoptText: function(newText) {
+                text = newText || '';
+                segments = Array.from(segmenter.segment(text));
+                index = 0;
+              },
+              first: function() { index = 0; return 0; },
+              next: function() {
+                if (index < segments.length) {
+                  var seg = segments[index++];
+                  return seg.index + seg.segment.length;
+                }
+                return -1;
+              },
+              current: function() {
+                if (index === 0) return 0;
+                if (index <= segments.length) {
+                  var seg = segments[index - 1];
+                  return seg.index + seg.segment.length;
+                }
+                return text.length;
+              },
+              breakType: function() {
+                if (index > 0 && index <= segments.length) {
+                  return segments[index - 1].isWordLike ? 'word' : 'none';
+                }
+                return 'none';
+              }
+            };
+          },
+          configurable: true,
+          writable: true,
+          enumerable: false
+        });
+      }
+    } catch (e) {}
+  </script>
 </head>
 <body>
   <!--

@@ -260,6 +260,14 @@ static String get baseUrl {
 }
 ```
 
+### Penanganan Anomali Browser Console (Chromium Intl.v8BreakIterator & Session History)
+Saat menjalankan Flutter Web di Google Chrome (`localhost`), muncul dua pesan konsol:
+1. `Intl.v8BreakIterator is deprecated. Please use Intl.Segmenter instead.` (dari `dart_sdk.js`):
+   - **Akar Masalah**: Mesin perender teks tipografi Dart SDK memanggil API non-standar lawas Chromium `Intl.v8BreakIterator` yang mulai ditinggalkan Google Chrome demi standar ECMAScript `Intl.Segmenter`.
+   - **Solusi**: Diterapkan *Modern Polyfill* pada `mobile/web/index.html` menggunakan `Object.defineProperty(Intl, 'v8BreakIterator', ...)` berbasis `Intl.Segmenter`. Panggilan dari Dart SDK dialihkan secara bersih tanpa memicu peringatan *deprecated*.
+2. `Session History Item Has Been Marked Skippable`:
+   - **Klarifikasi**: Ini adalah fitur keamanan bawaan Google Chrome (*History Manipulation Intervention*, Chrome 72+). Saat aplikasi Single Page (SPA) seperti Flutter Web melakukan inisialisasi awal rute sebelum adanya gestur klik/sentuhan fisik dari pengguna, peramban menandai riwayat tersebut agar tombol *Back* peramban tidak menjebak pengguna di halaman kosong. Status ini otomatis hilang begitu pengguna berinteraksi dengan antarmuka.
+
 ---
 
 ## 5. INTEGRITAS JARINGAN, KEAMANAN TOKEN OTENTIKASI, & PERBAIKAN API SERVICE
@@ -334,6 +342,7 @@ PS D:\e pupuk\e-pupuk\mobile> flutter test
 | **6** | Panah AppBar Beranda Petani keluar dari akun | Nilai `automaticallyImplyLeading` tidak diset `false`, navigasi login memakai `pushReplacement` | Menyetel `automaticallyImplyLeading: false`, navigasi `pushAndRemoveUntil`, dan tombol logout di profil | **RESOLVED** |
 | **7** | Error HTTP 401 Unauthorized pada notifikasi | Nilai header otentikasi ter-masking string `'******'` | Mengembalikan header menjadi `{'Authorization': 'Bearer $token'}` | **RESOLVED** |
 | **8** | Overflow 3.7px pada AppBar Landing Page | Sifat default Flutter Web yang mengaktifkan auto-centering (`centerTitle: true`) | Menyetel `centerTitle: false` dan membungkus judul dalam widget `Expanded` | **RESOLVED** |
+| **9** | Deprecation warning `Intl.v8BreakIterator` di Chrome | Dart SDK Web mengakses API Chromium usang untuk segmentasi kata/kalimat | Menginjeksi polyfill modern `Intl.Segmenter` pada `web/index.html` | **RESOLVED** |
 
 ---
 
