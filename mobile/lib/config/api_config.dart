@@ -13,14 +13,14 @@ class ApiConfig {
     }
     if (kIsWeb) {
       final host = Uri.base.host;
-      if (host.isNotEmpty && host != 'localhost' && host != '127.0.0.1') {
+      if (host.isNotEmpty) {
         return 'http://$host:8000/api';
       }
-      return 'http://127.0.0.1:8000/api';
+      return 'http://localhost:8000/api';
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return 'http://10.142.183.78:8000/api';
+        return 'http://10.253.128.58:8000/api';
       case TargetPlatform.windows:
       case TargetPlatform.linux:
       case TargetPlatform.macOS:

@@ -223,20 +223,24 @@ class _LandingScreenState extends State<LandingScreen> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.35)),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.verified_user_rounded, size: 14, color: AppTheme.primaryGreen),
-                SizedBox(width: 6),
-                Text(
-                  'Portal Resmi Alokasi Pupuk Bersubsidi',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.primaryGreen,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.verified_user_rounded, size: 14, color: AppTheme.primaryGreen),
+                  SizedBox(width: 6),
+                  Text(
+                    'Portal Resmi Alokasi Pupuk Bersubsidi',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primaryGreen,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -296,9 +300,12 @@ class _LandingScreenState extends State<LandingScreen> {
                     );
                   },
                   icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                  label: const Text(
-                    'Minta Subsidi',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Minta Subsidi',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryGreen,
@@ -325,9 +332,12 @@ class _LandingScreenState extends State<LandingScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Pilih Portal',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  child: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Pilih Portal',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               ),
@@ -963,12 +973,14 @@ class _LandingScreenState extends State<LandingScreen> {
                 ),
               ),
               const SizedBox(width: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0F172A),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
               ),
             ],
@@ -1019,26 +1031,28 @@ class _LandingScreenState extends State<LandingScreen> {
             children: [
               const AppLogo(size: 34),
               const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    'E-PUPUK',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: -0.3,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'E-PUPUK',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -0.3,
+                      ),
                     ),
-                  ),
-                  Text(
-                    'Kabupaten Mojokerto',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Color(0xFF94A3B8),
+                    Text(
+                      'Kabupaten Mojokerto',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF94A3B8),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -1134,9 +1148,11 @@ class _LandingScreenState extends State<LandingScreen> {
       children: [
         Icon(icon, size: 14, color: const Color(0xFF34D399)),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+          ),
         ),
       ],
     );
