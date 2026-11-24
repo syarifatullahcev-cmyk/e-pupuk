@@ -35,7 +35,7 @@ class AppTheme {
   // Common Card Shadow
   static List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.04),
+      color: Colors.black.withValues(alpha: 0.04),
       blurRadius: 10,
       offset: const Offset(0, 4),
     ),
@@ -43,7 +43,7 @@ class AppTheme {
 
   static List<BoxShadow> get softShadow => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.02),
+      color: Colors.black.withValues(alpha: 0.02),
       blurRadius: 6,
       offset: const Offset(0, 2),
     ),

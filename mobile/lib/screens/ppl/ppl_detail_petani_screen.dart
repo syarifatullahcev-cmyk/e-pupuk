@@ -246,7 +246,7 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
                   color: AppTheme.lightGreen,
                   borderRadius: BorderRadius.circular(6),
                   border:
-                      Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
+                      Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   _farmer.statusVerifikasi,
@@ -305,12 +305,12 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: AppTheme.warningBg.withOpacity(0.6),
+              color: AppTheme.warningBg.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Text(
                   'Status Berkas: ',
                   style:
@@ -501,8 +501,8 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.pin_drop_outlined,
                       size: 18, color: AppTheme.primaryGreen),
                   SizedBox(width: 6),
@@ -557,13 +557,13 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppTheme.warningBg.withOpacity(0.5),
+              color: AppTheme.warningBg.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppTheme.warningBorder),
             ),
-            child: Row(
+            child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Icon(Icons.info_outline,
                     size: 16, color: AppTheme.warningOrange),
                 SizedBox(width: 6),
@@ -683,7 +683,7 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: iconColor.withOpacity(0.12),
+                      color: iconColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(icon, size: 20, color: iconColor),
@@ -749,7 +749,7 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.warningBg.withOpacity(0.4),
+              color: AppTheme.warningBg.withValues(alpha: 0.4),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
@@ -805,9 +805,9 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
                             color: AppTheme.primaryGreen, size: 22),
                       ),
                       const SizedBox(width: 10),
-                      Column(
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
                             'Arsip KTP Elektronik Petani',
                             style: TextStyle(
@@ -946,8 +946,8 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFF86EFAC)),
                 ),
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(Icons.check_circle,
                         color: AppTheme.primaryGreen, size: 18),
                     SizedBox(width: 8),
@@ -1064,9 +1064,9 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
                             color: AppTheme.primaryGreen, size: 22),
                       ),
                       const SizedBox(width: 10),
-                      Column(
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
                             'Arsip Dokumen Lahan Petani',
                             style: TextStyle(
@@ -1133,12 +1133,12 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: AppTheme.warningBg.withOpacity(0.5),
+                  color: AppTheme.warningBg.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFFDE68A)),
                 ),
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(Icons.info_outline,
                         color: AppTheme.warningOrange, size: 18),
                     SizedBox(width: 8),
@@ -1242,8 +1242,8 @@ class _PPLDetailPetaniScreenState extends State<PPLDetailPetaniScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: const [
+          const Row(
+            children: [
               Icon(Icons.tune, size: 16, color: AppTheme.primaryGreen),
               SizedBox(width: 6),
               Text(

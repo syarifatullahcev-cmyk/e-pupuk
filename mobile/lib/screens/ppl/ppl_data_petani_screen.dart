@@ -120,13 +120,13 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
+        const Row(
           children: [
-            const AppLogo(size: 36, borderRadius: 10),
-            const SizedBox(width: 10),
+            AppLogo(size: 36, borderRadius: 10),
+            SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'E-PUPUK • KAB. MOJOKERTO',
                   style: TextStyle(
@@ -175,9 +175,9 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
 
   // 2. Title Section
   Widget _buildTitleSection() {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Text(
           'Data Petani',
           style: TextStyle(
@@ -327,8 +327,8 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
             color: AppTheme.textPrimary,
           ),
         ),
-        Row(
-          children: const [
+        const Row(
+          children: [
             CircleAvatar(radius: 3, backgroundColor: AppTheme.primaryGreen),
             SizedBox(width: 5),
             Text(
@@ -391,8 +391,8 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppTheme.border),
         ),
-        child: Column(
-          children: const [
+        child: const Column(
+          children: [
             Icon(Icons.search_off, size: 40, color: AppTheme.textMuted),
             SizedBox(height: 8),
             Text(
@@ -633,8 +633,8 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
                     ),
                   );
                 },
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Text(
                       'Lihat Detail',
                       style: TextStyle(
@@ -665,9 +665,9 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.infoBorder),
       ),
-      child: Row(
+      child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Icon(Icons.shield_outlined, color: AppTheme.infoBlue, size: 18),
           SizedBox(width: 8),
           Expanded(

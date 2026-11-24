@@ -152,12 +152,12 @@ void main() {
         '9. Geofencing Ray-Casting: Deteksi posisi di dalam vs di luar poligon',
         () {
       // Titik di tengah-tengah poligon sawah Mojosari
-      final insidePoint = const LatLng(-7.526600, 112.534400);
+      const insidePoint = LatLng(-7.526600, 112.534400);
       expect(
           GeoCalcService.isPointInPolygon(insidePoint, mojosariPoints), isTrue);
 
       // Titik jauh di luar lahan (misal di alun-alun Mojosari)
-      final outsidePoint = const LatLng(-7.520000, 112.530000);
+      const outsidePoint = LatLng(-7.520000, 112.530000);
       expect(GeoCalcService.isPointInPolygon(outsidePoint, mojosariPoints),
           isFalse);
     });

@@ -6,18 +6,18 @@ import 'package:epupuk_mobile/services/geo_calc_service.dart';
 /// Luas teoretis: ~10.000 m² (1 Ha)
 /// (nilai tepat bervariasi karena geodetik elipsoid, sekitar 9990–10010 m²)
 final List<LatLng> squarePoly100m = [
-  LatLng(-7.52700, 112.53400),
-  LatLng(-7.52700, 112.53490), // ~+100m timur
-  LatLng(-7.52790, 112.53490), // ~+100m selatan
-  LatLng(-7.52790, 112.53400),
+  const LatLng(-7.52700, 112.53400),
+  const LatLng(-7.52700, 112.53490), // ~+100m timur
+  const LatLng(-7.52790, 112.53490), // ~+100m selatan
+  const LatLng(-7.52790, 112.53400),
 ];
 
 /// Poligon lebih besar: 4 titik ~200m × 200m → luas ~40.000 m²
 final List<LatLng> squarePoly200m = [
-  LatLng(-7.52700, 112.53400),
-  LatLng(-7.52700, 112.53580),
-  LatLng(-7.52880, 112.53580),
-  LatLng(-7.52880, 112.53400),
+  const LatLng(-7.52700, 112.53400),
+  const LatLng(-7.52700, 112.53580),
+  const LatLng(-7.52880, 112.53580),
+  const LatLng(-7.52880, 112.53400),
 ];
 
 void main() {
@@ -27,9 +27,9 @@ void main() {
     // ─────────────────────────────────────────────────────────
     test('1. Tiga titik valid → calculateGeodesicArea > 0', () {
       final pts = [
-        LatLng(-7.52700, 112.53400),
-        LatLng(-7.52700, 112.53490),
-        LatLng(-7.52790, 112.53490),
+        const LatLng(-7.52700, 112.53400),
+        const LatLng(-7.52700, 112.53490),
+        const LatLng(-7.52790, 112.53490),
       ];
       final area = GeoCalcService.calculateGeodesicArea(pts);
       expect(area, greaterThan(0),
@@ -82,7 +82,7 @@ void main() {
     test('5. Mengubah koordinat titik memperbarui luas', () {
       final original = List<LatLng>.from(squarePoly100m);
       final modified = List<LatLng>.from(squarePoly100m);
-      modified[3] = LatLng(-7.52810, 112.53400); // geser titik P4 ke selatan
+      modified[3] = const LatLng(-7.52810, 112.53400); // geser titik P4 ke selatan
 
       final areaOri = GeoCalcService.calculateGeodesicArea(original);
       final areaMod = GeoCalcService.calculateGeodesicArea(modified);
@@ -96,9 +96,9 @@ void main() {
     // ─────────────────────────────────────────────────────────
     test('6. Lat > 90 → validatePolygon isValid=false dengan pesan lat', () {
       final badPts = [
-        LatLng(91.0, 112.534),    // ← lat tidak valid
-        LatLng(-7.527, 112.535),
-        LatLng(-7.528, 112.534),
+        const LatLng(91.0, 112.534),    // ← lat tidak valid
+        const LatLng(-7.527, 112.535),
+        const LatLng(-7.528, 112.534),
       ];
       final result = GeoCalcService.validatePolygon(badPts);
       expect(result.isValid, isFalse,
@@ -112,9 +112,9 @@ void main() {
     // ─────────────────────────────────────────────────────────
     test('7. Lon < -180 → validatePolygon isValid=false dengan pesan lon', () {
       final badPts = [
-        LatLng(-7.527, -181.0),   // ← lon tidak valid
-        LatLng(-7.527, 112.535),
-        LatLng(-7.528, 112.534),
+        const LatLng(-7.527, -181.0),   // ← lon tidak valid
+        const LatLng(-7.527, 112.535),
+        const LatLng(-7.528, 112.534),
       ];
       final result = GeoCalcService.validatePolygon(badPts);
       expect(result.isValid, isFalse,
@@ -128,8 +128,8 @@ void main() {
     // ─────────────────────────────────────────────────────────
     test('8. Kurang dari 3 titik → validatePolygon isValid=false', () {
       final twoPts = [
-        LatLng(-7.527, 112.534),
-        LatLng(-7.528, 112.535),
+        const LatLng(-7.527, 112.534),
+        const LatLng(-7.528, 112.535),
       ];
       final result = GeoCalcService.validatePolygon(twoPts);
       expect(result.isValid, isFalse,
@@ -141,10 +141,10 @@ void main() {
     // ─────────────────────────────────────────────────────────
     test('9. Titik duplikat berturut-turut → validatePolygon isValid=false', () {
       final dupPts = [
-        LatLng(-7.527, 112.534),
-        LatLng(-7.527, 112.534), // duplikat P1
-        LatLng(-7.528, 112.535),
-        LatLng(-7.529, 112.534),
+        const LatLng(-7.527, 112.534),
+        const LatLng(-7.527, 112.534), // duplikat P1
+        const LatLng(-7.528, 112.535),
+        const LatLng(-7.529, 112.534),
       ];
       final result = GeoCalcService.validatePolygon(dupPts);
       expect(result.isValid, isFalse,
@@ -185,9 +185,9 @@ void main() {
     // ─────────────────────────────────────────────────────────
     test('11. Titik-titik identik → validatePolygon isValid=false', () {
       final identicalPts = [
-        LatLng(-7.527, 112.534),
-        LatLng(-7.527, 112.534),
-        LatLng(-7.527, 112.534),
+        const LatLng(-7.527, 112.534),
+        const LatLng(-7.527, 112.534),
+        const LatLng(-7.527, 112.534),
       ];
       final result = GeoCalcService.validatePolygon(identicalPts);
       expect(result.isValid, isFalse,

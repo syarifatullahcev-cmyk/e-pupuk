@@ -145,10 +145,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: _inputDecoration(
                       'NIK (16 Digit Angka)', Icons.badge_outlined),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty)
+                    if (value == null || value.trim().isEmpty) {
                       return 'NIK wajib diisi';
-                    if (value.trim().length != 16)
+                    }
+                    if (value.trim().length != 16) {
                       return 'NIK harus terdiri dari 16 digit angka';
+                    }
                     if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
                       return 'NIK hanya boleh berupa angka';
                     }
@@ -175,8 +177,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: _inputDecoration(
                       'Alamat Email Aktif', Icons.email_outlined),
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty)
+                    if (value == null || value.trim().isEmpty) {
                       return 'Email wajib diisi';
+                    }
                     if (!value.contains('@')) return 'Format email tidak valid';
                     return null;
                   },
@@ -202,10 +205,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return 'Kata sandi wajib diisi';
-                    if (value.length < 6)
+                    }
+                    if (value.length < 6) {
                       return 'Kata sandi minimal 6 karakter';
+                    }
                     return null;
                   },
                 ),

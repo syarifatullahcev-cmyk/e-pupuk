@@ -83,7 +83,7 @@ class _RiwayatPengajuanScreenState extends State<RiwayatPengajuanScreen> {
                     Text(
                       'E-Pupuk Kabupaten Mojokerto',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 12,
                       ),
                     ),
@@ -105,7 +105,7 @@ class _RiwayatPengajuanScreenState extends State<RiwayatPengajuanScreen> {
                         border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),

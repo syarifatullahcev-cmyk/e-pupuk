@@ -35,8 +35,8 @@ class _LandingScreenState extends State<LandingScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: const [
+        title: const Row(
+          children: [
             Icon(Icons.admin_panel_settings, color: Color(0xFF0F172A), size: 28),
             SizedBox(width: 10),
             Text(
@@ -99,15 +99,15 @@ class _LandingScreenState extends State<LandingScreen> {
       surfaceTintColor: Colors.transparent,
       titleSpacing: 12,
       toolbarHeight: 64,
-      title: Row(
+      title: const Row(
         children: [
-          const AppLogo(size: 34, borderRadius: 9),
-          const SizedBox(width: 8),
+          AppLogo(size: 34, borderRadius: 9),
+          SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Text(
                   'E-PUPUK',
                   maxLines: 1,
@@ -221,14 +221,14 @@ class _LandingScreenState extends State<LandingScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFFECFDF5),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.35)),
+              border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.35)),
             ),
-            child: FittedBox(
+            child: const FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
+                children: [
                   Icon(Icons.verified_user_rounded, size: 14, color: AppTheme.primaryGreen),
                   SizedBox(width: 6),
                   Text(
@@ -351,7 +351,7 @@ class _LandingScreenState extends State<LandingScreen> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -368,10 +368,10 @@ class _LandingScreenState extends State<LandingScreen> {
                   return Container(
                     height: 200,
                     color: const Color(0xFFE2E8F0),
-                    child: Center(
+                    child: const Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Icon(Icons.agriculture_rounded, size: 48, color: AppTheme.primaryGreen),
                           SizedBox(height: 8),
                           Text(
@@ -413,7 +413,7 @@ class _LandingScreenState extends State<LandingScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.4)),
+                    border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.4)),
                   ),
                   child: const Text(
                     'AKSES LAYANAN TERPADU',
@@ -567,12 +567,12 @@ class _LandingScreenState extends State<LandingScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isPopular ? AppTheme.primaryGreen.withOpacity(0.35) : const Color(0xFFE2E8F0),
+              color: isPopular ? AppTheme.primaryGreen.withValues(alpha: 0.35) : const Color(0xFFE2E8F0),
               width: isPopular ? 1.5 : 1.0,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -670,7 +670,7 @@ class _LandingScreenState extends State<LandingScreen> {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryGreen.withOpacity(0.3),
+                    color: AppTheme.primaryGreen.withValues(alpha: 0.3),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -709,7 +709,7 @@ class _LandingScreenState extends State<LandingScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.4)),
+                    border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.4)),
                   ),
                   child: const Text(
                     'KEUNGGULAN SISTEM',
@@ -791,7 +791,7 @@ class _LandingScreenState extends State<LandingScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -857,7 +857,7 @@ class _LandingScreenState extends State<LandingScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.4)),
+                    border: Border.all(color: AppTheme.primaryGreen.withValues(alpha: 0.4)),
                   ),
                   child: const Text(
                     'ALUR PENGAJUAN',
@@ -944,7 +944,7 @@ class _LandingScreenState extends State<LandingScreen> {
         border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -1027,14 +1027,14 @@ class _LandingScreenState extends State<LandingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Logo & Nama
-          Row(
+          const Row(
             children: [
-              const AppLogo(size: 34),
-              const SizedBox(width: 10),
+              AppLogo(size: 34),
+              SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
                       'E-PUPUK',
                       style: TextStyle(
@@ -1112,13 +1112,13 @@ class _LandingScreenState extends State<LandingScreen> {
           const SizedBox(height: 16),
 
           // Copyright
-          Center(
+          const Center(
             child: Text(
               '© 2026 Pemerintah Kabupaten Mojokerto.\nSeluruh Hak Cipta Dilindungi.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 10.5,
-                color: const Color(0xFF64748B),
+                color: Color(0xFF64748B),
                 height: 1.5,
               ),
             ),

@@ -283,9 +283,10 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context); // Close dialog
-                if (isSuccess)
+                if (isSuccess) {
                   Navigator.pop(
                       context); // Return to previous screen only on success
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: isSuccess ? AppTheme.primaryGreen : Colors.red,
@@ -313,11 +314,11 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: Row(
+        title: const Row(
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'E-PUPUK KAB. MOJOKERTO',
                   style: TextStyle(
@@ -339,14 +340,14 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
             ),
           ],
         ),
-        actions: [
-          const PPLNotificationsButton(),
+        actions: const [
+          PPLNotificationsButton(),
           Padding(
-            padding: const EdgeInsets.only(right: 16, left: 4),
+            padding: EdgeInsets.only(right: 16, left: 4),
             child: CircleAvatar(
               radius: 16,
               backgroundColor: AppTheme.darkGreen,
-              child: const Text('AH',
+              child: Text('AH',
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -364,8 +365,8 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Icon(Icons.assignment_turned_in_outlined,
                         size: 14, color: AppTheme.primaryGreen),
                     SizedBox(width: 4),
@@ -385,8 +386,8 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
                     color: AppTheme.lightGreen,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(Icons.shield_outlined,
                           size: 12, color: AppTheme.primaryGreen),
                       SizedBox(width: 4),
@@ -648,7 +649,7 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
                   color: AppTheme.textPrimary)),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: _kondisiFisik,
+            initialValue: _kondisiFisik,
             decoration: const InputDecoration(
               isDense: true,
               border: OutlineInputBorder(),
@@ -671,7 +672,7 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
                   color: AppTheme.textPrimary)),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: _kondisiTanaman,
+            initialValue: _kondisiTanaman,
             decoration: const InputDecoration(
               isDense: true,
               border: OutlineInputBorder(),
@@ -726,11 +727,11 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
           if (label == 'Sesuai') {
             bg = const Color(0xFFE8F6EF);
             fg = AppTheme.primaryGreen;
-            borderColor = AppTheme.primaryGreen.withOpacity(0.4);
+            borderColor = AppTheme.primaryGreen.withValues(alpha: 0.4);
           } else if (label == 'Tidak Sesuai') {
             bg = const Color(0xFFFEE2E2);
             fg = AppTheme.dangerRed;
-            borderColor = AppTheme.dangerRed.withOpacity(0.4);
+            borderColor = AppTheme.dangerRed.withValues(alpha: 0.4);
           } else {
             bg = const Color(0xFFE2E8F0);
             fg = AppTheme.textPrimary;
@@ -1132,9 +1133,9 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: const Color(0xFFDBEAFE)),
             ),
-            child: Row(
+            child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Icon(Icons.shield_outlined, size: 16, color: Color(0xFF2563EB)),
                 SizedBox(width: 8),
                 Expanded(
@@ -1469,10 +1470,10 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
           ),
         ),
         const SizedBox(height: 14),
-        Row(
+        const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.info_outline, size: 14, color: AppTheme.primaryGreen),
             SizedBox(width: 6),
             Expanded(

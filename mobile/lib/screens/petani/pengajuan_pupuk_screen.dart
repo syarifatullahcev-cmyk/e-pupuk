@@ -240,7 +240,7 @@ class _PengajuanPupukScreenState extends State<PengajuanPupukScreen> {
                               )
                             else
                               DropdownButtonFormField<LandModel>(
-                                value: _selectedLand,
+                                initialValue: _selectedLand,
                                 isExpanded: true,
                                 decoration: InputDecoration(
                                   prefixIcon: const Icon(Icons.terrain, color: primaryGreen),
@@ -270,7 +270,7 @@ class _PengajuanPupukScreenState extends State<PengajuanPupukScreen> {
                             ),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<FertilizerModel>(
-                              value: _selectedFertilizer,
+                              initialValue: _selectedFertilizer,
                               isExpanded: true,
                               decoration: InputDecoration(
                                 prefixIcon: const Icon(Icons.grass, color: primaryGreen),
@@ -304,8 +304,8 @@ class _PengajuanPupukScreenState extends State<PengajuanPupukScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    children: const [
+                                  const Row(
+                                    children: [
                                       Icon(Icons.info_outline, size: 18, color: Color(0xFF64748B)),
                                       SizedBox(width: 6),
                                       Text(
@@ -374,9 +374,9 @@ class _PengajuanPupukScreenState extends State<PengajuanPupukScreen> {
                                         height: 24,
                                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                                       )
-                                    : Row(
+                                    : const Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
-                                        children: const [
+                                        children: [
                                           Icon(Icons.send_rounded, color: Colors.white),
                                           SizedBox(width: 8),
                                           Text(

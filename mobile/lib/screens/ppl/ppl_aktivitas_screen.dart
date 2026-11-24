@@ -56,13 +56,13 @@ class _PPLAktivitasScreenState extends State<PPLAktivitasScreen> {
         backgroundColor: Colors.white,
         elevation: 0.5,
         titleSpacing: 16,
-        title: Row(
+        title: const Row(
           children: [
-            const AppLogo(size: 36, borderRadius: 10),
-            const SizedBox(width: 10),
+            AppLogo(size: 36, borderRadius: 10),
+            SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'E-PUPUK MOJOKERTO',
                   style: TextStyle(
@@ -92,7 +92,7 @@ class _PPLAktivitasScreenState extends State<PPLAktivitasScreen> {
               radius: 16,
               backgroundColor: AppTheme.darkGreen,
               child: Text(_initials,
-                  style: TextStyle(
+                  style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
                       fontWeight: FontWeight.bold)),
@@ -296,7 +296,7 @@ class _PPLAktivitasScreenState extends State<PPLAktivitasScreen> {
         children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: statusColor.withOpacity(0.12),
+            backgroundColor: statusColor.withValues(alpha: 0.12),
             child: Icon(icon, size: 18, color: statusColor),
           ),
           const SizedBox(width: 12),
@@ -328,7 +328,7 @@ class _PPLAktivitasScreenState extends State<PPLAktivitasScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.1),
+                        color: statusColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(

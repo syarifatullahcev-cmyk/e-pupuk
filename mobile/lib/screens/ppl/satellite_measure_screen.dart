@@ -211,8 +211,8 @@ class _SatelliteMeasureScreenState extends State<SatelliteMeasureScreen> {
                   BoxShadow(color: Colors.black26, blurRadius: 6),
                 ],
               ),
-              child: Row(
-                children: const [
+              child: const Row(
+                children: [
                   Icon(Icons.touch_app_rounded, color: Color(0xFF4ADE80), size: 20),
                   SizedBox(width: 10),
                   Expanded(

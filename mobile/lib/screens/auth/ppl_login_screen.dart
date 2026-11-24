@@ -334,7 +334,7 @@ class _PPLLoginScreenState extends State<PPLLoginScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: AppTheme.lightGreen.withOpacity(0.5),
+                      color: AppTheme.lightGreen.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: const Color(0xFFC7EBD9)),
                     ),

@@ -261,8 +261,8 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: const [
+          const Row(
+            children: [
               Icon(Icons.landscape_outlined,
                   size: 18, color: AppTheme.primaryGreen),
               SizedBox(width: 8),
@@ -339,8 +339,8 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: const [
+          const Row(
+            children: [
               Icon(Icons.alt_route_rounded,
                   size: 18, color: AppTheme.primaryGreen),
               SizedBox(width: 8),

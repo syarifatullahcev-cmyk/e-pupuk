@@ -91,13 +91,13 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
         backgroundColor: Colors.white,
         elevation: 0.5,
         titleSpacing: 16,
-        title: Row(
+        title: const Row(
           children: [
-            const AppLogo(size: 36, borderRadius: 10),
-            const SizedBox(width: 10),
+            AppLogo(size: 36, borderRadius: 10),
+            SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'E-PUPUK KAB. MOJOKERTO',
                   style: TextStyle(
@@ -119,14 +119,14 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
             ),
           ],
         ),
-        actions: [
-          const PPLNotificationsButton(),
+        actions: const [
+          PPLNotificationsButton(),
           Padding(
-            padding: const EdgeInsets.only(right: 16, left: 4),
+            padding: EdgeInsets.only(right: 16, left: 4),
             child: CircleAvatar(
               radius: 16,
               backgroundColor: AppTheme.darkGreen,
-              child: const Text('AH',
+              child: Text('AH',
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -299,9 +299,9 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
             color: AppTheme.textPrimary,
           ),
         ),
-        Text(
+        const Text(
           'Wilbin II Mojosari',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
             color: AppTheme.primaryGreen,
             fontWeight: FontWeight.w600,
@@ -559,8 +559,8 @@ class _PPLDaftarTugasScreenState extends State<PPLDaftarTugasScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.border),
       ),
-      child: Column(
-        children: const [
+      child: const Column(
+        children: [
           Icon(Icons.assignment_turned_in_outlined,
               size: 54, color: AppTheme.textMuted),
           SizedBox(height: 12),

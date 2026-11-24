@@ -582,15 +582,15 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
         child: Container(color: const Color(0xFFF1F5F9), height: 1),
       ),
       titleSpacing: 16,
-      title: Row(
+      title: const Row(
         children: [
           // Logo Resmi E-Pupuk Sprout
-          const AppLogo(size: 36, borderRadius: 10),
-          const SizedBox(width: 10),
+          AppLogo(size: 36, borderRadius: 10),
+          SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
+            children: [
               Text(
                 'E-PUPUK • KAB. MOJOKERTO',
                 style: TextStyle(
@@ -717,9 +717,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
               border: Border.all(
                   color: const Color(0xFF10B981).withValues(alpha: 0.35)),
             ),
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
+              children: [
                 Icon(Icons.spa_rounded, size: 13, color: Color(0xFF6EE7B7)),
                 SizedBox(width: 5),
                 Text(
@@ -1155,9 +1155,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                   border:
                       Border.all(color: const Color(0xFFCBD5E1), width: 0.8),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Icon(Icons.person_outline,
                         size: 11, color: Color(0xFF475569)),
                     SizedBox(width: 3.5),
@@ -1256,9 +1256,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Text(
                     'Lihat Profil Selengkapnya',
                     style: TextStyle(
@@ -1309,9 +1309,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
+              const Expanded(
                 child: Row(
-                  children: const [
+                  children: [
                     Icon(Icons.pie_chart_outline_rounded,
                         color: primaryGreen, size: 18),
                     SizedBox(width: 7),
@@ -1334,12 +1334,12 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
               InkWell(
                 onTap: () => setState(() => _activeNav = 5),
                 borderRadius: BorderRadius.circular(6),
-                child: Padding(
+                child: const Padding(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
+                    children: [
                       Text(
                         'Detail',
                         style: TextStyle(
@@ -1556,10 +1556,10 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
                     'Status Pengajuan Terkini',
                     style: TextStyle(
@@ -1585,11 +1585,11 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
             InkWell(
               onTap: () => setState(() => _activeNav = 4),
               borderRadius: BorderRadius.circular(6),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Text(
                       'Lihat Semua',
                       style: TextStyle(
@@ -1860,16 +1860,16 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Row persis Screenshot 3
-          Row(
+          const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.access_time_rounded,
+              Icon(Icons.access_time_rounded,
                   size: 22, color: primaryGreen),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
                       'Kuota Pupuk Saya (Tahun Anggaran 2026)',
                       style: TextStyle(
@@ -1927,10 +1927,10 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                             ),
                           ),
                           const SizedBox(width: 10),
-                          Expanded(
+                          const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
+                              children: [
                                 Text(
                                   'UREA BERSUBSIDI',
                                   maxLines: 1,
@@ -2103,10 +2103,10 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                             ),
                           ),
                           const SizedBox(width: 10),
-                          Expanded(
+                          const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
+                              children: [
                                 Text(
                                   'NPK PHONSKA',
                                   maxLines: 1,
@@ -2252,9 +2252,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFBBF7D0)),
             ),
-            child: Row(
+            child: const Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Icon(Icons.info_outline_rounded,
                     color: Color(0xFF16A34A), size: 18),
                 SizedBox(width: 8),
@@ -2302,8 +2302,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                               fontSize: 14.5,
                               color: textDark),
                         ),
-                        SizedBox(height: 2),
-                        Text(
+                        const SizedBox(height: 2),
+                        const Text(
                           'Tahapan: 1. Pengajuan -> 2. Verifikasi Berkas -> 3. Penugasan PPL -> 4. Survei Lapangan -> 5. Persetujuan Admin -> 6. Penggunaan Pupuk',
                           style: TextStyle(
                               color: Color(0xFF64748B),
@@ -2541,9 +2541,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           color: const Color(0xFF009B69),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(Icons.check_circle_outline_rounded,
                 size: 13, color: Colors.white),
             SizedBox(width: 4.5),
@@ -2566,9 +2566,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFFFDE68A), width: 1),
         ),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(Icons.access_time_rounded, size: 13, color: Color(0xFFD97706)),
             SizedBox(width: 4),
             Text(
@@ -2590,9 +2590,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFFD8B4FE), width: 1.2),
         ),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(Icons.access_time_rounded, size: 13, color: Color(0xFF7E22CE)),
             SizedBox(width: 4),
             Text(
@@ -2614,9 +2614,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFF86EFAC), width: 1),
         ),
-        child: Row(
+        child: const Row(
           mainAxisSize: MainAxisSize.min,
-          children: const [
+          children: [
             Icon(Icons.check, size: 12, color: Color(0xFF166534)),
             SizedBox(width: 4),
             Text(
@@ -2706,7 +2706,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Lebar minimum 560px agar garis horisontal panjang dan proporsional persis tampilan web
-        final double minWidth = 560.0;
+        const double minWidth = 560.0;
         final double contentWidth =
             constraints.maxWidth < minWidth ? minWidth : constraints.maxWidth;
 
@@ -3033,8 +3033,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.person_rounded, size: 20, color: primaryGreen),
                   SizedBox(width: 8),
                   Text(
@@ -3055,9 +3055,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                   border:
                       Border.all(color: const Color(0xFF86EFAC), width: 0.8),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     Icon(Icons.check, size: 11, color: Color(0xFF166534)),
                     SizedBox(width: 4),
                     Text(
@@ -3258,8 +3258,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Icon(Icons.credit_card_rounded,
                         size: 16, color: primaryGreen),
                     SizedBox(width: 6),
@@ -3321,8 +3321,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
             child: Column(
               children: [
                 // Header e-KTP
-                Column(
-                  children: const [
+                const Column(
+                  children: [
                     Text(
                       'REPUBLIK INDONESIA',
                       style: TextStyle(
@@ -3417,9 +3417,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                   offset: Offset(0, 2)),
                             ],
                           ),
-                          child: Stack(
+                          child: const Stack(
                             alignment: Alignment.center,
-                            children: const [
+                            children: [
                               Positioned(
                                 bottom: 0,
                                 child: Icon(Icons.person,
@@ -3443,8 +3443,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                             border: Border.all(
                                 color: Colors.white.withValues(alpha: 0.3)),
                           ),
-                          child: Column(
-                            children: const [
+                          child: const Column(
+                            children: [
                               Text(
                                 'MOJOKERTO',
                                 style: TextStyle(
@@ -3474,8 +3474,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Icon(Icons.check_circle_rounded,
                         size: 14, color: primaryGreen),
                     SizedBox(width: 4),
@@ -3492,8 +3492,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 InkWell(
                   onTap: _farmer == null ? null : _pickAndSaveKtpPhoto,
                   borderRadius: BorderRadius.circular(6),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(Icons.camera_alt_outlined,
                           size: 13, color: Color(0xFF2563EB)),
                       SizedBox(width: 4),
@@ -3708,9 +3708,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFBBF7D0)),
           ),
-          child: Row(
+          child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Icon(Icons.info_outline_rounded,
                   color: Color(0xFF16A34A), size: 18),
               SizedBox(width: 8),
@@ -3734,9 +3734,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: borderGray),
             ),
-            child: Center(
+            child: const Center(
               child: Column(
-                children: const [
+                children: [
                   Icon(Icons.landscape_rounded,
                       size: 40, color: Color(0xFFCBD5E1)),
                   SizedBox(height: 8),
@@ -3767,9 +3767,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
-          child: Row(
+          child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Icon(Icons.description_outlined,
                   color: Color(0xFF64748B), size: 16),
               SizedBox(width: 8),
@@ -4414,8 +4414,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: const [
+                        const Row(
+                          children: [
                             Icon(Icons.satellite_alt_rounded,
                                 color: Color(0xFF4ADE80), size: 18),
                             SizedBox(width: 6),
@@ -4612,8 +4612,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                             color: const Color(0xFFDCFCE7),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Row(
-                            children: const [
+                          child: const Row(
+                            children: [
                               Icon(Icons.verified_rounded,
                                   color: Color(0xFF166534), size: 14),
                               SizedBox(width: 4),
@@ -4700,8 +4700,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Icon(Icons.pin_drop_rounded,
                             color: primaryGreen, size: 20),
                         SizedBox(width: 8),
@@ -4913,10 +4913,10 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                     color: primaryGreen, size: 20),
                               ),
                               const SizedBox(width: 10),
-                              Expanded(
+                              const Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: const [
+                                  children: [
                                     Text('Tambah Lahan Pertanian',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -5049,8 +5049,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                             style: TextStyle(fontSize: 11))),
                                   ],
                                   onChanged: (v) {
-                                    if (v != null)
+                                    if (v != null) {
                                       setDlgState(() => kepemilikan = v);
+                                    }
                                   },
                                 ),
                               ],
@@ -5136,8 +5137,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: const [
+                                const Row(
+                                  children: [
                                     Icon(Icons.my_location_rounded,
                                         size: 14, color: primaryGreen),
                                     SizedBox(width: 6),
@@ -5756,7 +5757,9 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
   Future<void> _handleSubmitApplication() async {
     if (_formLandId == null ||
         _formFertilizerId == null ||
-        _formJumlahCtrl.text.isEmpty) return;
+        _formJumlahCtrl.text.isEmpty) {
+      return;
+    }
     final double? jumlah = double.tryParse(_formJumlahCtrl.text.trim());
     if (jumlah == null || jumlah <= 0 || jumlah % 25 != 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -5865,7 +5868,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
             )
           else ...[
             DropdownButtonFormField<int>(
-              value: selectedId,
+              initialValue: selectedId,
               decoration: InputDecoration(
                 labelText: 'Pilih karung pupuk',
                 border:

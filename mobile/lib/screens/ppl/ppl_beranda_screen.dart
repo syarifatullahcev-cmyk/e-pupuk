@@ -127,13 +127,13 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Row(
+        const Row(
           children: [
-            const AppLogo(size: 36, borderRadius: 10),
-            const SizedBox(width: 10),
+            AppLogo(size: 36, borderRadius: 10),
+            SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'E-PUPUK • KAB. MOJOKERTO',
                   style: TextStyle(
@@ -189,8 +189,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
             color: AppTheme.textPrimary,
           ),
         ),
-        SizedBox(height: 4),
-        Text(
+        const SizedBox(height: 4),
+        const Text(
           'Siap melanjutkan survei lapangan hari ini?',
           style: TextStyle(
             fontSize: 13,
@@ -247,8 +247,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                             color: AppTheme.textPrimary,
                           ),
                         ),
-                        SizedBox(width: 4),
-                        Icon(Icons.verified,
+                        const SizedBox(width: 4),
+                        const Icon(Icons.verified,
                             color: AppTheme.primaryGreen, size: 16),
                       ],
                     ),
@@ -269,9 +269,9 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                   color: AppTheme.lightGreen,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
+                  children: [
                     CircleAvatar(
                       radius: 3,
                       backgroundColor: AppTheme.primaryGreen,
@@ -298,8 +298,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
               color: AppTheme.background,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
-              children: const [
+            child: const Row(
+              children: [
                 Icon(Icons.location_on_outlined,
                     color: AppTheme.primaryGreen, size: 16),
                 SizedBox(width: 6),
@@ -333,14 +333,14 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
       child: TextField(
         controller: _searchController,
         style: const TextStyle(fontSize: 13),
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           hintText: 'Cari nama petani, NIK, atau lokasi lahan...',
-          hintStyle: const TextStyle(fontSize: 13, color: AppTheme.textMuted),
+          hintStyle: TextStyle(fontSize: 13, color: AppTheme.textMuted),
           prefixIcon:
-              const Icon(Icons.search, color: AppTheme.textMuted, size: 20),
+              Icon(Icons.search, color: AppTheme.textMuted, size: 20),
           border: InputBorder.none,
           contentPadding:
-              const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         ),
         onSubmitted: (value) {
           if (value.isNotEmpty) {
@@ -356,11 +356,11 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        const Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Row(
-              children: const [
+              children: [
                 Icon(Icons.calendar_today_outlined,
                     size: 16, color: AppTheme.primaryGreen),
                 SizedBox(width: 6),
@@ -374,7 +374,7 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                 ),
               ],
             ),
-            const Text(
+            Text(
               'Mojokerto Raya',
               style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary),
             ),
@@ -502,8 +502,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: const [
+            const Row(
+              children: [
                 Icon(Icons.flag_outlined,
                     size: 16, color: AppTheme.primaryGreen),
                 SizedBox(width: 6),
@@ -519,8 +519,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
             ),
             GestureDetector(
               onTap: () => widget.onTabChange(2), // Go to Survei Tab
-              child: Row(
-                children: const [
+              child: const Row(
+                children: [
                   Text(
                     'Lihat Semua',
                     style: TextStyle(
@@ -817,8 +817,8 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: const [
+              const Row(
+                children: [
                   Icon(Icons.map_outlined,
                       size: 18, color: AppTheme.primaryGreen),
                   SizedBox(width: 6),
@@ -881,7 +881,7 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                     options: MapOptions(
                       initialCenter: location,
                       initialZoom: 16.2,
-                      interactionOptions: InteractionOptions(
+                      interactionOptions: const InteractionOptions(
                         flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
                       ),
                     ),
@@ -896,7 +896,7 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                             ? [
                                 Polygon(
                                   points: polygonPoints,
-                                  color: AppTheme.primaryGreen.withOpacity(0.2),
+                                  color: AppTheme.primaryGreen.withValues(alpha: 0.2),
                                   borderColor: AppTheme.primaryGreen,
                                   borderStrokeWidth: 2,
                                   isFilled: true,
@@ -913,12 +913,12 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                             child: Container(
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.65),
+                                color: Colors.black.withValues(alpha: 0.65),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 '${(surveyTask.luasLahanM2 / 10000).toStringAsFixed(2)} Ha • ${surveyTask.komoditas}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.bold),
@@ -959,7 +959,7 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.92),
+                        color: Colors.white.withValues(alpha: 0.92),
                         borderRadius: BorderRadius.circular(6),
                         boxShadow: const [
                           BoxShadow(color: Colors.black12, blurRadius: 4)
@@ -967,10 +967,10 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
                       ),
                       child: Row(
                         children: [
-                          CircleAvatar(
+                          const CircleAvatar(
                               radius: 3,
                               backgroundColor: AppTheme.primaryGreen),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
                             '${surveyTask.latitude.toStringAsFixed(6)}, ${surveyTask.longitude.toStringAsFixed(6)}',
                             style: const TextStyle(
@@ -1011,10 +1011,10 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
 
   // 8. Footer
   Widget _buildFooter() {
-    return Center(
+    return const Center(
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: const [
+        children: [
           Icon(Icons.eco, color: AppTheme.primaryGreen, size: 14),
           SizedBox(width: 6),
           Text(

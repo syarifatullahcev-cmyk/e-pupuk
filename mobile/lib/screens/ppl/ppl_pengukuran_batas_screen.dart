@@ -120,8 +120,9 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
 
   // Status Geofencing: apakah lokasi perangkat saat ini di dalam bidang lahan?
   bool get _isInsideLand {
-    if (_deviceLocation == null || _latLngPoints.length < 3)
+    if (_deviceLocation == null || _latLngPoints.length < 3) {
       return true; // Default inside jika belum GPS
+    }
     return GeoCalcService.isPointInPolygon(_deviceLocation!, _latLngPoints);
   }
 
@@ -177,8 +178,8 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
         builder: (ctx) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Icons.location_disabled_rounded,
                   color: AppTheme.dangerRed, size: 24),
               SizedBox(width: 8),
@@ -273,11 +274,13 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
                       labelText: 'Latitude (-90 s/d 90)',
                       border: OutlineInputBorder()),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Latitude wajib diisi';
+                    }
                     final val = double.tryParse(v);
-                    if (val == null || val < -90.0 || val > 90.0)
+                    if (val == null || val < -90.0 || val > 90.0) {
                       return 'Latitude tidak valid (-90 s/d 90)';
+                    }
                     return null;
                   },
                 ),
@@ -290,11 +293,13 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
                       labelText: 'Longitude (-180 s/d 180)',
                       border: OutlineInputBorder()),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Longitude wajib diisi';
+                    }
                     final val = double.tryParse(v);
-                    if (val == null || val < -180.0 || val > 180.0)
+                    if (val == null || val < -180.0 || val > 180.0) {
                       return 'Longitude tidak valid (-180 s/d 180)';
+                    }
                     return null;
                   },
                 ),
@@ -383,8 +388,9 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
                       labelText: 'Latitude', border: OutlineInputBorder()),
                   validator: (v) {
                     final val = double.tryParse(v ?? '');
-                    if (val == null || val < -90.0 || val > 90.0)
+                    if (val == null || val < -90.0 || val > 90.0) {
                       return 'Latitude tidak valid (-90 s/d 90)';
+                    }
                     return null;
                   },
                 ),
@@ -397,8 +403,9 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
                       labelText: 'Longitude', border: OutlineInputBorder()),
                   validator: (v) {
                     final val = double.tryParse(v ?? '');
-                    if (val == null || val < -180.0 || val > 180.0)
+                    if (val == null || val < -180.0 || val > 180.0) {
                       return 'Longitude tidak valid (-180 s/d 180)';
+                    }
                     return null;
                   },
                 ),
@@ -481,11 +488,11 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: Row(
+        title: const Row(
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'E-PUPUK MOJOKERTO',
                   style: TextStyle(
@@ -507,9 +514,9 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
             ),
           ],
         ),
-        actions: [
-          const PPLNotificationsButton(),
-          const Padding(
+        actions: const [
+          PPLNotificationsButton(),
+          Padding(
             padding: EdgeInsets.only(right: 16, left: 4),
             child: CircleAvatar(
               radius: 16,
@@ -1089,8 +1096,8 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFFDE68A)),
               ),
-              child: Column(
-                children: const [
+              child: const Column(
+                children: [
                   Icon(Icons.add_location_alt_outlined,
                       size: 36, color: Color(0xFFD97706)),
                   SizedBox(height: 8),

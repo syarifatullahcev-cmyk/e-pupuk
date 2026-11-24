@@ -20,7 +20,7 @@ class ApiConfig {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return 'http://10.253.128.58:8000/api';
+        return 'http://10.199.166.78:8000/api'; // IP Hotspot Laptop Aktif
       case TargetPlatform.windows:
       case TargetPlatform.linux:
       case TargetPlatform.macOS:

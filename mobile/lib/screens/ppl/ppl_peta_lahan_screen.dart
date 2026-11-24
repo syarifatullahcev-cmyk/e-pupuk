@@ -52,11 +52,11 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
-        title: Row(
+        title: const Row(
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'E-PUPUK MOJOKERTO',
                   style: TextStyle(
@@ -78,14 +78,14 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
             ),
           ],
         ),
-        actions: [
-          const PPLNotificationsButton(),
+        actions: const [
+          PPLNotificationsButton(),
           Padding(
-            padding: const EdgeInsets.only(right: 16, left: 4),
+            padding: EdgeInsets.only(right: 16, left: 4),
             child: CircleAvatar(
               radius: 16,
               backgroundColor: AppTheme.darkGreen,
-              child: const Text('AH',
+              child: Text('AH',
                   style: TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -131,8 +131,8 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                     color: AppTheme.lightGreen,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(Icons.satellite_alt_outlined,
                           size: 12, color: AppTheme.primaryGreen),
                       SizedBox(width: 4),
@@ -241,10 +241,10 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                     color: AppTheme.primaryGreen, size: 20),
               ),
               const SizedBox(width: 10),
-              Expanded(
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
                       'PEMILIK GARAPAN',
                       style: TextStyle(
@@ -438,9 +438,9 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
+                const Expanded(
                   child: Row(
-                    children: const [
+                    children: [
                       Icon(Icons.satellite_alt,
                           size: 16, color: AppTheme.primaryGreen),
                       SizedBox(width: 6),
@@ -523,7 +523,7 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                           ? [
                               Polygon(
                                 points: _task.parsedPolygonPoints,
-                                color: AppTheme.primaryGreen.withOpacity(0.2),
+                                color: AppTheme.primaryGreen.withValues(alpha: 0.2),
                                 borderColor: AppTheme.primaryGreen,
                                 borderStrokeWidth: 2,
                                 isFilled: true,
@@ -545,7 +545,7 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.75),
+                                  color: Colors.black.withValues(alpha: 0.75),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -575,7 +575,7 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.92),
+                      color: Colors.white.withValues(alpha: 0.92),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: const Color(0xFFFDE68A)),
                     ),
@@ -640,7 +640,7 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.92),
+                      color: Colors.white.withValues(alpha: 0.92),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AppTheme.border),
                     ),
@@ -704,7 +704,7 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.15),
+                color: Colors.black.withValues(alpha: 0.15),
                 blurRadius: 4,
                 offset: const Offset(0, 2)),
           ],
@@ -726,9 +726,9 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text(
                 'Status Kesiapan & Verifikasi',
                 style: TextStyle(
@@ -792,10 +792,10 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                 const Icon(Icons.satellite_alt,
                     size: 18, color: AppTheme.primaryGreen),
                 const SizedBox(width: 10),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
                         'Sensor GPS / Status Digitasi',
                         style: TextStyle(
@@ -803,7 +803,7 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                             fontWeight: FontWeight.bold,
                             color: AppTheme.textPrimary),
                       ),
-                      const Text(
+                      Text(
                         'Tekan "Input Koordinat & Batas Lahan" untuk memulai pengukuran',
                         style: TextStyle(
                             fontSize: 10, color: AppTheme.textSecondary),
@@ -874,13 +874,13 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF3C7).withOpacity(0.6),
+        color: const Color(0xFFFEF3C7).withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFFDE68A)),
       ),
-      child: Row(
+      child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Icon(Icons.warning_amber_rounded, size: 18, color: Color(0xFFD97706)),
           SizedBox(width: 8),
           Expanded(
