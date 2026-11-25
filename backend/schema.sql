@@ -142,7 +142,7 @@ CREATE TABLE applications (
 -- 8. field_surveys (Survei Lapangan PPL)
 CREATE TABLE field_surveys (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  application_id INT NOT NULL,
+  application_id INT UNIQUE NOT NULL,
   ppl_id INT NOT NULL,
   tanggal_survei TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   kondisi_fisik_lahan ENUM('BAIK','CUKUP','TIDAK_LAYAK') NOT NULL,
@@ -172,13 +172,14 @@ CREATE TABLE fertilizer_batches (
 -- 10. distributions (Penyaluran dan QR Token)
 CREATE TABLE distributions (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  application_id INT UNIQUE NOT NULL,
+  application_id INT NOT NULL,
   batch_id INT NULL,
   jumlah_disalurkan DECIMAL(10,2) NOT NULL,
   status_penyaluran ENUM('MENUNGGU_PENGAMBILAN','SELESAI','BATAL') DEFAULT 'MENUNGGU_PENGAMBILAN',
   qr_code_hash VARCHAR(255) UNIQUE,
   tanggal_penyaluran TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX ix_distributions_application_id (application_id),
   FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
   FOREIGN KEY (batch_id) REFERENCES fertilizer_batches(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
