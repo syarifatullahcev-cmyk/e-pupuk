@@ -89,7 +89,7 @@ services:
       - epupuk-dev-net
     environment:
       - CHOKIDAR_USEPOLLING=true
-      - VITE_BACKEND_URL=http://backend:8000
+      - VITE_BACKEND_URL=https://e-pupuk.vercel.app
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     depends_on:
       - backend

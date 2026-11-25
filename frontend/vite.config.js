@@ -4,7 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 // VITE_BACKEND_URL: https://e-pupuk.vercel.app (Cloud Vercel + TiDB Cloud)
-const backendUrl = process.env.VITE_BACKEND_URL || 'https://e-pupuk.vercel.app';
+const rawBackendUrl = process.env.VITE_BACKEND_URL || 'https://e-pupuk.vercel.app';
+const backendUrl = rawBackendUrl.includes('backend:') ? 'https://e-pupuk.vercel.app' : rawBackendUrl;
 
 export default defineConfig({
   plugins: [
