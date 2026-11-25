@@ -1,7 +1,10 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.pool import NullPool
 from app.core.config import settings
+
+is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
 
 if settings.DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
@@ -20,15 +23,23 @@ else:
     ):
         connect_args["ssl"] = {}
 
-    engine = create_engine(
-        settings.DATABASE_URL,
-        connect_args=connect_args,
-        pool_pre_ping=True,
-        pool_recycle=3600,
-        pool_size=10,
-        max_overflow=20,
-        echo=False
-    )
+    if is_serverless:
+        engine = create_engine(
+            settings.DATABASE_URL,
+            connect_args=connect_args,
+            poolclass=NullPool,
+            echo=False
+        )
+    else:
+        engine = create_engine(
+            settings.DATABASE_URL,
+            connect_args=connect_args,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+            pool_size=10,
+            max_overflow=20,
+            echo=False
+        )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
