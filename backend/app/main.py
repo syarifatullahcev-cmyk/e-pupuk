@@ -1,3 +1,4 @@
+import os
 import time
 import logging
 from contextlib import asynccontextmanager
@@ -22,8 +23,10 @@ logger = logging.getLogger("uvicorn.error")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: tunggu MySQL siap lalu buat semua tabel."""
-    max_retries = 10
+    """Startup: tunggu database siap lalu buat semua tabel."""
+    is_serverless = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+    max_retries = 3 if is_serverless else 10
+    sleep_interval = 1 if is_serverless else 3
     for attempt in range(1, max_retries + 1):
         try:
             with engine.connect() as conn:
@@ -32,7 +35,7 @@ async def lifespan(app: FastAPI):
             break
         except Exception as e:
             logger.warning(f"⏳ Menunggu database... ({attempt}/{max_retries}): {e}")
-            time.sleep(3)
+            time.sleep(sleep_interval)
     else:
         logger.error("❌ Gagal terhubung ke database setelah beberapa percobaan.")
 

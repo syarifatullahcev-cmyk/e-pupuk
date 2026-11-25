@@ -4,7 +4,12 @@ from dotenv import load_dotenv
 
 # Root paths
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
-UPLOAD_DIR = BACKEND_DIR / "uploads"
+# Di lingkungan serverless (seperti Vercel / AWS Lambda), filesystem root bersifat read-only.
+# Maka arahkan uploads ke /tmp/uploads agar tidak error OSError.
+if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+    UPLOAD_DIR = Path("/tmp/uploads")
+else:
+    UPLOAD_DIR = BACKEND_DIR / "uploads"
 
 # Load .env file if present
 load_dotenv(BACKEND_DIR / ".env")
@@ -27,6 +32,11 @@ class Settings:
 
     @property
     def DATABASE_URL(self) -> str:
+        env_url = os.getenv("DATABASE_URL")
+        if env_url:
+            if env_url.startswith("mysql://"):
+                env_url = env_url.replace("mysql://", "mysql+pymysql://", 1)
+            return env_url
         if self.DB_TYPE.lower() == "sqlite":
             db_path = (BACKEND_DIR / "epupuk.db").resolve()
             return f"sqlite:///{db_path}"
