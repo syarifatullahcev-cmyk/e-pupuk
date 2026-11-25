@@ -1,33 +1,13 @@
-import 'package:flutter/foundation.dart';
-
 class ApiConfig {
-  // Otomatis deteksi platform:
-  // - Di Windows / macOS / Linux Desktop & Web: http://127.0.0.1:8000/api
-  // - Di Android Emulator: http://10.0.2.2:8000/api
-  // - Di HP Fisik Android: Bisa diatur IP lokal
+  // Production URL backend di Vercel yang terhubung ke TiDB Cloud
+  static const String productionUrl = 'https://e-pupuk.vercel.app/api';
   static String customBaseUrl = '';
 
   static String get baseUrl {
     if (customBaseUrl.isNotEmpty) {
       return customBaseUrl;
     }
-    if (kIsWeb) {
-      final host = Uri.base.host;
-      if (host.isNotEmpty) {
-        return 'http://$host:8000/api';
-      }
-      return 'http://localhost:8000/api';
-    }
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return 'http://10.14.45.78:8000/api'; // IP Hotspot Laptop Aktif
-      case TargetPlatform.windows:
-      case TargetPlatform.linux:
-      case TargetPlatform.macOS:
-        return 'http://127.0.0.1:8000/api';
-      default:
-        return 'http://127.0.0.1:8000/api';
-    }
+    return productionUrl;
   }
 
   // Autentikasi

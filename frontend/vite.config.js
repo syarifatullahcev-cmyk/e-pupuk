@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-// VITE_BACKEND_URL: http://127.0.0.1:8000 (lokal) | http://backend:8000 (Docker)
-const backendUrl = process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+// VITE_BACKEND_URL: https://e-pupuk.vercel.app (Cloud Vercel + TiDB Cloud)
+const backendUrl = process.env.VITE_BACKEND_URL || 'https://e-pupuk.vercel.app';
 
 export default defineConfig({
   plugins: [
