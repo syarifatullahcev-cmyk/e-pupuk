@@ -135,71 +135,79 @@ class _LandingScreenState extends State<LandingScreen> {
         ],
       ),
       actions: [
-        // Tombol Masuk
-        TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-            );
-          },
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            minimumSize: const Size(48, 36),
-          ),
-          child: const Text(
-            'Masuk',
-            style: TextStyle(
-              color: Color(0xFF334155),
-              fontWeight: FontWeight.w700,
-              fontSize: 12.5,
-            ),
-          ),
-        ),
-        // Tombol Daftar Petani
-        Padding(
-          padding: const EdgeInsets.only(right: 4),
-          child: ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RegisterScreen()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryGreen,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              minimumSize: const Size(40, 32),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Tombol Masuk
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  minimumSize: const Size(48, 36),
+                ),
+                child: const Text(
+                  'Masuk',
+                  style: TextStyle(
+                    color: Color(0xFF334155),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
+                  ),
+                ),
               ),
-            ),
-            child: const Text(
-              'Daftar',
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
+              // Tombol Daftar Petani
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryGreen,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    minimumSize: const Size(40, 32),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Daftar',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               ),
-            ),
+              // Popup Menu untuk Navigasi Cepat
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Color(0xFF334155)),
+                onSelected: (val) {
+                  if (val == 'portal') _scrollToKey(_portalKey);
+                  if (val == 'keunggulan') _scrollToKey(_keunggulanKey);
+                  if (val == 'alur') _scrollToKey(_alurKey);
+                  if (val == 'kontak') _scrollToKey(_kontakKey);
+                },
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(value: 'portal', child: Text('Pilihan Portal')),
+                  const PopupMenuItem(value: 'keunggulan', child: Text('Keunggulan Sistem')),
+                  const PopupMenuItem(value: 'alur', child: Text('Alur Pengajuan')),
+                  const PopupMenuItem(value: 'kontak', child: Text('Kontak & Bantuan')),
+                ],
+              ),
+            ],
           ),
-        ),
-        // Popup Menu untuk Navigasi Cepat
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: Color(0xFF334155)),
-          onSelected: (val) {
-            if (val == 'portal') _scrollToKey(_portalKey);
-            if (val == 'keunggulan') _scrollToKey(_keunggulanKey);
-            if (val == 'alur') _scrollToKey(_alurKey);
-            if (val == 'kontak') _scrollToKey(_kontakKey);
-          },
-          itemBuilder: (ctx) => [
-            const PopupMenuItem(value: 'portal', child: Text('Pilihan Portal')),
-            const PopupMenuItem(value: 'keunggulan', child: Text('Keunggulan Sistem')),
-            const PopupMenuItem(value: 'alur', child: Text('Alur Pengajuan')),
-            const PopupMenuItem(value: 'kontak', child: Text('Kontak & Bantuan')),
-          ],
         ),
       ],
     );
