@@ -1,7 +1,16 @@
 import axios from 'axios';
 
+// Backend cloud production Vercel
+const DEFAULT_BACKEND_URL = 'https://e-pupuk.vercel.app';
+
+// Abaikan jika berisi hostname internal docker 'backend:8000' yang tidak bisa diakses browser
+const envUrl = import.meta.env.VITE_BACKEND_URL;
+export const BACKEND_URL = (envUrl && !envUrl.includes('backend:'))
+  ? envUrl.replace(/\/+$/, '')
+  : DEFAULT_BACKEND_URL;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || '', // Direct Vercel URL or Vite proxy
+  baseURL: BACKEND_URL,
   timeout: 15000,
 });
 
