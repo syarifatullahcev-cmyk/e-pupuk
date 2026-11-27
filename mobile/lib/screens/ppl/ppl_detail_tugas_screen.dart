@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../models/ppl_task_model.dart';
 import '../../services/ppl_service.dart';
+import '../../widgets/ppl_header_bar.dart';
 import 'ppl_form_survei_screen.dart';
 import 'ppl_peta_lahan_screen.dart';
 
@@ -69,58 +70,54 @@ class _PPLDetailTugasScreenState extends State<PPLDetailTugasScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Detail Tugas Survei',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            Text(
-              _task.taskIdCode,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppTheme.lightGreen,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              _task.statusLabel,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primaryGreen,
-              ),
-            ),
-          ),
-        ],
+      appBar: buildPPLAppBar(
+        context: context,
+        title: 'Detail Tugas Survei',
+        showBackButton: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Kode Pengajuan & Status Chip
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.tag, size: 14, color: AppTheme.primaryGreen),
+                    const SizedBox(width: 4),
+                    Text(
+                      _task.taskIdCode,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryGreen,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lightGreen,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _task.statusLabel,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryGreen,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
             // Card Petani & Poktan
             _buildFarmerInfoCard(),
             const SizedBox(height: 16),

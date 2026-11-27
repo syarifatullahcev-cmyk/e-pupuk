@@ -3,8 +3,7 @@ import '../../config/theme.dart';
 import '../../models/farmer_model.dart';
 import '../../models/user_model.dart';
 import '../../services/ppl_service.dart';
-import '../../widgets/app_logo.dart';
-import '../../widgets/ppl_notifications_button.dart';
+import '../../widgets/ppl_header_bar.dart';
 import 'ppl_detail_petani_screen.dart';
 
 class PPLDataPetaniScreen extends StatefulWidget {
@@ -93,7 +92,7 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTopHeader(),
+                const PPLTopHeader(title: 'Data Petani'),
                 const SizedBox(height: 16),
                 _buildTitleSection(),
                 const SizedBox(height: 16),
@@ -112,64 +111,6 @@ class _PPLDataPetaniScreenState extends State<PPLDataPetaniScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  // 1. Top Header
-  Widget _buildTopHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Row(
-          children: [
-            AppLogo(size: 36, borderRadius: 10),
-            SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'E-PUPUK • KAB. MOJOKERTO',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
-                    color: AppTheme.darkGreen,
-                  ),
-                ),
-                Text(
-                  'Data Petani',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            const PPLNotificationsButton(),
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppTheme.lightGreen,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              alignment: Alignment.center,
-              child: const Text(
-                'AH',
-                style: TextStyle(
-                    color: AppTheme.primaryGreen,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 

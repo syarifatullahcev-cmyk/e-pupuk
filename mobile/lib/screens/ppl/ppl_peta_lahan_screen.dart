@@ -3,7 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../config/theme.dart';
 import '../../models/ppl_task_model.dart';
-import '../../widgets/ppl_notifications_button.dart';
+import '../../widgets/ppl_header_bar.dart';
 import 'ppl_form_survei_screen.dart';
 import 'ppl_pengukuran_batas_screen.dart';
 
@@ -44,55 +44,10 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        titleSpacing: 0,
-        title: const Row(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'E-PUPUK MOJOKERTO',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textSecondary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                Text(
-                  'Survei',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: const [
-          PPLNotificationsButton(),
-          Padding(
-            padding: EdgeInsets.only(right: 16, left: 4),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: AppTheme.darkGreen,
-              child: Text('AH',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
+      appBar: buildPPLAppBar(
+        context: context,
+        title: 'Peta Lahan',
+        showBackButton: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -107,17 +62,17 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                   child: Row(
                     children: [
                       const Icon(Icons.location_on_outlined,
-                          size: 14, color: AppTheme.primaryGreen),
+                          size: 15, color: AppTheme.primaryGreen),
                       const SizedBox(width: 4),
-                      Expanded(
+                      Flexible(
                         child: Text(
-                          'Lokasi Spasial (${_task.taskIdCode})',
+                          _task.taskIdCode,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textSecondary,
-                              fontWeight: FontWeight.w600),
+                              fontSize: 12,
+                              color: AppTheme.primaryGreen,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
@@ -126,20 +81,21 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                 const SizedBox(width: 8),
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppTheme.lightGreen,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.satellite_alt_outlined,
                           size: 12, color: AppTheme.primaryGreen),
                       SizedBox(width: 4),
                       Text(
-                        'Citra Satelit & Lokasi Awal',
+                        'Citra Satelit',
                         style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.bold,
                             color: AppTheme.primaryGreen),
                       ),
@@ -151,41 +107,101 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
             const SizedBox(height: 12),
 
             Container(
-              padding: const EdgeInsets.all(12),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppTheme.border),
+                boxShadow: AppTheme.cardShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Status tugas: ${_task.statusLabel}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppTheme.primaryGreen,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Status tugas: ${_task.statusLabel}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppTheme.lightGreen,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _task.statusLabel,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryGreen,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _task.hasSurvey
-                        ? 'Data survei tercatat.'
-                        : 'Data survei belum tersedia.',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  Text(
-                    _task.parsedPolygonPoints.length >= 3
-                        ? '${_task.parsedPolygonPoints.length} titik batas tersimpan.'
-                        : 'Poligon batas belum tersedia.',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppTheme.textSecondary,
-                    ),
+                  const Divider(height: 16, color: AppTheme.borderSubtle),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.assignment_turned_in_outlined,
+                                size: 14, color: AppTheme.primaryGreen),
+                            const SizedBox(width: 6),
+                            Text(
+                              _task.hasSurvey
+                                  ? 'Survei Tercatat'
+                                  : 'Belum Ada Survei',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.polyline_outlined,
+                                size: 14, color: Color(0xFF2563EB)),
+                            const SizedBox(width: 6),
+                            Text(
+                              _task.parsedPolygonPoints.length >= 3
+                                  ? '${_task.parsedPolygonPoints.length} Titik Batas'
+                                  : 'Poligon Belum Ada',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -504,14 +520,16 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                   options: MapOptions(
                     initialCenter: _petaniLocation,
                     initialZoom: 17.5,
-                    maxZoom: 19.0,
-                    minZoom: 13.0,
+                    maxZoom: 18.5,
+                    minZoom: 12.0,
                   ),
                   children: [
                     TileLayer(
                       urlTemplate: _isSatelliteLayer
                           ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
                           : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      maxNativeZoom: 18,
+                      maxZoom: 18.5,
                       userAgentPackageName: 'com.epupuk.mobile',
                       errorTileCallback: (tile, error, stackTrace) {
                         // Graceful handling jika koneksi tile terganggu

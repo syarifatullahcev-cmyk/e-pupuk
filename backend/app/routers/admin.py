@@ -202,13 +202,19 @@ def assign_ppl(
     app.catatan_penugasan = data.catatan
     app.status = ApplicationStatus.DITUGASKAN_KE_PPL
 
-    # Notify PPL
-    db.add(Notification(
-        user_id=ppl.id,
-        judul="Tugas Survei Lapangan Baru",
-        pesan=f"Anda ditugaskan melakukan survei fisik lahan untuk pengajuan #{app.id} (Petani: {app.farmer.nama if app.farmer else 'Petani'}). Catatan: {data.catatan or '-'}",
-        tipe="INFO"
-    ))
+    # Notify PPL (hindari duplikasi jika sudah pernah ditugaskan)
+    existing_ppl_notif = db.query(Notification).filter(
+        Notification.user_id == ppl.id,
+        Notification.judul == "Tugas Survei Lapangan Baru",
+        Notification.pesan.like(f"%pengajuan #{app.id}%"),
+    ).first()
+    if not existing_ppl_notif:
+        db.add(Notification(
+            user_id=ppl.id,
+            judul="Tugas Survei Lapangan Baru",
+            pesan=f"Anda ditugaskan melakukan survei fisik lahan untuk pengajuan #{app.id} (Petani: {app.farmer.nama if app.farmer else 'Petani'}). Catatan: {data.catatan or '-'}",
+            tipe="INFO"
+        ))
 
     # Notify Farmer
     if app.farmer and app.farmer.user_id:

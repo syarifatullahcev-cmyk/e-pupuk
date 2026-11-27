@@ -38,6 +38,8 @@ class ApiConfig {
   static String get scanQrUrl => '$baseUrl/distributions/scan-qr';
   static String get myScansUrl => '$baseUrl/distributions/scans/my';
   static String get notificationsUrl => '$baseUrl/notifications';
+  static String get notificationsReadAllUrl =>
+      '$baseUrl/notifications/read-all';
   static String notificationReadUrl(int id) =>
       '$baseUrl/notifications/$id/read';
 

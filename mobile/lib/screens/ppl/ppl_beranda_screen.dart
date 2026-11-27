@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import '../../config/theme.dart';
 import '../../models/ppl_task_model.dart';
 import '../../models/user_model.dart';
 import '../../services/ppl_service.dart';
-import '../../widgets/app_logo.dart';
-import '../../widgets/ppl_notifications_button.dart';
+import '../../widgets/ppl_header_bar.dart';
 import 'ppl_detail_tugas_screen.dart';
-import 'ppl_peta_lahan_screen.dart';
 
 class PPLBerandaScreen extends StatefulWidget {
   final UserModel user;
@@ -28,8 +24,6 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
   List<PPLTaskModel> _tasks = [];
   bool _isLoading = true;
   String? _loadError;
-  final TextEditingController _searchController = TextEditingController();
-  final MapController _miniMapController = MapController();
 
   String get _userInitials {
     final parts = widget.user.nama.trim().split(RegExp(r'\s+'));
@@ -79,7 +73,6 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -98,19 +91,18 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTopHeader(),
+                PPLTopHeader(
+                  title: 'Beranda',
+                  onProfileTap: () => widget.onTabChange(4),
+                ),
                 const SizedBox(height: 16),
                 _buildGreetingSection(),
                 const SizedBox(height: 14),
                 _buildProfileCard(),
-                const SizedBox(height: 16),
-                _buildSearchBar(),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
                 _buildSummarySection(),
                 const SizedBox(height: 22),
                 _buildPriorityTasksSection(),
-                const SizedBox(height: 22),
-                _buildSurveyLocationSection(),
                 const SizedBox(height: 24),
                 _buildFooter(),
                 const SizedBox(height: 24),
@@ -119,60 +111,6 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  // 1. Top Bar Header
-  Widget _buildTopHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Row(
-          children: [
-            AppLogo(size: 36, borderRadius: 10),
-            SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'E-PUPUK • KAB. MOJOKERTO',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
-                    color: AppTheme.darkGreen,
-                  ),
-                ),
-                Text(
-                  'Beranda',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        Row(
-          children: [
-            const PPLNotificationsButton(),
-            GestureDetector(
-              onTap: () => widget.onTabChange(4), // Go to Profile
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: AppTheme.darkGreen,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.person, color: Colors.white, size: 20),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
@@ -317,36 +255,6 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // 4. Search Bar
-  Widget _buildSearchBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.border),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: TextField(
-        controller: _searchController,
-        style: const TextStyle(fontSize: 13),
-        decoration: const InputDecoration(
-          hintText: 'Cari nama petani, NIK, atau lokasi lahan...',
-          hintStyle: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-          prefixIcon:
-              Icon(Icons.search, color: AppTheme.textMuted, size: 20),
-          border: InputBorder.none,
-          contentPadding:
-              EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        ),
-        onSubmitted: (value) {
-          if (value.isNotEmpty) {
-            widget.onTabChange(1); // Go to Petani Tab
-          }
-        },
       ),
     );
   }
@@ -769,259 +677,32 @@ class _PPLBerandaScreenState extends State<PPLBerandaScreen> {
     );
   }
 
-  // 7. Lokasi Survei (Peta Mini Interaktif)
-  Widget _buildSurveyLocationSection() {
-    PPLTaskModel? task;
-    for (final candidate in _tasks) {
-      if (candidate.latitude >= -90 &&
-          candidate.latitude <= 90 &&
-          candidate.longitude >= -180 &&
-          candidate.longitude <= 180 &&
-          (candidate.latitude != 0 || candidate.longitude != 0)) {
-        task = candidate;
-        break;
-      }
-    }
-
-    final surveyTask = task;
-    if (surveyTask == null) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppTheme.cardBg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: const Text(
-          'Lokasi survei belum tersedia. Peta akan muncul setelah ada tugas dengan koordinat yang valid.',
-          style: TextStyle(color: AppTheme.textSecondary),
-        ),
-      );
-    }
-
-    final location = LatLng(surveyTask.latitude, surveyTask.longitude);
-    final polygonPoints = surveyTask.parsedPolygonPoints;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-        boxShadow: AppTheme.cardShadow,
-      ),
+  // 8. Footer
+  Widget _buildFooter() {
+    return const Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Row(
-                children: [
-                  Icon(Icons.map_outlined,
-                      size: 18, color: AppTheme.primaryGreen),
-                  SizedBox(width: 6),
-                  Text(
-                    'Lokasi Survei',
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          PPLPetaLahanScreen(task: surveyTask),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.layers_outlined,
-                    size: 14, color: AppTheme.primaryGreen),
-                label: const Text(
-                  'Buka Peta',
-                  style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryGreen),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.lightGreen,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  elevation: 0,
+              Icon(Icons.eco, color: AppTheme.primaryGreen, size: 14),
+              SizedBox(width: 6),
+              Text(
+                'Dinas Pertanian Kabupaten Mojokerto © 2026',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.textMuted,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 2),
-          const Text(
-            'Lihat lokasi dan batas poligon lahan petani.',
-            style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary),
-          ),
-          const SizedBox(height: 12),
-          // Interactive Mini Map Container
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
-              height: 150,
-              child: Stack(
-                children: [
-                  FlutterMap(
-                    mapController: _miniMapController,
-                    options: MapOptions(
-                      initialCenter: location,
-                      initialZoom: 16.2,
-                      interactionOptions: const InteractionOptions(
-                        flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
-                      ),
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                        userAgentPackageName: 'com.epupuk.mobile',
-                      ),
-                      PolygonLayer(
-                        polygons: polygonPoints.length >= 3
-                            ? [
-                                Polygon(
-                                  points: polygonPoints,
-                                  color: AppTheme.primaryGreen.withValues(alpha: 0.2),
-                                  borderColor: AppTheme.primaryGreen,
-                                  borderStrokeWidth: 2,
-                                  isFilled: true,
-                                ),
-                              ]
-                            : [],
-                      ),
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: location,
-                            width: 70,
-                            height: 24,
-                            child: Container(
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.65),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                '${(surveyTask.luasLahanM2 / 10000).toStringAsFixed(2)} Ha • ${surveyTask.komoditas}',
-                                style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9.5,
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  // Zoom control buttons
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Column(
-                      children: [
-                        _buildMiniMapBtn(Icons.add, () {
-                          final currentZoom = _miniMapController.camera.zoom;
-                          _miniMapController.move(
-                              _miniMapController.camera.center,
-                              currentZoom + 1);
-                        }),
-                        const SizedBox(height: 4),
-                        _buildMiniMapBtn(Icons.remove, () {
-                          final currentZoom = _miniMapController.camera.zoom;
-                          _miniMapController.move(
-                              _miniMapController.camera.center,
-                              currentZoom - 1);
-                        }),
-                      ],
-                    ),
-                  ),
-                  // Coordinates banner bottom
-                  Positioned(
-                    left: 8,
-                    bottom: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(6),
-                        boxShadow: const [
-                          BoxShadow(color: Colors.black12, blurRadius: 4)
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          const CircleAvatar(
-                              radius: 3,
-                              backgroundColor: AppTheme.primaryGreen),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${surveyTask.latitude.toStringAsFixed(6)}, ${surveyTask.longitude.toStringAsFixed(6)}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'monospace',
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMiniMapBtn(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(4),
-          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3)],
-        ),
-        child: Icon(icon, size: 16, color: AppTheme.textPrimary),
-      ),
-    );
-  }
-
-  // 8. Footer
-  Widget _buildFooter() {
-    return const Center(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.eco, color: AppTheme.primaryGreen, size: 14),
-          SizedBox(width: 6),
+          SizedBox(height: 3),
           Text(
-            'Dinas Pertanian Kabupaten Mojokerto © 2024',
+            'E-Pupuk Mobile • Versi 2.5.0 Pro',
             style: TextStyle(
-              fontSize: 11,
-              color: AppTheme.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.primaryGreen,
             ),
           ),
         ],

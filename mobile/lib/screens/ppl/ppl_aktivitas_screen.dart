@@ -3,8 +3,7 @@ import '../../config/theme.dart';
 import '../../models/ppl_task_model.dart';
 import '../../models/user_model.dart';
 import '../../services/ppl_service.dart';
-import '../../widgets/app_logo.dart';
-import '../../widgets/ppl_notifications_button.dart';
+import '../../widgets/ppl_header_bar.dart';
 import 'ppl_detail_tugas_screen.dart';
 
 class PPLAktivitasScreen extends StatefulWidget {
@@ -52,53 +51,9 @@ class _PPLAktivitasScreenState extends State<PPLAktivitasScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        titleSpacing: 16,
-        title: const Row(
-          children: [
-            AppLogo(size: 36, borderRadius: 10),
-            SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'E-PUPUK MOJOKERTO',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textSecondary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                Text(
-                  'Tugas & Survei',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          const PPLNotificationsButton(),
-          Padding(
-            padding: const EdgeInsets.only(right: 16, left: 4),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: AppTheme.darkGreen,
-              child: Text(_initials,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
+      appBar: buildPPLAppBar(
+        context: context,
+        title: 'Tugas & Survei',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -169,17 +124,6 @@ class _PPLAktivitasScreenState extends State<PPLAktivitasScreen> {
         ),
       ),
     );
-  }
-
-  String get _initials {
-    final parts = widget.user.nama.trim().split(RegExp(r'\s+'));
-    if (parts.first.isEmpty) return '?';
-    if (parts.length > 1) {
-      return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-    }
-    return parts.first
-        .substring(0, parts.first.length.clamp(0, 2))
-        .toUpperCase();
   }
 
   Widget _buildLoadError() {

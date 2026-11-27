@@ -6,7 +6,7 @@ import '../../models/ppl_task_model.dart';
 import '../../services/ppl_service.dart';
 import '../../services/location_service.dart';
 import '../../services/subsidy_service.dart';
-import '../../widgets/ppl_notifications_button.dart';
+import '../../widgets/ppl_header_bar.dart';
 import 'ppl_pengukuran_batas_screen.dart';
 
 class PPLFormSurveiScreen extends StatefulWidget {
@@ -54,6 +54,12 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
     super.initState();
     _task = widget.task;
     _measurement = widget.measurement;
+    if (_measurement == null && _task.parsedPolygonPoints.length >= 3) {
+      _measurement = PPLSurveyMeasurement(
+        areaM2: _task.luasLahanM2 > 0 ? _task.luasLahanM2 : 100.0,
+        polygonPoints: _task.parsedPolygonPoints,
+      );
+    }
     _komoditasController = TextEditingController(text: _task.komoditas);
   }
 
@@ -306,55 +312,10 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        titleSpacing: 0,
-        title: const Row(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'E-PUPUK KAB. MOJOKERTO',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textSecondary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                Text(
-                  'Survei',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: const [
-          PPLNotificationsButton(),
-          Padding(
-            padding: EdgeInsets.only(right: 16, left: 4),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: AppTheme.darkGreen,
-              child: Text('AH',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
+      appBar: buildPPLAppBar(
+        context: context,
+        title: 'Survei',
+        showBackButton: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -794,7 +755,8 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: _buildSectionHeaderNumber(2, 'Koordinat & Lokasi Lapangan'),
+                child:
+                    _buildSectionHeaderNumber(2, 'Koordinat & Lokasi Lapangan'),
               ),
               const SizedBox(width: 8),
               const Text(
@@ -899,9 +861,7 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      _isGpsRecorded
-                          ? 'Telah direkam'
-                          : 'Belum direkam',
+                      _isGpsRecorded ? 'Telah direkam' : 'Belum direkam',
                       style: TextStyle(
                           fontSize: 10,
                           color: _isGpsRecorded
@@ -962,70 +922,110 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  _task.poktan,
-                  style:
-                      const TextStyle(fontSize: 10, color: AppTheme.textMuted),
-                ),
+                if (_task.poktan.isNotEmpty && _task.poktan != 'Belum tersedia') ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Kelompok Tani: ${_task.poktan}',
+                    style:
+                        const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                  ),
+                ],
               ],
             ),
           ),
           const SizedBox(height: 12),
 
-          // Peta Preview Box
+          // Kartu Status Pengukuran Poligon Lahan
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
+              color: _measurement != null
+                  ? const Color(0xFFF0FDF4)
+                  : const Color(0xFFEFF6FF),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFDBEAFE)),
+              border: Border.all(
+                color: _measurement != null
+                    ? const Color(0xFFBBF7D0)
+                    : const Color(0xFFBFDBFE),
+                width: 1.2,
+              ),
             ),
             child: Column(
               children: [
-                const Icon(Icons.map_outlined,
-                    size: 28, color: Color(0xFF60A5FA)),
-                const SizedBox(height: 6),
+                Icon(
+                  _measurement != null
+                      ? Icons.verified_rounded
+                      : Icons.polyline_rounded,
+                  size: 32,
+                  color: _measurement != null
+                      ? AppTheme.primaryGreen
+                      : const Color(0xFF2563EB),
+                ),
+                const SizedBox(height: 8),
                 Text(
-                  _isGpsRecorded
-                      ? 'Koordinat GPS tercatat untuk referensi; poligon batas diukur terpisah.'
-                      : 'Belum ada koordinat GPS dari perangkat.',
-                  style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF1E40AF),
-                      fontWeight: FontWeight.w500),
+                  _measurement != null
+                      ? 'Poligon Batas Lahan Terdata'
+                      : 'Pengukuran Spasial Poligon Lahan',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: _measurement != null
+                        ? const Color(0xFF166534)
+                        : const Color(0xFF1E40AF),
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _task.poktan,
-                  style:
-                      const TextStyle(fontSize: 10, color: Color(0xFF93C5FD)),
+                  _measurement != null
+                      ? 'Luas terukur: ${_measurement!.areaM2.toStringAsFixed(1)} m² • ${_measurement!.polygonPoints.length} titik patok WGS-84'
+                      : 'Buka peta citra satelit untuk menentukan patok sudut pematang sawah dan menghitung luas secara geodetik.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _measurement != null
+                        ? const Color(0xFF15803D)
+                        : const Color(0xFF475569),
+                    height: 1.3,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _isSaving ? null : _measureBoundary,
-            icon: const Icon(Icons.polyline),
-            label: Text(_measurement == null
-                ? 'Ukur Batas & Luas Lahan'
-                : 'Ukur Ulang Batas Lahan'),
-          ),
-          if (_measurement != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Luas terukur: ${_measurement!.areaM2.toStringAsFixed(2)} m² '
-              '(${_measurement!.polygonPoints.length} titik)',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primaryGreen,
+          if (_measurement == null)
+            ElevatedButton.icon(
+              onPressed: _isSaving ? null : _measureBoundary,
+              icon:
+                  const Icon(Icons.map_rounded, size: 18, color: Colors.white),
+              label: const Text('Ukur Batas & Luas Lahan',
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryGreen,
+                minimumSize: const Size(double.infinity, 44),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+            )
+          else
+            OutlinedButton.icon(
+              onPressed: _isSaving ? null : _measureBoundary,
+              icon: const Icon(Icons.edit_location_alt_outlined,
+                  size: 18, color: AppTheme.primaryGreen),
+              label: const Text('Ubah / Ukur Ulang Batas Lahan',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryGreen)),
+              style: OutlinedButton.styleFrom(
+                side:
+                    const BorderSide(color: AppTheme.primaryGreen, width: 1.2),
+                minimumSize: const Size(double.infinity, 44),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
               ),
             ),
-          ],
         ],
       ),
     );
@@ -1050,7 +1050,8 @@ class _PPLFormSurveiScreenState extends State<PPLFormSurveiScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: _buildSectionHeaderNumber(3, 'Dokumentasi Foto Lapangan'),
+                child:
+                    _buildSectionHeaderNumber(3, 'Dokumentasi Foto Lapangan'),
               ),
               const SizedBox(width: 8),
               Text(

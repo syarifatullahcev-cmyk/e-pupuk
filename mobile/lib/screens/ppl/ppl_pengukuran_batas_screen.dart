@@ -5,7 +5,7 @@ import '../../config/theme.dart';
 import '../../models/ppl_task_model.dart';
 import '../../services/geo_calc_service.dart';
 import '../../services/location_service.dart';
-import '../../widgets/ppl_notifications_button.dart';
+import '../../widgets/ppl_header_bar.dart';
 
 class PPLSurveyMeasurement {
   final List<LatLng> polygonPoints;
@@ -480,55 +480,10 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        titleSpacing: 0,
-        title: const Row(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'E-PUPUK MOJOKERTO',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textSecondary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                Text(
-                  'Survei',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: const [
-          PPLNotificationsButton(),
-          Padding(
-            padding: EdgeInsets.only(right: 16, left: 4),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: AppTheme.darkGreen,
-              child: Text('AH',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
+      appBar: buildPPLAppBar(
+        context: context,
+        title: 'Survei Batas',
+        showBackButton: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -727,14 +682,16 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
                 options: MapOptions(
                   initialCenter: LatLng(_task.latitude, _task.longitude),
                   initialZoom: 17.6,
-                  maxZoom: 19.5,
-                  minZoom: 13.0,
+                  maxZoom: 18.5,
+                  minZoom: 12.0,
                 ),
                 children: [
                   TileLayer(
                     urlTemplate: _isSatelliteLayer
                         ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
                         : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    maxNativeZoom: 18,
+                    maxZoom: 18.5,
                     userAgentPackageName: 'com.epupuk.mobile',
                     errorTileCallback: (tile, error, stackTrace) {
                       // Graceful handling jika tile offline atau status 400

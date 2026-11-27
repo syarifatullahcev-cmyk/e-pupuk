@@ -52,6 +52,23 @@ class PPLService {
     }
   }
 
+  static Future<void> markAllNotificationsRead() async {
+    final token = await _getToken();
+    if (token == null || token.isEmpty) {
+      throw StateError('Sesi login tidak tersedia. Silakan masuk kembali.');
+    }
+
+    final response = await http.put(
+      Uri.parse(ApiConfig.notificationsReadAllUrl),
+      headers: {'Authorization': 'Bearer $token'},
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          'Gagal menandai semua notifikasi dibaca (HTTP ${response.statusCode}).');
+    }
+  }
+
   // 1. Ambil Semua Tugas Disposisi Survei untuk PPL
   static Future<List<PPLTaskModel>> getAssignedTasks() async {
     final token = await _getToken();
