@@ -12,6 +12,7 @@ import '../../services/auth_service.dart';
 import '../../services/location_service.dart';
 import '../../config/api_config.dart';
 import '../../services/subsidy_service.dart';
+import '../../services/ppl_service.dart';
 import '../auth/login_screen.dart';
 
 class PetaniDashboardScreen extends StatefulWidget {
@@ -37,6 +38,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
   int _bottomNavIndex = 0;
 
   bool _isLoading = true;
+  List<Map<String, dynamic>> _notifications = [];
+  int _unreadNotificationsCount = 0;
 
   // Data State
   DashboardStatsModel? _stats;
@@ -96,6 +99,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
         SubsidyService.getCommodities(),
         SubsidyService.getDistributions(),
         SubsidyService.getMyScans(),
+        PPLService.getNotifications().catchError((_) => <Map<String, dynamic>>[]),
       ]);
 
       if (mounted) {
@@ -109,6 +113,11 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           _commodities = results[6] as List<CommodityModel>;
           _distributions = results[7] as List<DistributionModel>;
           _scans = results[8] as List<ScanHistoryModel>;
+          final notifs = results[9];
+          if (notifs is List) {
+            _notifications = notifs.whereType<Map<String, dynamic>>().toList();
+            _unreadNotificationsCount = _notifications.where((n) => n['is_read'] != true).length;
+          }
           final availableDistributions = _distributions
               .where((distribution) =>
                   distribution.statusPenyaluran == 'MENUNGGU_PENGAMBILAN' &&
@@ -134,6 +143,83 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<XFile?> _pickImageWithSourceChoice(BuildContext context) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Pilih Sumber Foto',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: textDark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Anda dapat memotret langsung dengan kamera atau memilih file dari galeri.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.camera_alt_rounded,
+                      color: primaryGreen),
+                ),
+                title: const Text('Ambil Foto Langsung (Kamera)',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13.5)),
+                subtitle: const Text('Buka kamera dan ambil foto saat ini',
+                    style: TextStyle(fontSize: 11)),
+                onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE0F2FE),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.photo_library_rounded,
+                      color: Color(0xFF0284C7)),
+                ),
+                title: const Text('Pilih dari Galeri / Dokumen',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 13.5)),
+                subtitle: const Text(
+                    'Pilih gambar yang sudah tersimpan di memori HP',
+                    style: TextStyle(fontSize: 11)),
+                onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source == null) return null;
+    return await _imagePicker.pickImage(
+      source: source,
+      imageQuality: 85,
+    );
   }
 
   Future<void> _pickAndSaveKtpPhoto() async {
@@ -322,10 +408,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                     onPressed: isSaving
                         ? null
                         : () async {
-                            final image = await _imagePicker.pickImage(
-                              source: ImageSource.gallery,
-                              imageQuality: 85,
-                            );
+                            final image =
+                                await _pickImageWithSourceChoice(sheetContext);
                             if (image != null && sheetContext.mounted) {
                               setSheetState(() => replacementLandPhoto = image);
                             }
@@ -613,43 +697,39 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
         ],
       ),
       actions: [
-        // Bell Notification with Red Badge "1"
+        // Bell Notification with dynamic badge
         Stack(
           alignment: Alignment.center,
           children: [
             IconButton(
               icon: const Icon(Icons.notifications_outlined,
                   color: Color(0xFF334155), size: 22),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text(
-                          'Notifikasi: Pengajuan subsidi pupuk telah diverifikasi.')),
-                );
-              },
+              onPressed: _showNotificationsSheet,
             ),
-            Positioned(
-              top: 10,
-              right: 12,
-              child: Container(
-                width: 15,
-                height: 15,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE11D48),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    '1',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
+            if (_unreadNotificationsCount > 0)
+              Positioned(
+                top: 8,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE11D48),
+                    shape: BoxShape.circle,
+                  ),
+                  constraints:
+                      const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Center(
+                    child: Text(
+                      '$_unreadNotificationsCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
         // Avatar Circle "(B)" - ketuk untuk buka profil Akun persis PPL
@@ -686,74 +766,192 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
     );
   }
 
-  // =========================================================================
-  // 1. BANNER HIJAU TUA PERSIS SEPERTI DI GAMBAR
-  // =========================================================================
-  Widget _buildTopBanner() {
-    final farmerName = _farmer?.nama ?? widget.user.nama;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-      decoration: BoxDecoration(
-        color: darkEmerald,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1A000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+  void _showNotificationsSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Chip "PORTAL PETANI & KELOMPOK TANI" persis Screenshot
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
-            decoration: BoxDecoration(
-              color: const Color(0xFF043E2E),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.35)),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.spa_rounded, size: 13, color: Color(0xFF6EE7B7)),
-                SizedBox(width: 5),
-                Text(
-                  'PORTAL PETANI & KELOMPOK TANI',
-                  style: TextStyle(
-                    color: Color(0xFF6EE7B7),
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.75,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCFCE7),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.notifications_active_rounded,
+                            size: 18, color: primaryGreen),
+                      ),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Pemberitahuan & Status',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_unreadNotificationsCount > 0)
+                    TextButton(
+                      onPressed: () async {
+                        for (final n in _notifications) {
+                          if (n['is_read'] != true && n['id'] is int) {
+                            await PPLService.markNotificationRead(n['id'] as int)
+                                .catchError((_) {});
+                          }
+                        }
+                        if (mounted) {
+                          setState(() {
+                            for (var n in _notifications) {
+                              n['is_read'] = true;
+                            }
+                            _unreadNotificationsCount = 0;
+                          });
+                          setSheetState(() {});
+                        }
+                      },
+                      child: const Text('Tandai Semua Dibaca',
+                          style: TextStyle(fontSize: 11.5, color: primaryGreen)),
+                    ),
+                ],
+              ),
+              const Divider(height: 20),
+              if (_notifications.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 36),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.notifications_off_outlined,
+                            size: 42, color: Color(0xFF94A3B8)),
+                        SizedBox(height: 8),
+                        Text(
+                          'Belum ada notifikasi baru',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: _notifications.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final notif = _notifications[index];
+                      final isRead = notif['is_read'] == true;
+                      final title =
+                          notif['judul']?.toString() ?? 'Pemberitahuan Subsidi';
+                      final body = notif['pesan']?.toString() ?? '';
+                      final createdAt = notif['created_at']?.toString() ?? '';
+
+                      return ListTile(
+                        contentPadding:
+                            const EdgeInsets.symmetric(vertical: 4),
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isRead
+                                ? const Color(0xFFF1F5F9)
+                                : const Color(0xFFDCFCE7),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isRead ? Icons.check : Icons.campaign_rounded,
+                            size: 16,
+                            color: isRead
+                                ? const Color(0xFF94A3B8)
+                                : primaryGreen,
+                          ),
+                        ),
+                        title: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight:
+                                isRead ? FontWeight.w500 : FontWeight.bold,
+                            color: textDark,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 2),
+                            Text(
+                              body,
+                              style: const TextStyle(
+                                  fontSize: 11.5, color: Color(0xFF475569)),
+                            ),
+                            if (createdAt.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                createdAt.split('T').first,
+                                style: const TextStyle(
+                                    fontSize: 10, color: Color(0xFF94A3B8)),
+                              ),
+                            ],
+                          ],
+                        ),
+                        onTap: isRead
+                            ? null
+                            : () async {
+                                final id = notif['id'];
+                                if (id is int) {
+                                  await PPLService.markNotificationRead(id)
+                                      .catchError((_) {});
+                                  if (mounted) {
+                                    setState(() {
+                                      notif['is_read'] = true;
+                                      _unreadNotificationsCount = _notifications
+                                          .where((n) => n['is_read'] != true)
+                                          .length;
+                                    });
+                                    setSheetState(() {});
+                                  }
+                                }
+                              },
+                      );
+                    },
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            'Selamat Datang, $farmerName!',
-            style: const TextStyle(
-              fontSize: 18.5,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: -0.2,
-            ),
-          ),
-          const SizedBox(height: 5),
-          const Text(
-            'Sistem resmi verifikasi subsidi, pemantauan kuota, dan pemindaian QR Code pada karung pupuk fisik berbasis GPS geofencing.',
-            style: TextStyle(
-              color: Color(0xFFD1FAE5),
-              fontSize: 11,
-              height: 1.35,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -2304,11 +2502,11 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                         ),
                         const SizedBox(height: 2),
                         const Text(
-                          'Tahapan: 1. Pengajuan -> 2. Verifikasi Berkas -> 3. Penugasan PPL -> 4. Survei Lapangan -> 5. Persetujuan Admin -> 6. Penggunaan Pupuk',
+                          'Pantau alur verifikasi berkas hingga penerbitan QR karung',
                           style: TextStyle(
                               color: Color(0xFF64748B),
-                              fontSize: 9.5,
-                              height: 1.3),
+                              fontSize: 10,
+                              height: 1.2),
                         ),
                       ],
                     ),
@@ -2337,6 +2535,33 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
             ),
           ],
         ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildStagePill('1', 'Pengajuan'),
+                const Icon(Icons.chevron_right, size: 13, color: Color(0xFF94A3B8)),
+                _buildStagePill('2', 'Verif Berkas'),
+                const Icon(Icons.chevron_right, size: 13, color: Color(0xFF94A3B8)),
+                _buildStagePill('3', 'PPL Lapangan'),
+                const Icon(Icons.chevron_right, size: 13, color: Color(0xFF94A3B8)),
+                _buildStagePill('4', 'Survei Fisik'),
+                const Icon(Icons.chevron_right, size: 13, color: Color(0xFF94A3B8)),
+                _buildStagePill('5', 'Persetujuan'),
+                const Icon(Icons.chevron_right, size: 13, color: Color(0xFF94A3B8)),
+                _buildStagePill('6', 'Ambil Pupuk'),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 14),
         if (_applications.isEmpty)
           const Padding(
@@ -2359,9 +2584,48 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
               status: _applications[i].status,
               adminNote: _applications[i].catatanAdminBerkas,
               hasPplSurvey: _applications[i].surveyRekomendasi != null,
+              surveyPhotoUrl: _applications[i].surveyFotoUrl,
             ),
           ],
       ],
+    );
+  }
+
+  Widget _buildStagePill(String number, String title) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFFCBD5E1), width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircleAvatar(
+            radius: 6.5,
+            backgroundColor: primaryGreen,
+            child: Text(
+              number,
+              style: const TextStyle(
+                fontSize: 8,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+              color: textDark,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -2374,6 +2638,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
     required String status,
     String? adminNote,
     bool hasPplSurvey = false,
+    String? surveyPhotoUrl,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -2512,10 +2777,10 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                                Text('Membuka foto survei lapangan PPL...')),
+                      _showSurveyPhotoDialog(
+                        appId: id,
+                        lokasi: location,
+                        photoUrl: surveyPhotoUrl,
                       );
                     },
                     child: const Text('Lihat Foto Survei',
@@ -2533,104 +2798,262 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
     );
   }
 
-  Widget _buildExactStatusBadge(String status) {
-    if (status == 'TERSALURKAN') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 4.5),
-        decoration: BoxDecoration(
-          color: const Color(0xFF009B69),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
+  void _showSurveyPhotoDialog({
+    required String appId,
+    required String lokasi,
+    String? photoUrl,
+  }) {
+    final fullUrl = photoUrl == null || photoUrl.isEmpty
+        ? null
+        : (photoUrl.startsWith('http')
+            ? photoUrl
+            : Uri.parse(ApiConfig.baseUrl).resolve(photoUrl).toString());
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        title: Row(
           children: [
-            Icon(Icons.check_circle_outline_rounded,
-                size: 13, color: Colors.white),
-            SizedBox(width: 4.5),
-            Text(
-              'Telah Disalurkan',
-              style: TextStyle(
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE0F2FE),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.photo_camera_back_outlined,
+                  size: 18, color: Color(0xFF0284C7)),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Dokumentasi Survei PPL',
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  Text('$appId • $lokasi',
+                      style: const TextStyle(
+                          fontSize: 11, color: Color(0xFF64748B))),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: fullUrl != null
+                  ? Image.network(
+                      fullUrl,
+                      height: 220,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return Container(
+                          height: 220,
+                          color: const Color(0xFFF1F5F9),
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildFallbackSurveyPhotoCard(appId, lokasi),
+                    )
+                  : _buildFallbackSurveyPhotoCard(appId, lokasi),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.verified_rounded, size: 16, color: primaryGreen),
+                  SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Verifikasi fisik poligon sawah dan komoditas cocok dengan peta satelit.',
+                      style: TextStyle(
+                          fontSize: 10.5,
+                          color: Color(0xFF166534),
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tutup',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFallbackSurveyPhotoCard(String appId, String lokasi) {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(12),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF064E3B), Color(0xFF042F2E)],
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.satellite_alt_rounded,
+              size: 40, color: Color(0xFF6EE7B7)),
+          const SizedBox(height: 10),
+          const Text(
+            'Survei Citra & Fisik PPL',
+            style: TextStyle(
                 color: Colors.white,
-                fontSize: 10.5,
                 fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (status == 'MENUNGGU_VERIFIKASI_BERKAS') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFBEB),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFFDE68A), width: 1),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.access_time_rounded, size: 13, color: Color(0xFFD97706)),
-            SizedBox(width: 4),
-            Text(
-              'Menunggu Verifikasi Berkas',
-              style: TextStyle(
-                color: Color(0xFFD97706),
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (status == 'MENUNGGU_PERSETUJUAN_AKHIR') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFAF5FF),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFD8B4FE), width: 1.2),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.access_time_rounded, size: 13, color: Color(0xFF7E22CE)),
-            SizedBox(width: 4),
-            Text(
-              'Menunggu Persetujuan Akhir',
-              style: TextStyle(
-                color: Color(0xFF7E22CE),
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFDCFCE7),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF86EFAC), width: 1),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check, size: 12, color: Color(0xFF166534)),
-            SizedBox(width: 4),
-            Text(
-              'Siap Diambil (QR Terbit)',
-              style: TextStyle(
-                color: Color(0xFF166534),
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      );
+                fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Lahan: $lokasi\nStatus Geofence: Terverifikasi PPL',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFFD1FAE5), fontSize: 10.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExactStatusBadge(String status) {
+    Color bg;
+    Color border;
+    Color textColor;
+    IconData icon;
+    String label;
+
+    switch (status) {
+      case 'DIAJUKAN':
+        bg = const Color(0xFFF1F5F9);
+        border = const Color(0xFFCBD5E1);
+        textColor = const Color(0xFF475569);
+        icon = Icons.send_rounded;
+        label = 'Diajukan';
+        break;
+      case 'MENUNGGU_VERIFIKASI_BERKAS':
+        bg = const Color(0xFFFFFBEB);
+        border = const Color(0xFFFDE68A);
+        textColor = const Color(0xFFD97706);
+        icon = Icons.access_time_rounded;
+        label = 'Menunggu Verifikasi Berkas';
+        break;
+      case 'PERLU_PERBAIKAN_BERKAS':
+        bg = const Color(0xFFFFEDD5);
+        border = const Color(0xFFFDBA74);
+        textColor = const Color(0xFFC2410C);
+        icon = Icons.warning_amber_rounded;
+        label = 'Perlu Perbaikan Berkas';
+        break;
+      case 'DITOLAK_BERKAS':
+      case 'DITOLAK_LAPANGAN':
+        bg = const Color(0xFFFFE4E6);
+        border = const Color(0xFFFDA4AF);
+        textColor = const Color(0xFFBE123C);
+        icon = Icons.cancel_outlined;
+        label = 'Ditolak';
+        break;
+      case 'BERKAS_TERVERIFIKASI':
+        bg = const Color(0xFFCCFBF1);
+        border = const Color(0xFF5EEAD4);
+        textColor = const Color(0xFF0F766E);
+        icon = Icons.verified_user_outlined;
+        label = 'Berkas Terverifikasi';
+        break;
+      case 'DITUGASKAN_KE_PPL':
+        bg = const Color(0xFFE0F2FE);
+        border = const Color(0xFF7DD3FC);
+        textColor = const Color(0xFF0369A1);
+        icon = Icons.person_outline_rounded;
+        label = 'Ditugaskan ke PPL';
+        break;
+      case 'SURVEI_LAPANGAN':
+        bg = const Color(0xFFE0E7FF);
+        border = const Color(0xFFA5B4FC);
+        textColor = const Color(0xFF4338CA);
+        icon = Icons.location_on_outlined;
+        label = 'Sedang Survei Fisik PPL';
+        break;
+      case 'MENUNGGU_PERSETUJUAN_AKHIR':
+        bg = const Color(0xFFFAF5FF);
+        border = const Color(0xFFD8B4FE);
+        textColor = const Color(0xFF7E22CE);
+        icon = Icons.access_time_rounded;
+        label = 'Menunggu Persetujuan Akhir';
+        break;
+      case 'DISETUJUI':
+      case 'DIJADWALKAN_DISTRIBUSI':
+        bg = const Color(0xFFDCFCE7);
+        border = const Color(0xFF86EFAC);
+        textColor = const Color(0xFF166534);
+        icon = Icons.check_circle_outline_rounded;
+        label = 'Siap Diambil (QR Terbit)';
+        break;
+      case 'TERSALURKAN':
+        bg = const Color(0xFF009B69);
+        border = const Color(0xFF009B69);
+        textColor = Colors.white;
+        icon = Icons.check_circle_rounded;
+        label = 'Telah Disalurkan';
+        break;
+      default:
+        bg = const Color(0xFFF1F5F9);
+        border = const Color(0xFFCBD5E1);
+        textColor = const Color(0xFF475569);
+        icon = Icons.info_outline;
+        label = status.replaceAll('_', ' ');
     }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: border, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: textColor),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildWebProgressStepper(String status) {
@@ -2862,104 +3285,113 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           // 1. Beranda
-          _bottomNavItem(
-            index: 0,
-            label: 'Beranda',
-            icon: Icons.home_rounded,
-            isSelected: _bottomNavIndex == 0,
-            onTap: () {
-              setState(() {
-                _bottomNavIndex = 0;
-                _activeNav = 0;
-              });
-            },
+          Expanded(
+            child: _bottomNavItem(
+              index: 0,
+              label: 'Beranda',
+              icon: Icons.home_rounded,
+              isSelected: _bottomNavIndex == 0,
+              onTap: () {
+                setState(() {
+                  _bottomNavIndex = 0;
+                  _activeNav = 0;
+                });
+              },
+            ),
           ),
           // 2. Lahan
-          _bottomNavItem(
-            index: 1,
-            label: 'Lahan',
-            icon: Icons.location_on_outlined,
-            isSelected: _bottomNavIndex == 1,
-            onTap: () {
-              setState(() {
-                _bottomNavIndex = 1;
-                _activeNav = 2; // Data Lahan
-              });
-            },
+          Expanded(
+            child: _bottomNavItem(
+              index: 1,
+              label: 'Lahan',
+              icon: Icons.location_on_outlined,
+              isSelected: _bottomNavIndex == 1,
+              onTap: () {
+                setState(() {
+                  _bottomNavIndex = 1;
+                  _activeNav = 2; // Data Lahan
+                });
+              },
+            ),
           ),
           // 3. Scan QR (TOMBOL TENGAH BESAR ELEVATED HIJAU)
-          InkWell(
-            onTap: () {
-              setState(() {
-                _bottomNavIndex = 2;
-                _activeNav = 6; // Pembukaan Pupuk / Scan QR
-              });
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: primaryGreen,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: primaryGreen.withValues(alpha: 0.35),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _bottomNavIndex = 2;
+                  _activeNav = 6; // Pembukaan Pupuk / Scan QR
+                });
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: primaryGreen,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryGreen.withValues(alpha: 0.35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.qr_code_scanner_rounded,
+                          color: Colors.white, size: 24),
+                    ),
                   ),
-                  child: const Center(
-                    child: Icon(Icons.qr_code_scanner_rounded,
-                        color: Colors.white, size: 24),
+                  const SizedBox(height: 3),
+                  const Text(
+                    'Scan QR',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: primaryGreen,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3),
-                const Text(
-                  'Scan QR',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: primaryGreen,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           // 4. Status
-          _bottomNavItem(
-            index: 3,
-            label: 'Status',
-            icon: Icons.assignment_outlined,
-            isSelected: _bottomNavIndex == 3,
-            onTap: () {
-              setState(() {
-                _bottomNavIndex = 3;
-                _activeNav = 4; // Status Pengajuan
-              });
-            },
+          Expanded(
+            child: _bottomNavItem(
+              index: 3,
+              label: 'Status',
+              icon: Icons.assignment_outlined,
+              isSelected: _bottomNavIndex == 3,
+              onTap: () {
+                setState(() {
+                  _bottomNavIndex = 3;
+                  _activeNav = 4; // Status Pengajuan
+                });
+              },
+            ),
           ),
           // 5. Akun
-          _bottomNavItem(
-            index: 4,
-            label: 'Akun',
-            icon: Icons.person_outline_rounded,
-            isSelected: _bottomNavIndex == 4,
-            onTap: () {
-              setState(() {
-                _bottomNavIndex = 4;
-                _activeNav = 1; // Profil Saya
-              });
-            },
+          Expanded(
+            child: _bottomNavItem(
+              index: 4,
+              label: 'Akun',
+              icon: Icons.person_outline_rounded,
+              isSelected: _bottomNavIndex == 4,
+              onTap: () {
+                setState(() {
+                  _bottomNavIndex = 4;
+                  _activeNav = 1; // Profil Saya
+                });
+              },
+            ),
           ),
         ],
       ),
@@ -2977,25 +3409,29 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 2),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isSelected)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: primaryGreen, size: 19),
-              )
-            else
-              Icon(icon, color: const Color(0xFF94A3B8), size: 20),
+            Container(
+              height: 28,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              decoration: BoxDecoration(
+                color:
+                    isSelected ? const Color(0xFFDCFCE7) : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: isSelected ? primaryGreen : const Color(0xFF94A3B8),
+                size: 20,
+              ),
+            ),
             const SizedBox(height: 3),
             Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
@@ -3649,19 +4085,18 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 children: [
                   Text(
                     'Daftar Lahan Pertanian (${_lands.length})',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 14.5,
                         color: textDark),
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
                   const Text(
                     'Data petak sawah terdaftar & status verifikasi PPL',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Color(0xFF64748B), fontSize: 10.5),
+                    style: TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 10.5,
+                        height: 1.25),
                   ),
                 ],
               ),
@@ -5260,10 +5695,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                         onPressed: isSaving || isUploadingCertificate
                             ? null
                             : () async {
-                                final image = await _imagePicker.pickImage(
-                                  source: ImageSource.gallery,
-                                  imageQuality: 85,
-                                );
+                                final image =
+                                    await _pickImageWithSourceChoice(ctx);
                                 if (image != null && ctx.mounted) {
                                   setDlgState(() => landPhoto = image);
                                 }
@@ -5271,7 +5704,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                         icon: const Icon(Icons.add_a_photo_outlined, size: 18),
                         label: Text(
                           landPhoto?.name ??
-                              'Pilih foto lahan (JPG, PNG, WEBP)',
+                              'Pilih foto lahan (Kamera / Galeri)',
                           overflow: TextOverflow.ellipsis,
                         ),
                         style: OutlinedButton.styleFrom(
@@ -6307,15 +6740,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 1. Top Banner (#064E3B) — Tampil di Tab 0, 6, dan 7 persis Screenshot UI
-                    if (_activeNav == 0 ||
-                        _activeNav == 6 ||
-                        _activeNav == 7) ...[
-                      _buildTopBanner(),
-                      const SizedBox(height: 14),
-                    ],
-
-                    // 2. Horizontal Pill Tabs
+                    // Horizontal Pill Tabs
                     _buildPillNavigation(),
                     const SizedBox(height: 16),
 
