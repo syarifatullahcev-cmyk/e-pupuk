@@ -2161,35 +2161,7 @@ export default function AdminDashboard() {
                 >
                   Kirim Penugasan
                 </button>
-              )}
-              {selectedApp.survey && (
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSurveyDetail(selectedApp)}
-                    className="w-full py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center gap-1.5 border border-purple-200 cursor-pointer transition-colors"
-                  >
-                    <Eye className="w-4 h-4" /> Buka Bukti Lengkap Hasil Survei PPL
-                  </button>
-                </div>
-              )}
-            </section>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Alokasi Jumlah Pupuk Disetujui (kg):
-              </label>
-              <input
-                type="number"
-                min="25"
-                step="25"
-                value={approvedKg}
-                onChange={(e) => setApprovedKg(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:border-purple-500 outline-hidden"
-              />
-              <span className="text-[10px] text-slate-400 mt-0.5 block">
-                Permintaan awal: {selectedApp.jumlah_diajukan} kg. Masukkan kelipatan 25 kg; setiap karung memiliki QR unik.
-              </span>
+              </div>
             </div>
           </div>
         )}
@@ -2262,6 +2234,17 @@ export default function AdminDashboard() {
                   >
                     Lihat Foto Survei
                   </button>
+                )}
+                {selectedApp.survey && (
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSurveyDetail(selectedApp)}
+                      className="w-full py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center gap-1.5 border border-purple-200 cursor-pointer transition-colors"
+                    >
+                      <Eye className="w-4 h-4" /> Buka Bukti Lengkap Hasil Survei PPL
+                    </button>
+                  </div>
                 )}
               </section>
 
