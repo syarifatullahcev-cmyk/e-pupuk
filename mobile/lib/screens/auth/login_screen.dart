@@ -4,6 +4,7 @@ import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 import '../petani/petani_dashboard_screen.dart';
 import '../ppl/ppl_dashboard_screen.dart';
+import '../landing/landing_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -79,21 +80,23 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textPrimary),
+          icon:
+              const Icon(Icons.arrow_back_rounded, color: AppTheme.textPrimary),
           tooltip: 'Kembali ke Halaman Utama',
           onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              Navigator.pushReplacementNamed(context, '/');
-            }
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const LandingScreen()),
+              (route) => false,
+            );
           },
         ),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: Form(
@@ -134,7 +137,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _usernameController,
                       decoration: InputDecoration(
                         labelText: 'Username Petani',
-                        prefixIcon: const Icon(Icons.person_outline, color: AppTheme.primaryGreen),
+                        prefixIcon: const Icon(Icons.person_outline,
+                            color: AppTheme.primaryGreen),
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
@@ -147,11 +151,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                          borderSide: const BorderSide(
+                              color: AppTheme.primaryGreen, width: 2),
                         ),
                       ),
                       validator: (value) =>
-                          value == null || value.trim().isEmpty ? 'Masukkan username Anda' : null,
+                          value == null || value.trim().isEmpty
+                              ? 'Masukkan username Anda'
+                              : null,
                     ),
                     const SizedBox(height: 16),
 
@@ -161,13 +168,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         labelText: 'Kata Sandi',
-                        prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.primaryGreen),
+                        prefixIcon: const Icon(Icons.lock_outline,
+                            color: AppTheme.primaryGreen),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                             color: Colors.grey,
                           ),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
                         ),
                         filled: true,
                         fillColor: Colors.white,
@@ -181,11 +192,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppTheme.primaryGreen, width: 2),
+                          borderSide: const BorderSide(
+                              color: AppTheme.primaryGreen, width: 2),
                         ),
                       ),
-                      validator: (value) =>
-                          value == null || value.isEmpty ? 'Masukkan kata sandi' : null,
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Masukkan kata sandi'
+                          : null,
                     ),
                     const SizedBox(height: 24),
 
@@ -205,11 +218,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2),
                             )
                           : const Text(
                               'Masuk sebagai Petani',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                     ),
                     const SizedBox(height: 16),
@@ -242,7 +257,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-
                   ],
                 ),
               ),

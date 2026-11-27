@@ -4,6 +4,7 @@ import '../../config/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../ppl/ppl_dashboard_screen.dart';
+import '../landing/landing_screen.dart';
 
 class PPLLoginScreen extends StatefulWidget {
   const PPLLoginScreen({super.key});
@@ -92,21 +93,23 @@ class _PPLLoginScreenState extends State<PPLLoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textPrimary),
+          icon:
+              const Icon(Icons.arrow_back_rounded, color: AppTheme.textPrimary),
           tooltip: 'Kembali ke Halaman Utama',
           onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              Navigator.pushReplacementNamed(context, '/');
-            }
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const LandingScreen()),
+              (route) => false,
+            );
           },
         ),
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: Column(
@@ -169,7 +172,8 @@ class _PPLLoginScreenState extends State<PPLLoginScreen> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFEF2F2),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: const Color(0xFFFECACA)),
+                                border:
+                                    Border.all(color: const Color(0xFFFECACA)),
                               ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,11 +215,13 @@ class _PPLLoginScreenState extends State<PPLLoginScreen> {
                               fillColor: const Color(0xFFF9FAFB),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppTheme.border),
+                                borderSide:
+                                    const BorderSide(color: AppTheme.border),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppTheme.border),
+                                borderSide:
+                                    const BorderSide(color: AppTheme.border),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -263,11 +269,13 @@ class _PPLLoginScreenState extends State<PPLLoginScreen> {
                               fillColor: const Color(0xFFF9FAFB),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppTheme.border),
+                                borderSide:
+                                    const BorderSide(color: AppTheme.border),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppTheme.border),
+                                borderSide:
+                                    const BorderSide(color: AppTheme.border),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -309,7 +317,8 @@ class _PPLLoginScreenState extends State<PPLLoginScreen> {
                                       ),
                                     )
                                   : const Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Icon(Icons.login_rounded, size: 18),
                                         SizedBox(width: 8),
@@ -332,7 +341,8 @@ class _PPLLoginScreenState extends State<PPLLoginScreen> {
 
                   // Catatan Administrasi PPL
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: AppTheme.lightGreen.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),

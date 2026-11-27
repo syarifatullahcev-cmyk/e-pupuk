@@ -4,7 +4,7 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/ppl_notifications_button.dart';
-import '../auth/ppl_login_screen.dart';
+import '../landing/landing_screen.dart';
 
 class PPLProfilScreen extends StatelessWidget {
   final UserModel user;
@@ -38,7 +38,7 @@ class PPLProfilScreen extends StatelessWidget {
       if (context.mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const PPLLoginScreen()),
+          MaterialPageRoute(builder: (context) => const LandingScreen()),
           (route) => false,
         );
       }
@@ -169,7 +169,7 @@ class PPLProfilScreen extends StatelessWidget {
                       Icons.sync, 'Status Sinkronisasi', 'Online • Otomatis'),
                   const Divider(height: 1, color: AppTheme.borderSubtle),
                   _buildSettingTile(Icons.info_outline, 'Versi Aplikasi',
-                      'e-Pupuk Mobile v2.5.1 Pro'),
+                      'e-Pupuk Mobile v2.5.2 Pro'),
                 ],
               ),
             ),

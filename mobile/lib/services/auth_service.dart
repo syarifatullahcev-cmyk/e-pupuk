@@ -115,7 +115,13 @@ class AuthService {
     );
   }
 
-  // 4. Logout
+  // 4. Get Token
+  static Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('jwt_token');
+  }
+
+  // 5. Logout
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();

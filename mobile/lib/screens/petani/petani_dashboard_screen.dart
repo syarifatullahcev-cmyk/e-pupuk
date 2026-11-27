@@ -13,7 +13,7 @@ import '../../services/location_service.dart';
 import '../../config/api_config.dart';
 import '../../services/subsidy_service.dart';
 import '../../services/ppl_service.dart';
-import '../auth/login_screen.dart';
+import '../landing/landing_screen.dart';
 
 class PetaniDashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -87,6 +87,17 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
   }
 
   Future<void> _loadAllData() async {
+    final token = await AuthService.getToken();
+    if (token == null || token.isEmpty) {
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const LandingScreen()),
+          (route) => false,
+        );
+      }
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       final results = await Future.wait([
@@ -99,7 +110,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
         SubsidyService.getCommodities(),
         SubsidyService.getDistributions(),
         SubsidyService.getMyScans(),
-        PPLService.getNotifications().catchError((_) => <Map<String, dynamic>>[]),
+        PPLService.getNotifications()
+            .catchError((_) => <Map<String, dynamic>>[]),
       ]);
 
       if (mounted) {
@@ -116,7 +128,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           final notifs = results[9];
           if (notifs is List) {
             _notifications = notifs.whereType<Map<String, dynamic>>().toList();
-            _unreadNotificationsCount = _notifications.where((n) => n['is_read'] != true).length;
+            _unreadNotificationsCount =
+                _notifications.where((n) => n['is_read'] != true).length;
           }
           final availableDistributions = _distributions
               .where((distribution) =>
@@ -180,12 +193,12 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                     color: const Color(0xFFDCFCE7),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.camera_alt_rounded,
-                      color: primaryGreen),
+                  child:
+                      const Icon(Icons.camera_alt_rounded, color: primaryGreen),
                 ),
                 title: const Text('Ambil Foto Langsung (Kamera)',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 13.5)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                 subtitle: const Text('Buka kamera dan ambil foto saat ini',
                     style: TextStyle(fontSize: 11)),
                 onTap: () => Navigator.pop(ctx, ImageSource.camera),
@@ -202,8 +215,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                       color: Color(0xFF0284C7)),
                 ),
                 title: const Text('Pilih dari Galeri / Dokumen',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 13.5)),
+                    style:
+                        TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                 subtitle: const Text(
                     'Pilih gambar yang sudah tersimpan di memori HP',
                     style: TextStyle(fontSize: 11)),
@@ -445,7 +458,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                               ? null
                               : () async {
                                   final image =
-                                      await _pickImageWithSourceChoice(sheetContext);
+                                      await _pickImageWithSourceChoice(
+                                          sheetContext);
                                   if (image != null && sheetContext.mounted) {
                                     setSheetState(() {
                                       replacementCertificate = image;
@@ -453,14 +467,16 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                     });
                                   }
                                 },
-                          icon: const Icon(Icons.description_outlined, size: 18),
+                          icon:
+                              const Icon(Icons.description_outlined, size: 18),
                           label: const Text('Pilih / Ganti Sertifikat'),
                           style: OutlinedButton.styleFrom(
                             alignment: Alignment.centerLeft,
                           ),
                         ),
                       ),
-                      if (land.dokumenSertifikatUrl != null && !removeCertificate) ...[
+                      if (land.dokumenSertifikatUrl != null &&
+                          !removeCertificate) ...[
                         const SizedBox(width: 8),
                         IconButton(
                           onPressed: isSaving
@@ -469,7 +485,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                     replacementCertificate = null;
                                     removeCertificate = true;
                                   }),
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.red),
                           tooltip: 'Hapus Sertifikat',
                         ),
                       ],
@@ -660,7 +677,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          MaterialPageRoute(builder: (context) => const LandingScreen()),
           (route) => false,
         );
       }
@@ -844,7 +861,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                       onPressed: () async {
                         for (final n in _notifications) {
                           if (n['is_read'] != true && n['id'] is int) {
-                            await PPLService.markNotificationRead(n['id'] as int)
+                            await PPLService.markNotificationRead(
+                                    n['id'] as int)
                                 .catchError((_) {});
                           }
                         }
@@ -859,7 +877,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                         }
                       },
                       child: const Text('Tandai Semua Dibaca',
-                          style: TextStyle(fontSize: 11.5, color: primaryGreen)),
+                          style:
+                              TextStyle(fontSize: 11.5, color: primaryGreen)),
                     ),
                 ],
               ),
@@ -900,8 +919,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                       final createdAt = notif['created_at']?.toString() ?? '';
 
                       return ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 4),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -913,9 +931,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                           child: Icon(
                             isRead ? Icons.check : Icons.campaign_rounded,
                             size: 16,
-                            color: isRead
-                                ? const Color(0xFF94A3B8)
-                                : primaryGreen,
+                            color:
+                                isRead ? const Color(0xFF94A3B8) : primaryGreen,
                           ),
                         ),
                         title: Text(
@@ -1552,8 +1569,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 onTap: () => setState(() => _activeNav = 5),
                 borderRadius: BorderRadius.circular(6),
                 child: const Padding(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -2080,8 +2096,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.access_time_rounded,
-                  size: 22, color: primaryGreen),
+              Icon(Icons.access_time_rounded, size: 22, color: primaryGreen),
               SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -2567,15 +2582,20 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
             child: Row(
               children: [
                 _buildStagePill('1', 'Pengajuan'),
-                const Icon(Icons.chevron_right, size: 13, color: Color(0xFF94A3B8)),
+                const Icon(Icons.chevron_right,
+                    size: 13, color: Color(0xFF94A3B8)),
                 _buildStagePill('2', 'Verif Berkas'),
-                const Icon(Icons.chevron_right, size: 13, color: Color(0xFF94A3B8)),
+                const Icon(Icons.chevron_right,
+                    size: 13, color: Color(0xFF94A3B8)),
                 _buildStagePill('3', 'PPL Lapangan'),
-                const Icon(Icons.chevron_right, size: 13, color: Color(0xFF94A3B8)),
+                const Icon(Icons.chevron_right,
+                    size: 13, color: Color(0xFF94A3B8)),
                 _buildStagePill('4', 'Survei Fisik'),
-                const Icon(Icons.chevron_right, size: 13, color: Color(0xFF94A3B8)),
+                const Icon(Icons.chevron_right,
+                    size: 13, color: Color(0xFF94A3B8)),
                 _buildStagePill('5', 'Persetujuan'),
-                const Icon(Icons.chevron_right, size: 13, color: Color(0xFF94A3B8)),
+                const Icon(Icons.chevron_right,
+                    size: 13, color: Color(0xFF94A3B8)),
                 _buildStagePill('6', 'Ambil Pupuk'),
               ],
             ),
@@ -2947,9 +2967,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           const Text(
             'Survei Citra & Fisik PPL',
             style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 13),
+                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
           ),
           const SizedBox(height: 4),
           Text(
@@ -3587,8 +3605,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           height: 48,
           child: ElevatedButton.icon(
             onPressed: _handleLogout,
-            icon: const Icon(Icons.logout_rounded,
-                color: Colors.white, size: 18),
+            icon:
+                const Icon(Icons.logout_rounded, color: Colors.white, size: 18),
             label: const Text(
               'Keluar dari Akun',
               style: TextStyle(
@@ -3651,8 +3669,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           const SizedBox(height: 8),
           if (imageUrl == null)
             buildLegacyKtpCardGraphic(
-              farmerName: _farmer?.nama ?? 'Petani Terdaftar',
-              farmerNik: _farmer?.nik ?? '3516xxxxxxxxxxxx',
+              farmerName: _farmer?.nama ?? widget.user.nama,
+              farmerNik: _farmer?.nik ?? 'NIK Terdaftar',
               farmerAlamat: _farmer?.alamat ?? 'Kabupaten Mojokerto',
             )
           else
@@ -3662,9 +3680,10 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 imageUrl,
                 height: 190,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => buildLegacyKtpCardGraphic(
-                  farmerName: _farmer?.nama ?? 'Petani Terdaftar',
-                  farmerNik: _farmer?.nik ?? '3516xxxxxxxxxxxx',
+                errorBuilder: (context, error, stackTrace) =>
+                    buildLegacyKtpCardGraphic(
+                  farmerName: _farmer?.nama ?? widget.user.nama,
+                  farmerNik: _farmer?.nik ?? 'NIK Terdaftar',
                   farmerAlamat: _farmer?.alamat ?? 'Kabupaten Mojokerto',
                 ),
               ),
@@ -3817,15 +3836,15 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                               isBold: true),
                           const SizedBox(height: 2),
                           _ktpTextRow(
-                              'Tempat/Tgl Lahir', 'MOJOKERTO, 12-08-1983'),
+                              'Domisili', 'KABUPATEN MOJOKERTO'),
                           const SizedBox(height: 2),
                           _ktpTextRow('Jenis Kelamin', 'LAKI-LAKI'),
                           const SizedBox(height: 2),
-                          _ktpTextRow('Alamat', 'DSN. KEBONDALEM RT 02 RW 01'),
+                          _ktpTextRow('Alamat', farmerAlamat.toUpperCase()),
                           const SizedBox(height: 1),
-                          _ktpSubTextRow('Kel/Desa', 'KEBONDALEM'),
+                          _ktpSubTextRow('Kabupaten', 'MOJOKERTO'),
                           const SizedBox(height: 1),
-                          _ktpSubTextRow('Kecamatan', 'MOJOSARI'),
+                          _ktpSubTextRow('Provinsi', 'JAWA TIMUR'),
                           const SizedBox(height: 2),
                           _ktpTextRow('Agama', 'ISLAM'),
                           const SizedBox(height: 2),
@@ -4113,9 +4132,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                   const Text(
                     'Data petak sawah terdaftar & status verifikasi PPL',
                     style: TextStyle(
-                        color: Color(0xFF64748B),
-                        fontSize: 10.5,
-                        height: 1.25),
+                        color: Color(0xFF64748B), fontSize: 10.5, height: 1.25),
                   ),
                 ],
               ),
@@ -5351,8 +5368,10 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                   color: const Color(0xFFDCFCE7),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Icon(Icons.add_location_alt_rounded,
-                                    color: primaryGreen, size: 20),
+                                child: const Icon(
+                                    Icons.add_location_alt_rounded,
+                                    color: primaryGreen,
+                                    size: 20),
                               ),
                               const SizedBox(width: 10),
                               const Expanded(
@@ -5901,7 +5920,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                                   (value) => setDlgState(() =>
                                                       isUploadingCertificate =
                                                           value),
-                                                  directSource: ImageSource.camera,
+                                                  directSource:
+                                                      ImageSource.camera,
                                                 );
                                               },
                                             ),
@@ -5934,7 +5954,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                                   (value) => setDlgState(() =>
                                                       isUploadingCertificate =
                                                           value),
-                                                  directSource: ImageSource.gallery,
+                                                  directSource:
+                                                      ImageSource.gallery,
                                                 );
                                               },
                                             ),
@@ -5949,7 +5970,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                                     color: Color(0xFFD97706),
                                                     size: 18),
                                               ),
-                                              title: const Text('SPPT PBB / Girik / SHM',
+                                              title: const Text(
+                                                  'SPPT PBB / Girik / SHM',
                                                   style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.bold,
@@ -5980,9 +6002,11 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                               ? const SizedBox(
                                   width: 16,
                                   height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : const Icon(Icons.description_outlined, size: 18),
+                              : const Icon(Icons.description_outlined,
+                                  size: 18),
                           label: Text(
                             isUploadingCertificate
                                 ? 'Mengunggah dokumen...'
@@ -6356,28 +6380,36 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.qr_code_scanner_outlined, color: Colors.white70, size: 40),
+                              const Icon(Icons.qr_code_scanner_outlined,
+                                  color: Colors.white70, size: 40),
                               const SizedBox(height: 8),
                               const Text(
                                 'Kamera belum aktif atau izin belum diberikan.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white, fontSize: 12),
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 12),
                               ),
                               const SizedBox(height: 12),
-                              if (_selectedDistribution?.qrCodeHash.isNotEmpty ?? false)
+                              if (_selectedDistribution
+                                      ?.qrCodeHash.isNotEmpty ??
+                                  false)
                                 ElevatedButton.icon(
                                   onPressed: () {
                                     setState(() {
-                                      _scanQrToken = _selectedDistribution!.qrCodeHash;
+                                      _scanQrToken =
+                                          _selectedDistribution!.qrCodeHash;
                                       _scanError = null;
                                     });
                                   },
-                                  icon: const Icon(Icons.check_circle_outline, size: 16),
-                                  label: const Text('Gunakan QR Karung Terpilih'),
+                                  icon: const Icon(Icons.check_circle_outline,
+                                      size: 16),
+                                  label:
+                                      const Text('Gunakan QR Karung Terpilih'),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: primaryGreen,
                                     foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
                                   ),
                                 ),
                               const SizedBox(height: 6),
@@ -6387,8 +6419,11 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                     _qrScannerController.start();
                                   } catch (_) {}
                                 },
-                                icon: const Icon(Icons.refresh, size: 14, color: Colors.white70),
-                                label: const Text('Coba Hidupkan Kamera Lagi', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                icon: const Icon(Icons.refresh,
+                                    size: 14, color: Colors.white70),
+                                label: const Text('Coba Hidupkan Kamera Lagi',
+                                    style: TextStyle(
+                                        color: Colors.white70, fontSize: 11)),
                               ),
                             ],
                           ),
@@ -6410,7 +6445,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                       } catch (_) {}
                     },
                     icon: const Icon(Icons.qr_code_2, size: 18),
-                    label: const Text('Gunakan QR Karung Terpilih (Tanpa Kamera)'),
+                    label:
+                        const Text('Gunakan QR Karung Terpilih (Tanpa Kamera)'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: primaryGreen,
                       side: const BorderSide(color: primaryGreen),

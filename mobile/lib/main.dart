@@ -8,7 +8,7 @@ import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Cek apakah user sudah pernah login sebelumnya
   final currentUser = await AuthService.getCurrentUser();
 
@@ -43,6 +43,9 @@ class EPupukApp extends StatelessWidget {
         fontFamily: 'sans-serif',
       ),
       home: _getHome(),
+      routes: {
+        '/landing': (context) => const LandingScreen(),
+      },
     );
   }
 }
