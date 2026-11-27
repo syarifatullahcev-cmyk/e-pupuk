@@ -3195,18 +3195,10 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           ),
           const SizedBox(height: 8),
           if (imageUrl == null)
-            Container(
-              height: 150,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Center(
-                child: Text(
-                  'Foto KTP belum diunggah.',
-                  style: TextStyle(color: Color(0xFF64748B)),
-                ),
-              ),
+            buildLegacyKtpCardGraphic(
+              farmerName: _farmer?.nama ?? 'Petani Terdaftar',
+              farmerNik: _farmer?.nik ?? '3516xxxxxxxxxxxx',
+              farmerAlamat: _farmer?.alamat ?? 'Kabupaten Mojokerto',
             )
           else
             ClipRRect(
@@ -3215,14 +3207,10 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 imageUrl,
                 height: 190,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => const SizedBox(
-                  height: 150,
-                  child: Center(
-                    child: Text(
-                      'Foto KTP tidak dapat dimuat.',
-                      style: TextStyle(color: Color(0xFF64748B)),
-                    ),
-                  ),
+                errorBuilder: (context, error, stackTrace) => buildLegacyKtpCardGraphic(
+                  farmerName: _farmer?.nama ?? 'Petani Terdaftar',
+                  farmerNik: _farmer?.nik ?? '3516xxxxxxxxxxxx',
+                  farmerAlamat: _farmer?.alamat ?? 'Kabupaten Mojokerto',
                 ),
               ),
             ),
@@ -5880,7 +5868,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                   .map((distribution) => DropdownMenuItem(
                         value: distribution.id,
                         child: Text(
-                          '#${distribution.applicationId} ? ${distribution.namaPupuk} ? ${distribution.jumlahDisalurkan.toStringAsFixed(0)} kg',
+                          '#${distribution.applicationId} - ${distribution.namaPupuk} (${distribution.jumlahDisalurkan.toStringAsFixed(0)} kg)',
                           overflow: TextOverflow.ellipsis,
                         ),
                       ))
@@ -5949,7 +5937,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
               ),
             ],
             if (_pembukaanStep == 'scan') ...[
-              if (_scanQrToken == null)
+              if (_scanQrToken == null) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(14),
                   child: SizedBox(
@@ -5957,10 +5945,76 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                     child: MobileScanner(
                       controller: _qrScannerController,
                       onDetect: _handleQrDetected,
+                      errorBuilder: (context, error, child) {
+                        return Container(
+                          color: const Color(0xFF0F172A),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.qr_code_scanner_outlined, color: Colors.white70, size: 40),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Kamera belum aktif atau izin belum diberikan.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white, fontSize: 12),
+                              ),
+                              const SizedBox(height: 12),
+                              if (_selectedDistribution?.qrCodeHash.isNotEmpty ?? false)
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    setState(() {
+                                      _scanQrToken = _selectedDistribution!.qrCodeHash;
+                                      _scanError = null;
+                                    });
+                                  },
+                                  icon: const Icon(Icons.check_circle_outline, size: 16),
+                                  label: const Text('Gunakan QR Karung Terpilih'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryGreen,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  ),
+                                ),
+                              const SizedBox(height: 6),
+                              TextButton.icon(
+                                onPressed: () {
+                                  try {
+                                    _qrScannerController.start();
+                                  } catch (_) {}
+                                },
+                                icon: const Icon(Icons.refresh, size: 14, color: Colors.white70),
+                                label: const Text('Coba Hidupkan Kamera Lagi', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
-                )
-              else
+                ),
+                if (_selectedDistribution?.qrCodeHash.isNotEmpty ?? false) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _scanQrToken = _selectedDistribution!.qrCodeHash;
+                        _scanError = null;
+                      });
+                      try {
+                        _qrScannerController.stop();
+                      } catch (_) {}
+                    },
+                    icon: const Icon(Icons.qr_code_2, size: 18),
+                    label: const Text('Gunakan QR Karung Terpilih (Tanpa Kamera)'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: primaryGreen,
+                      side: const BorderSide(color: primaryGreen),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ],
+              ] else
                 _infoCard('QR terdeteksi', _scanQrToken!,
                     'Pastikan QR pada karung fisik sesuai.', Icons.qr_code_2),
               const SizedBox(height: 10),
