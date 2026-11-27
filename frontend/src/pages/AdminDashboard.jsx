@@ -420,6 +420,14 @@ export default function AdminDashboard() {
       }
       toast.success(`Akun petani ${farmer.nama} berhasil dihapus.`, { id: toastId });
     } catch (err) {
+      if (err.response?.status === 404) {
+        await fetchData();
+        if (selectedFarmerDetail?.id === farmer.id) {
+          setSelectedFarmerDetail(null);
+        }
+        toast.success(`Data petani ${farmer.nama} sudah dibersihkan dari server.`, { id: toastId });
+        return;
+      }
       const msg = err.response?.data?.detail || err.message || 'Gagal menghapus akun petani.';
       toast.error(msg, { id: toastId });
     }

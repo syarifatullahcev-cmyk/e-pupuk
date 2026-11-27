@@ -368,7 +368,15 @@ def delete_farmer(
 ):
     farmer = db.query(Farmer).filter(Farmer.id == id).first()
     if not farmer:
-        raise HTTPException(status_code=404, detail="Data petani tidak ditemukan")
+        # Jika data petani sudah terhapus atau ID merujuk ke User
+        user = db.query(User).filter(User.id == id).first()
+        if user:
+            db.query(Notification).filter(Notification.user_id == id).delete(synchronize_session=False)
+            db.query(AuditLog).filter(AuditLog.user_id == id).update({AuditLog.user_id: None}, synchronize_session=False)
+            db.delete(user)
+            db.commit()
+            return {"success": True, "message": f"Akun user ID {id} berhasil dibersihkan"}
+        return {"success": True, "message": f"Data petani ID {id} sudah tidak ada di database"}
 
     user_id = farmer.user_id
     farmer_nama = farmer.nama or f"Petani ID {id}"
