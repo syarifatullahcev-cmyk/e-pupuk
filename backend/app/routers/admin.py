@@ -371,46 +371,66 @@ def delete_farmer(
         raise HTTPException(status_code=404, detail="Data petani tidak ditemukan")
 
     user_id = farmer.user_id
+    farmer_nama = farmer.nama or f"Petani ID {id}"
 
-    # 1. Hapus QR scans terkait
-    db.query(QRScan).filter(QRScan.farmer_id == id).delete(synchronize_session=False)
+    try:
+        # 1. Dapatkan semua pengajuan terkait petani ini
+        apps = db.query(Application).filter(Application.farmer_id == id).all()
+        app_ids = [a.id for a in apps]
 
-    # 2. Hapus distributions & surveys terkait pengajuan
-    apps = db.query(Application).filter(Application.farmer_id == id).all()
-    app_ids = [a.id for a in apps]
-    if app_ids:
-        # Hapus distributions
-        db.query(Distribution).filter(Distribution.application_id.in_(app_ids)).delete(synchronize_session=False)
-        # Hapus field_surveys
-        db.query(FieldSurvey).filter(FieldSurvey.application_id.in_(app_ids)).delete(synchronize_session=False)
-        # Hapus applications
-        db.query(Application).filter(Application.farmer_id == id).delete(synchronize_session=False)
+        # 2. Dapatkan semua ID distribusi terkait pengajuan petani
+        dist_ids = []
+        if app_ids:
+            dists = db.query(Distribution.id).filter(Distribution.application_id.in_(app_ids)).all()
+            dist_ids = [d[0] for d in dists]
 
-    # 3. Hapus lands
-    db.query(Land).filter(Land.farmer_id == id).delete(synchronize_session=False)
+        # 3. Hapus QR scans (baik yang terkait distribusi pupuk petani, maupun yang discan oleh user petani ini)
+        if dist_ids and user_id:
+            db.query(QRScan).filter((QRScan.distribution_id.in_(dist_ids)) | (QRScan.scanner_user_id == user_id)).delete(synchronize_session=False)
+        elif dist_ids:
+            db.query(QRScan).filter(QRScan.distribution_id.in_(dist_ids)).delete(synchronize_session=False)
+        elif user_id:
+            db.query(QRScan).filter(QRScan.scanner_user_id == user_id).delete(synchronize_session=False)
 
-    # 4. Hapus farmer profile
-    db.delete(farmer)
+        # 4. Hapus distributions & surveys terkait pengajuan
+        if app_ids:
+            db.query(Distribution).filter(Distribution.application_id.in_(app_ids)).delete(synchronize_session=False)
+            db.query(FieldSurvey).filter(FieldSurvey.application_id.in_(app_ids)).delete(synchronize_session=False)
+            db.query(Application).filter(Application.farmer_id == id).delete(synchronize_session=False)
 
-    # 5. Hapus user account jika ada
-    if user_id:
-        db.query(Notification).filter(Notification.user_id == user_id).delete(synchronize_session=False)
-        user = db.query(User).filter(User.id == user_id).first()
-        if user:
-            db.delete(user)
+        # 5. Hapus lahan milik petani
+        db.query(Land).filter(Land.farmer_id == id).delete(synchronize_session=False)
 
-    db.commit()
+        # 6. Hapus notifikasi & lepaskan relasi audit log milik user ini jika ada
+        if user_id:
+            db.query(Notification).filter(Notification.user_id == user_id).delete(synchronize_session=False)
+            db.query(AuditLog).filter(AuditLog.user_id == user_id).update({AuditLog.user_id: None}, synchronize_session=False)
 
-    log_audit_action(
-        db,
-        user_id=current_user.id,
-        action="DELETE_FARMER",
-        resource="farmers",
-        resource_id=id,
-        details=f"Admin {current_user.username} menghapus akun petani ID {id}"
-    )
+        # 7. Hapus farmer profile
+        db.delete(farmer)
 
-    return {"success": True, "message": f"Akun petani ID {id} beserta data terkait berhasil dihapus"}
+        # 8. Hapus user account jika ada
+        if user_id:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                db.delete(user)
+
+        db.commit()
+
+        log_audit_action(
+            db,
+            user_id=current_user.id,
+            action="DELETE_FARMER",
+            resource="farmers",
+            resource_id=id,
+            details=f"Admin {current_user.username} menghapus akun petani {farmer_nama} (ID {id})"
+        )
+
+        return {"success": True, "message": f"Akun petani {farmer_nama} beserta data terkait berhasil dihapus"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Gagal menghapus data petani: {str(e)}")
 
 @router.delete("/distributions/{id}")
 def delete_distribution(
@@ -422,18 +442,23 @@ def delete_distribution(
     if not dist:
         raise HTTPException(status_code=404, detail="Data distribusi QR tidak ditemukan")
 
-    db.query(QRScan).filter(QRScan.distribution_id == id).delete(synchronize_session=False)
-    db.delete(dist)
-    db.commit()
+    try:
+        # Hapus scan terkait QR ini
+        db.query(QRScan).filter(QRScan.distribution_id == id).delete(synchronize_session=False)
+        db.delete(dist)
+        db.commit()
 
-    log_audit_action(
-        db,
-        user_id=current_user.id,
-        action="DELETE_DISTRIBUTION_QR",
-        resource="distributions",
-        resource_id=id,
-        details=f"Admin {current_user.username} membatalkan / menghapus QR distribusi ID {id}"
-    )
+        log_audit_action(
+            db,
+            user_id=current_user.id,
+            action="DELETE_DISTRIBUTION_QR",
+            resource="distributions",
+            resource_id=id,
+            details=f"Admin {current_user.username} membatalkan / menghapus QR distribusi ID {id}"
+        )
 
-    return {"success": True, "message": f"Kode QR alokasi pupuk ID {id} berhasil dibatalkan dan dihapus"}
+        return {"success": True, "message": f"Kode QR alokasi pupuk ID {id} berhasil dibatalkan dan dihapus"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Gagal menghapus QR karung: {str(e)}")
 

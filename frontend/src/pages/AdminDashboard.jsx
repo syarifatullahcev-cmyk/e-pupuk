@@ -420,7 +420,8 @@ export default function AdminDashboard() {
       }
       toast.success(`Akun petani ${farmer.nama} berhasil dihapus.`, { id: toastId });
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Gagal menghapus akun petani.', { id: toastId });
+      const msg = err.response?.data?.detail || err.message || 'Gagal menghapus akun petani.';
+      toast.error(msg, { id: toastId });
     }
   };
 
