@@ -66,6 +66,8 @@ export const adminApi = {
   assignPpl: (id, data) => api.post(`/api/admin/applications/${id}/assign-ppl`, data),
   finalApprove: (id, data) => api.post(`/api/admin/applications/${id}/final-approve`, data),
   getAuditLogs: () => api.get('/api/admin/audit-logs'),
+  deleteFarmer: (id) => api.delete(`/api/admin/farmers/${id}`),
+  deleteDistribution: (id) => api.delete(`/api/admin/distributions/${id}`),
 };
 
 export const pplApi = {

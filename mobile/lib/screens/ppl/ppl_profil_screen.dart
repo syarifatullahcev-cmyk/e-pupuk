@@ -169,7 +169,7 @@ class PPLProfilScreen extends StatelessWidget {
                       Icons.sync, 'Status Sinkronisasi', 'Online • Otomatis'),
                   const Divider(height: 1, color: AppTheme.borderSubtle),
                   _buildSettingTile(Icons.info_outline, 'Versi Aplikasi',
-                      'e-Pupuk Mobile v2.5.0 Pro'),
+                      'e-Pupuk Mobile v2.5.1 Pro'),
                 ],
               ),
             ),

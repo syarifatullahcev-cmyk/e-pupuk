@@ -520,8 +520,8 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                   options: MapOptions(
                     initialCenter: _petaniLocation,
                     initialZoom: 17.5,
-                    maxZoom: 18.5,
-                    minZoom: 12.0,
+                    maxZoom: 20.0,
+                    minZoom: 10.0,
                   ),
                   children: [
                     TileLayer(
@@ -529,7 +529,7 @@ class _PPLPetaLahanScreenState extends State<PPLPetaLahanScreen> {
                           ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
                           : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       maxNativeZoom: 18,
-                      maxZoom: 18.5,
+                      maxZoom: 22.0,
                       userAgentPackageName: 'com.epupuk.mobile',
                       errorTileCallback: (tile, error, stackTrace) {
                         // Graceful handling jika koneksi tile terganggu

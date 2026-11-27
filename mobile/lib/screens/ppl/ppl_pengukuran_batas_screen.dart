@@ -142,7 +142,7 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
         _deviceLocation = pos;
         _deviceAccuracy = result.accuracy;
 
-        if (addNewPoint) {
+        if (addNewPoint || _points.isEmpty) {
           final int nextNum = _points.length + 1;
           _points.add(BoundaryPointItem(
             code: 'P$nextNum',
@@ -681,9 +681,9 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
                 mapController: _mapController,
                 options: MapOptions(
                   initialCenter: LatLng(_task.latitude, _task.longitude),
-                  initialZoom: 17.6,
-                  maxZoom: 18.5,
-                  minZoom: 12.0,
+                  initialZoom: 17.5,
+                  maxZoom: 20.0,
+                  minZoom: 10.0,
                 ),
                 children: [
                   TileLayer(
@@ -691,7 +691,7 @@ class _PPLPengukuranBatasScreenState extends State<PPLPengukuranBatasScreen> {
                         ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
                         : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     maxNativeZoom: 18,
-                    maxZoom: 18.5,
+                    maxZoom: 22.0,
                     userAgentPackageName: 'com.epupuk.mobile',
                     errorTileCallback: (tile, error, stackTrace) {
                       // Graceful handling jika tile offline atau status 400

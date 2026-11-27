@@ -222,14 +222,22 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
     );
   }
 
+  String get _currentHeaderTitle {
+    if (_bottomNavIndex == 4 || _activeNav == 1) return 'Profil Saya';
+    if (_bottomNavIndex == 1 || _activeNav == 2) return 'Data Lahan';
+    if (_bottomNavIndex == 2 || _activeNav == 6) return 'Scan QR Pupuk';
+    if (_bottomNavIndex == 3 || _activeNav == 4) return 'Status Pengajuan';
+    if (_activeNav == 3) return 'Pengajuan Subsidi';
+    if (_activeNav == 5) return 'Kuota Pupuk';
+    if (_activeNav == 7) return 'Riwayat Pembukaan';
+    return 'Beranda';
+  }
+
   Future<void> _pickAndSaveKtpPhoto() async {
     final farmer = _farmer;
     if (farmer == null) return;
 
-    final image = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
+    final image = await _pickImageWithSourceChoice(context);
     if (image == null || !mounted) return;
 
     final upload = await SubsidyService.uploadImage(image, 'ktp');
@@ -269,12 +277,18 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
     StateSetter setDialogState,
     BuildContext dialogContext,
     TextEditingController certificateController,
-    void Function(bool) setUploading,
-  ) async {
-    final image = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
+    void Function(bool) setUploading, {
+    ImageSource? directSource,
+  }) async {
+    final XFile? image;
+    if (directSource != null) {
+      image = await _imagePicker.pickImage(
+        source: directSource,
+        imageQuality: 85,
+      );
+    } else {
+      image = await _pickImageWithSourceChoice(dialogContext);
+    }
     if (image == null || !dialogContext.mounted) return;
 
     setUploading(true);
@@ -417,43 +431,48 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                     icon: const Icon(Icons.image_outlined),
                     label: const Text('Pilih / Ganti Foto Lahan'),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 10),
                   Text(
                     'Sertifikat: ${removeCertificate ? 'Akan dihapus' : replacementCertificate?.name ?? land.dokumenSertifikatUrl?.split('/').last ?? 'Belum ada'}',
                     style: const TextStyle(fontSize: 12),
                   ),
-                  Wrap(
-                    alignment: WrapAlignment.end,
-                    spacing: 8,
+                  const SizedBox(height: 4),
+                  Row(
                     children: [
-                      TextButton(
-                        onPressed: isSaving
-                            ? null
-                            : () async {
-                                final image = await _imagePicker.pickImage(
-                                  source: ImageSource.gallery,
-                                  imageQuality: 85,
-                                );
-                                if (image != null && sheetContext.mounted) {
-                                  setSheetState(() {
-                                    replacementCertificate = image;
-                                    removeCertificate = false;
-                                  });
-                                }
-                              },
-                        child: const Text('Pilih Sertifikat / SPPT'),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: isSaving
+                              ? null
+                              : () async {
+                                  final image =
+                                      await _pickImageWithSourceChoice(sheetContext);
+                                  if (image != null && sheetContext.mounted) {
+                                    setSheetState(() {
+                                      replacementCertificate = image;
+                                      removeCertificate = false;
+                                    });
+                                  }
+                                },
+                          icon: const Icon(Icons.description_outlined, size: 18),
+                          label: const Text('Pilih / Ganti Sertifikat'),
+                          style: OutlinedButton.styleFrom(
+                            alignment: Alignment.centerLeft,
+                          ),
+                        ),
                       ),
-                      if (land.dokumenSertifikatUrl != null &&
-                          !removeCertificate)
-                        TextButton(
+                      if (land.dokumenSertifikatUrl != null && !removeCertificate) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
                           onPressed: isSaving
                               ? null
                               : () => setSheetState(() {
                                     replacementCertificate = null;
                                     removeCertificate = true;
                                   }),
-                          child: const Text('Hapus Sertifikat'),
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          tooltip: 'Hapus Sertifikat',
                         ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -666,16 +685,16 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
         child: Container(color: const Color(0xFFF1F5F9), height: 1),
       ),
       titleSpacing: 16,
-      title: const Row(
+      title: Row(
         children: [
           // Logo Resmi E-Pupuk Sprout
-          AppLogo(size: 36, borderRadius: 10),
-          SizedBox(width: 10),
+          const AppLogo(size: 36, borderRadius: 10),
+          const SizedBox(width: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
+              const Text(
                 'E-PUPUK • KAB. MOJOKERTO',
                 style: TextStyle(
                   fontSize: 10,
@@ -685,8 +704,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                 ),
               ),
               Text(
-                'Beranda',
-                style: TextStyle(
+                _currentHeaderTitle,
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: textDark,
@@ -5807,10 +5826,8 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                         ),
                         const SizedBox(height: 8),
                       ] else ...[
-                        // Selector button
-                        InkWell(
-                          borderRadius: BorderRadius.circular(10),
-                          onTap: isUploadingCertificate
+                        OutlinedButton.icon(
+                          onPressed: isUploadingCertificate
                               ? null
                               : () {
                                   showModalBottomSheet(
@@ -5849,108 +5866,12 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                             ),
                                             const SizedBox(height: 4),
                                             const Text(
-                                              'Pilih berkas sertifikat atau bukti SPPT PBB untuk diverifikasi Admin:',
+                                              'Pilih foto bukti sertifikat atau SPPT PBB asli:',
                                               style: TextStyle(
                                                   color: Color(0xFF64748B),
                                                   fontSize: 11),
                                             ),
                                             const SizedBox(height: 12),
-                                            ListTile(
-                                              dense: true,
-                                              leading: const CircleAvatar(
-                                                backgroundColor:
-                                                    Color(0xFFEFF6FF),
-                                                child: Icon(
-                                                    Icons
-                                                        .picture_as_pdf_rounded,
-                                                    color: Color(0xFF2563EB),
-                                                    size: 18),
-                                              ),
-                                              title: const Text(
-                                                  'Sertifikat Hak Milik (SHM)',
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 12)),
-                                              subtitle: const Text(
-                                                  'Pilih foto dokumen asli',
-                                                  style: TextStyle(
-                                                      fontSize: 10.5)),
-                                              onTap: () async {
-                                                Navigator.pop(bCtx);
-                                                await _pickCertificateImage(
-                                                  setDlgState,
-                                                  context,
-                                                  sertifikatCtrl,
-                                                  (value) => setDlgState(() =>
-                                                      isUploadingCertificate =
-                                                          value),
-                                                );
-                                              },
-                                            ),
-                                            ListTile(
-                                              dense: true,
-                                              leading: const CircleAvatar(
-                                                backgroundColor:
-                                                    Color(0xFFFEF3C7),
-                                                child: Icon(
-                                                    Icons.receipt_long_rounded,
-                                                    color: Color(0xFFD97706),
-                                                    size: 18),
-                                              ),
-                                              title: const Text('SPPT PBB',
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 12)),
-                                              subtitle: const Text(
-                                                  'Pilih foto dokumen asli',
-                                                  style: TextStyle(
-                                                      fontSize: 10.5)),
-                                              onTap: () async {
-                                                Navigator.pop(bCtx);
-                                                await _pickCertificateImage(
-                                                  setDlgState,
-                                                  context,
-                                                  sertifikatCtrl,
-                                                  (value) => setDlgState(() =>
-                                                      isUploadingCertificate =
-                                                          value),
-                                                );
-                                              },
-                                            ),
-                                            ListTile(
-                                              dense: true,
-                                              leading: const CircleAvatar(
-                                                backgroundColor:
-                                                    Color(0xFFF1F5F9),
-                                                child: Icon(
-                                                    Icons.description_outlined,
-                                                    color: Color(0xFF475569),
-                                                    size: 18),
-                                              ),
-                                              title: const Text(
-                                                  'Surat Girik / Letter C Desa',
-                                                  style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 12)),
-                                              subtitle: const Text(
-                                                  'Pilih foto dokumen asli',
-                                                  style: TextStyle(
-                                                      fontSize: 10.5)),
-                                              onTap: () async {
-                                                Navigator.pop(bCtx);
-                                                await _pickCertificateImage(
-                                                  setDlgState,
-                                                  context,
-                                                  sertifikatCtrl,
-                                                  (value) => setDlgState(() =>
-                                                      isUploadingCertificate =
-                                                          value),
-                                                );
-                                              },
-                                            ),
                                             ListTile(
                                               dense: true,
                                               leading: const CircleAvatar(
@@ -5962,13 +5883,79 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                                     size: 18),
                                               ),
                                               title: const Text(
-                                                  'Pilih Foto Dokumen dari Galeri',
+                                                  'Foto Langsung dari Kamera',
                                                   style: TextStyle(
                                                       fontWeight:
                                                           FontWeight.bold,
                                                       fontSize: 12)),
                                               subtitle: const Text(
-                                                  'Foto sertifikat atau bukti SPPT',
+                                                  'Buka kamera dan foto dokumen sertifikat fisik',
+                                                  style: TextStyle(
+                                                      fontSize: 10.5)),
+                                              onTap: () async {
+                                                Navigator.pop(bCtx);
+                                                await _pickCertificateImage(
+                                                  setDlgState,
+                                                  context,
+                                                  sertifikatCtrl,
+                                                  (value) => setDlgState(() =>
+                                                      isUploadingCertificate =
+                                                          value),
+                                                  directSource: ImageSource.camera,
+                                                );
+                                              },
+                                            ),
+                                            ListTile(
+                                              dense: true,
+                                              leading: const CircleAvatar(
+                                                backgroundColor:
+                                                    Color(0xFFEFF6FF),
+                                                child: Icon(
+                                                    Icons.photo_library_rounded,
+                                                    color: Color(0xFF2563EB),
+                                                    size: 18),
+                                              ),
+                                              title: const Text(
+                                                  'Pilih Foto dari Galeri HP',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 12)),
+                                              subtitle: const Text(
+                                                  'Ambil foto sertifikat/SPPT yang tersimpan di HP',
+                                                  style: TextStyle(
+                                                      fontSize: 10.5)),
+                                              onTap: () async {
+                                                Navigator.pop(bCtx);
+                                                await _pickCertificateImage(
+                                                  setDlgState,
+                                                  context,
+                                                  sertifikatCtrl,
+                                                  (value) => setDlgState(() =>
+                                                      isUploadingCertificate =
+                                                          value),
+                                                  directSource: ImageSource.gallery,
+                                                );
+                                              },
+                                            ),
+                                            const Divider(height: 12),
+                                            ListTile(
+                                              dense: true,
+                                              leading: const CircleAvatar(
+                                                backgroundColor:
+                                                    Color(0xFFFEF3C7),
+                                                child: Icon(
+                                                    Icons.receipt_long_rounded,
+                                                    color: Color(0xFFD97706),
+                                                    size: 18),
+                                              ),
+                                              title: const Text('SPPT PBB / Girik / SHM',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 12)),
+                                              subtitle: const Text(
+                                                  'Pilih jenis dokumen kepemilikan lain',
                                                   style: TextStyle(
                                                       fontSize: 10.5)),
                                               onTap: () async {
@@ -5989,39 +5976,22 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
                                     ),
                                   );
                                 },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(10),
-                              border:
-                                  Border.all(color: const Color(0xFFCBD5E1)),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                isUploadingCertificate
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2),
-                                      )
-                                    : const Icon(Icons.upload_file_rounded,
-                                        size: 18, color: primaryGreen),
-                                const SizedBox(width: 8),
-                                Text(
-                                  isUploadingCertificate
-                                      ? 'Mengunggah dokumen...'
-                                      : 'Pilih foto bukti sertifikat / SPPT',
-                                  style: const TextStyle(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: primaryGreen),
-                                ),
-                              ],
-                            ),
+                          icon: isUploadingCertificate
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.description_outlined, size: 18),
+                          label: Text(
+                            isUploadingCertificate
+                                ? 'Mengunggah dokumen...'
+                                : 'Pilih foto bukti sertifikat / SPPT',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            alignment: Alignment.centerLeft,
+                            minimumSize: const Size(double.infinity, 44),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -6290,6 +6260,7 @@ class _PetaniDashboardScreenState extends State<PetaniDashboardScreen> {
           else ...[
             DropdownButtonFormField<int>(
               initialValue: selectedId,
+              isExpanded: true,
               decoration: InputDecoration(
                 labelText: 'Pilih karung pupuk',
                 border:

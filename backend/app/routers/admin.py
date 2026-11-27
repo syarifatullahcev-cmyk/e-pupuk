@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role, log_audit_action
 from app.models.models import (
     User, Farmer, Land, Application, ApplicationStatus, Fertilizer,
-    Distribution, Notification, AuditLog, FieldSurvey, FertilizerBatch
+    Distribution, Notification, AuditLog, FieldSurvey, FertilizerBatch, QRScan
 )
 from app.schemas.schemas import (
     DashboardStatsAdmin, ApplicationResponse, DistributionResponse,
@@ -359,3 +359,81 @@ def get_audit_logs(
     db: Session = Depends(get_db)
 ):
     return db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit).all()
+
+@router.delete("/farmers/{id}")
+def delete_farmer(
+    id: int,
+    current_user: User = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    farmer = db.query(Farmer).filter(Farmer.id == id).first()
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Data petani tidak ditemukan")
+
+    user_id = farmer.user_id
+
+    # 1. Hapus QR scans terkait
+    db.query(QRScan).filter(QRScan.farmer_id == id).delete(synchronize_session=False)
+
+    # 2. Hapus distributions & surveys terkait pengajuan
+    apps = db.query(Application).filter(Application.farmer_id == id).all()
+    app_ids = [a.id for a in apps]
+    if app_ids:
+        # Hapus distributions
+        db.query(Distribution).filter(Distribution.application_id.in_(app_ids)).delete(synchronize_session=False)
+        # Hapus field_surveys
+        db.query(FieldSurvey).filter(FieldSurvey.application_id.in_(app_ids)).delete(synchronize_session=False)
+        # Hapus applications
+        db.query(Application).filter(Application.farmer_id == id).delete(synchronize_session=False)
+
+    # 3. Hapus lands
+    db.query(Land).filter(Land.farmer_id == id).delete(synchronize_session=False)
+
+    # 4. Hapus farmer profile
+    db.delete(farmer)
+
+    # 5. Hapus user account jika ada
+    if user_id:
+        db.query(Notification).filter(Notification.user_id == user_id).delete(synchronize_session=False)
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            db.delete(user)
+
+    db.commit()
+
+    log_audit_action(
+        db,
+        user_id=current_user.id,
+        action="DELETE_FARMER",
+        resource="farmers",
+        resource_id=id,
+        details=f"Admin {current_user.username} menghapus akun petani ID {id}"
+    )
+
+    return {"success": True, "message": f"Akun petani ID {id} beserta data terkait berhasil dihapus"}
+
+@router.delete("/distributions/{id}")
+def delete_distribution(
+    id: int,
+    current_user: User = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db)
+):
+    dist = db.query(Distribution).filter(Distribution.id == id).first()
+    if not dist:
+        raise HTTPException(status_code=404, detail="Data distribusi QR tidak ditemukan")
+
+    db.query(QRScan).filter(QRScan.distribution_id == id).delete(synchronize_session=False)
+    db.delete(dist)
+    db.commit()
+
+    log_audit_action(
+        db,
+        user_id=current_user.id,
+        action="DELETE_DISTRIBUTION_QR",
+        resource="distributions",
+        resource_id=id,
+        details=f"Admin {current_user.username} membatalkan / menghapus QR distribusi ID {id}"
+    )
+
+    return {"success": True, "message": f"Kode QR alokasi pupuk ID {id} berhasil dibatalkan dan dihapus"}
+
